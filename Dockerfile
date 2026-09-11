@@ -7,6 +7,12 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN tar -xzf christian-content-ai-studio-v59-railway-ready.tar.gz && \
+    if [ ! -d "./app" ]; then \
+        APP_DIR=$(find . -maxdepth 3 -type d -name "app" -not -path "./app" | head -n 1); \
+        if [ -n "$APP_DIR" ]; then mv "$APP_DIR" ./app; fi; \
+    fi && \
+    rm -f *.tar.gz *.tar-*.gz *.zip
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
