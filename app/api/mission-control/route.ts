@@ -1,0 +1,5 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { buildMissionControlSnapshot, saveMissionControlSnapshot, validateMissionControlSnapshot } from '@/lib/mission-control'
+function authorized(req: NextRequest) { const secret = process.env.CRON_SECRET; return Boolean(secret && req.headers.get('authorization') === `Bearer ${secret}`) }
+export async function GET(req: NextRequest) { if (!authorized(req)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 }); const snapshot = await buildMissionControlSnapshot(); return NextResponse.json({ ok: true, snapshot }) }
+export async function POST(req: NextRequest) { if (!authorized(req)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 }); const snapshot = await buildMissionControlSnapshot(); if (!validateMissionControlSnapshot(snapshot)) return NextResponse.json({ ok: false, error: 'Mission Control validation failed.' }, { status: 422 }); await saveMissionControlSnapshot(snapshot); return NextResponse.json({ ok: true, snapshot }) }

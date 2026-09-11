@@ -1,0 +1,5 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { buildAgentSupervisorSnapshot, saveAgentSupervisorSnapshot, validateAgentSupervisorSnapshot } from '@/lib/agent-supervisor'
+function authorized(req: NextRequest) { const secret=process.env.CRON_SECRET; return Boolean(secret && req.headers.get('authorization')===`Bearer ${secret}`) }
+export async function GET(req: NextRequest) { return POST(req) }
+export async function POST(req: NextRequest) { if(!authorized(req)) return NextResponse.json({ok:false,error:'Unauthorized.'},{status:401}); const snapshot=await buildAgentSupervisorSnapshot(); if(!validateAgentSupervisorSnapshot(snapshot)) return NextResponse.json({ok:false,error:'Supervisor validation failed.'},{status:422}); await saveAgentSupervisorSnapshot(snapshot); return NextResponse.json({ok:true,snapshot}) }
