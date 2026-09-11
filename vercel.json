@@ -1,0 +1,140 @@
+{
+  "crons": [
+    {
+      "path": "/api/campaign/execute",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/learn",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/experiments",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/audience",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/brain",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/creative",
+      "schedule": "45 4 * * *"
+    },
+    {
+      "path": "/api/cron/campaign",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/adapt",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/media",
+      "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/post-publish",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/decision",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/mission",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/campaign-architecture",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/programming",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/cron/mission-control",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/supervisor",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/memory",
+      "schedule": "30 10 * * *"
+    },
+    {
+      "path": "/api/cron/knowledge",
+      "schedule": "45 10 * * *"
+    },
+    {
+      "path": "/api/cron/theology",
+      "schedule": "15 11 * * *"
+    },
+    {
+      "path": "/api/cron/context",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/hermeneutics",
+      "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/canonical",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/doctrine",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/gospel",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/gospel-discipleship",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/evangelism-mission",
+      "schedule": "30 14 * * *"
+    },
+    {
+      "path": "/api/cron/apologetics",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/christian-ethics",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/pastoral-wisdom",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/spiritual-formation",
+      "schedule": "30 16 * * *"
+    },
+    {
+      "path": "/api/cron/community",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/character",
+      "schedule": "30 17 * * *"
+    },
+    {
+      "path": "/api/cron/wisdom",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/discernment",
+      "schedule": "30 18 * * *"
+    }
+  ]
+}
