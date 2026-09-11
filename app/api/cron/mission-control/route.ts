@@ -1,0 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { buildMissionControlSnapshot, saveMissionControlSnapshot } from '@/lib/mission-control'
+export async function GET(req: NextRequest) { const secret = process.env.CRON_SECRET; if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 }); try { const snapshot = await buildMissionControlSnapshot(); await saveMissionControlSnapshot(snapshot); return NextResponse.json({ ok: true, status: snapshot.status, nextAction: snapshot.execution.nextAction, alerts: snapshot.alerts }) } catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Mission Control failed.' }, { status: 500 }) } }
+export const POST = GET

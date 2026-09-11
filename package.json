@@ -21,7 +21,8 @@
     "eslint-config-next": "latest"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "name": "christian-content-ai-studio-autonomous-christian-discernment-v59"
 }
+
