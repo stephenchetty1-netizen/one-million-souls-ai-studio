@@ -1,0 +1,26 @@
+# Build stage for C# backend
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS csharp-build
+WORKDIR /src
+
+# Copy solution and project files
+COPY BSL.v59 ./BSL.v59
+COPY BSL.v59.Core ./BSL.v59.Core
+COPY BSL.v59.Logic ./BSL.v59.Logic
+COPY BSL.v59.TitanEngine ./BSL.v59.TitanEngine
+
+# Restore and build
+RUN dotnet restore BSL.v59/BSL.v59.csproj
+RUN dotnet build -c Release --no-restore BSL.v59/BSL.v59.csproj
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+WORKDIR /app
+
+# Copy built application from build stage
+COPY --from=csharp-build /src/BSL.v59/bin/Release/net8.0 .
+
+# Expose the default port for LaserTcpCentralGateway
+EXPOSE 9339
+
+# Run the application
+ENTRYPOINT ["dotnet", "BSL.v59.dll"]
