@@ -1,0 +1,86 @@
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+
+const PORT = Number(process.env.PORT || 3000)
+const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
+const SECRET = process.env.VIDEO_RENDER_SECRET || ''
+const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
+const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
+const s3 = storageReady ? new S3Client({
+  endpoint: process.env.ENDPOINT,
+  region: process.env.REGION,
+  forcePathStyle: true,
+  credentials: { accessKeyId: process.env.ACCESS_KEY_ID, secretAccessKey: process.env.SECRET_ACCESS_KEY },
+}) : null
+
+const BANK = [
+  { title:'GOD IS NEAR', ref:'Psalm 34:18', script:'When your heart feels heavy, do not mistake pain for abandonment. Psalm 34:18 points us to a God who comes near to the brokenhearted. Bring the hurt to Jesus instead of hiding it. Pray honestly, stay close to Scripture, and take the next faithful step. You are not walking through this moment unseen.', caption:'When your heart feels heavy, remember: God is near. Keep bringing it to Jesus. Psalm 34:18. #Jesus #Faith #Prayer #ChristianEncouragement #OneMillionSouls' },
+  { title:'FAITH OVER FEAR', ref:'Isaiah 41:10', script:'Fear can be loud, but it does not get the final word. Isaiah 41:10 reminds God’s people not to fear because He is with them and will strengthen them. You may not control every outcome, but you can choose where you place your trust. Fix your heart on Jesus and take today one step at a time.', caption:'Fear may be loud, but God is with you. Isaiah 41:10. Choose faith today. #FaithOverFear #Jesus #ChristianTikTok #Hope #OneMillionSouls' },
+  { title:'DO NOT CARRY TOMORROW', ref:'Matthew 6:34', script:'You were never asked to carry tomorrow before it arrives. In Matthew 6:34, Jesus teaches us not to be consumed by tomorrow’s worries. Give today your faithful attention. Pray about what you cannot control, do what is right in front of you, and trust God with what comes next.', caption:'You do not have to carry tomorrow today. Matthew 6:34. Trust Jesus with the next step. #Jesus #TrustGod #Prayer #Faith #OneMillionSouls' },
+  { title:'GRACE IN WEAKNESS', ref:'2 Corinthians 12:9', script:'Your weakness does not disqualify you from God’s work. In 2 Corinthians 12:9, Paul points to Christ’s grace as sufficient and His power as made perfect in weakness. Stop pretending you must be strong every second. Depend on Jesus, ask for help, and let grace meet you where your strength ends.', caption:'Your weakness is not the end of your story. Christ’s grace is sufficient. 2 Corinthians 12:9. #Grace #Jesus #Faith #ChristianEncouragement #OneMillionSouls' },
+  { title:'KEEP PRAYING', ref:'Luke 18:1', script:'Do not let delay convince you that prayer is pointless. Luke 18:1 introduces Jesus teaching His disciples to pray and not give up. Prayer is not about forcing God to follow our timetable. It is about continuing to trust Him, bringing our needs honestly, and staying faithful while we wait.', caption:'Do not give up on prayer. Keep trusting Jesus while you wait. Luke 18:1. #Prayer #Jesus #Faith #KeepPraying #OneMillionSouls' },
+  { title:'GOD IS STILL WORKING', ref:'Romans 8:28', script:'A difficult chapter does not mean God has stopped working. Romans 8:28 gives believers confidence that God works in all things for the good of those who love Him and are called according to His purpose. We may not understand every moment now, but we can keep trusting Jesus through it.', caption:'A hard chapter does not mean God has stopped working. Romans 8:28. Keep trusting Jesus. #Jesus #Faith #Hope #TrustGod #OneMillionSouls' },
+  { title:'YOU ARE NOT ALONE', ref:'Hebrews 13:5', script:'Loneliness can make you feel forgotten, but feelings are not the whole story. Hebrews 13:5 reminds believers of God’s promise never to leave or forsake them. Reach out to trusted people, stay connected to Christian community, and remember that Jesus remains faithful even in quiet seasons.', caption:'You are not forgotten. Stay connected, keep praying, and remember God’s faithfulness. Hebrews 13:5. #Jesus #Hope #Faith #ChristianCommunity #OneMillionSouls' },
+  { title:'BE STILL', ref:'Psalm 46:10', script:'Not every battle is won by doing more. Psalm 46:10 calls us to be still and know that God is God. Make space today to stop the noise, pray, listen, and remember who is truly in control. Stillness is not giving up. It is choosing to trust God instead of letting panic lead you.', caption:'Be still. Pray. Remember who God is. Psalm 46:10. #BeStill #Jesus #Prayer #Faith #OneMillionSouls' },
+  { title:'LET YOUR LIGHT SHINE', ref:'Matthew 5:16', script:'Your faith was never meant to stay hidden. In Matthew 5:16, Jesus calls His followers to let their light shine so that others may see good works and glorify the Father. Live your faith with humility, kindness, courage, and truth today. Point people to Jesus through both words and actions.', caption:'Let your light shine today—not for attention, but to point people to God. Matthew 5:16. #LetYourLightShine #Jesus #Faith #ChristianLife #OneMillionSouls' },
+  { title:'NOTHING CAN SEPARATE YOU', ref:'Romans 8:38-39', script:'Your circumstances can change quickly, but the love of God in Christ is not fragile. Romans 8:38-39 reminds believers that nothing in creation can separate them from God’s love in Christ Jesus. Hold onto that truth when emotions shift. Jesus remains faithful.', caption:'Circumstances change. God’s love in Christ remains. Romans 8:38-39. #Jesus #GodsLove #Faith #Hope #OneMillionSouls' },
+  { title:'START AGAIN WITH GOD', ref:'Lamentations 3:22-23', script:'Yesterday does not have to control today. Lamentations 3:22-23 celebrates God’s steadfast love, mercy, and faithfulness. Confess what needs to change, receive God’s mercy, and begin again with Jesus. A fresh start is not pretending the past never happened; it is choosing faithfulness from here.', caption:'God’s mercy gives room to begin again. Lamentations 3:22-23. #NewMercies #Jesus #Faith #Grace #OneMillionSouls' },
+  { title:'RUN YOUR RACE', ref:'Hebrews 12:1-2', script:'Stop measuring your calling against someone else’s highlight reel. Hebrews 12:1-2 tells believers to run with endurance while fixing their eyes on Jesus. Lay aside what keeps pulling you away from Him. Stay faithful to the race God has placed before you, one obedient step at a time.', caption:'Run your race with your eyes on Jesus. Hebrews 12:1-2. #Jesus #Faith #Purpose #Endurance #OneMillionSouls' }
+]
+
+function localDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA',{timeZone:TIMEZONE,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date)
+  const m = Object.fromEntries(parts.map(p=>[p.type,p.value]))
+  return { date:`${m.year}-${m.month}-${m.day}`, time:`${m.hour}:${m.minute}` }
+}
+
+function tomorrowDate() { return localDate(new Date(Date.now()+24*60*60*1000)).date }
+function hashDate(s) { return [...s].reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7) }
+function manifestKey(date) { return `manifests/${date}.json` }
+
+async function exists(key) {
+  if (!s3) return false
+  try { await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key})); return true } catch { return false }
+}
+
+async function render(item) {
+  const headers = {'content-type':'application/json'}
+  if (SECRET) headers.authorization = `Bearer ${SECRET}`
+  const r = await fetch(`http://127.0.0.1:${PORT}/render`, {method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script})})
+  const data = await r.json().catch(()=>({}))
+  if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
+  return data
+}
+
+async function generateFor(date) {
+  if (!enabled || !s3) return
+  const key = manifestKey(date)
+  if (await exists(key)) { console.log('DAILY_FACTORY_EXISTS', date); return }
+  const seed = hashDate(date)
+  const slotTimes = ['00:01','06:00','18:00']
+  const entries = []
+  for (let i=0;i<3;i++) {
+    const item = BANK[(seed + i*5) % BANK.length]
+    const video = await render(item)
+    entries.push({slot:slotTimes[i],title:item.title,scriptureReference:item.ref,caption:item.caption,mediaUrl:video.mediaUrl,width:video.width,height:video.height,durationSeconds:video.durationSeconds,aiDisclosure:true})
+  }
+  const manifest = {ok:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),entries}
+  const body = JSON.stringify(manifest,null,2)
+  await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
+  await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
+  console.log('DAILY_FACTORY_SUCCESS', JSON.stringify({targetDate:date,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl}))}))
+}
+
+let lastFactoryDate = ''
+async function tick() {
+  const now = localDate()
+  const target = tomorrowDate()
+  if (lastFactoryDate === target) return
+  if (now.time === '23:30' || lastFactoryDate === '') {
+    lastFactoryDate = target
+    try { await generateFor(target) } catch (e) { lastFactoryDate=''; console.error('DAILY_FACTORY_ERROR', e instanceof Error ? e.message : String(e)) }
+  }
+}
+
+console.log('DAILY_FACTORY', JSON.stringify({enabled,storageReady,timezone:TIMEZONE,bankSize:BANK.length}))
+setTimeout(()=>tick(),3000)
+setInterval(()=>tick(),30_000)
