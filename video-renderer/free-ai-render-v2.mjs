@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
-import { createLocalFallbackScene, createLocalAmbientMusic } from './local-media-fallback.mjs'
+import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -50,28 +50,76 @@ function extractScript(body) {
   ).slice(0, 2400)
 }
 
-function srtTime(seconds) {
-  const ms = Math.max(0, Math.round(seconds * 1000))
-  const h = Math.floor(ms / 3600000)
-  const m = Math.floor((ms % 3600000) / 60000)
-  const s = Math.floor((ms % 60000) / 1000)
-  const x = ms % 1000
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(x).padStart(3, '0')}`
+function assTime(seconds) {
+  const cs = Math.max(0, Math.round(seconds * 100))
+  const h = Math.floor(cs / 360000)
+  const m = Math.floor((cs % 360000) / 6000)
+  const s = Math.floor((cs % 6000) / 100)
+  const c = cs % 100
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(c).padStart(2, '0')}`
 }
 
-function buildSrt(script, duration) {
-  const words = script.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+function cleanAssText(text) {
+  return text.replace(/[{}]/g, '').replace(/\\s+/g, ' ').trim()
+}
+
+function highlightCaption(text) {
+  const clean = cleanAssText(text)
+  const gold = '&H0053C4F6&'
+  return clean.replace(/\\b(God|Jesus|Lord|Christ|faith|pray|praying|believe|believing|hope|grace|fear)\\b/gi,
+    (word) => `{\\\\c${gold}\\\\b1}${word}{\\\\rCaption}`)
+}
+
+function buildAss(script, duration) {
+  const words = script.replace(/\\s+/g, ' ').trim().split(' ').filter(Boolean)
   const chunks = []
-  for (let i = 0; i < words.length; i += 6) chunks.push(words.slice(i, i + 6).join(' '))
-  const slice = Math.max(1.1, duration / Math.max(1, chunks.length))
-  return chunks.map((text, i) => {
-    const start = i * slice
-    const end = Math.min(duration, Math.max(start + 0.8, (i + 1) * slice))
-    return `${i + 1}\n${srtTime(start)} --> ${srtTime(end)}\n${text}\n`
-  }).join('\n')
+  for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5).join(' '))
+  if (!chunks.length) chunks.push('Keep trusting God')
+  const slice = duration / Math.max(1, chunks.length)
+
+  const header = [
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    'PlayResX: 1080',
+    'PlayResY: 1920',
+    'WrapStyle: 2',
+    'ScaledBorderAndShadow: yes',
+    '',
+    '[V4+ Styles]',
+    'Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding',
+    'Style: Caption,Lato,58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H98000000,-1,0,0,0,100,100,0,0,3,1,0,2,90,90,170,1',
+    '',
+    '[Events]',
+    'Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text',
+  ]
+
+  const events = chunks.map((text, index) => {
+    const start = index * slice
+    const end = Math.min(duration, (index + 1) * slice)
+    return `Dialogue: 0,${assTime(start)},${assTime(Math.max(start + 0.9, end))},Caption,,0,0,0,,${highlightCaption(text)}`
+  })
+
+  return [...header, ...events, ''].join('\\n')
 }
 
-async function download(url, target, timeoutMs = 120000) {
+function wrapTitle(title) {
+  const words = title.toUpperCase().replace(/\\s+/g, ' ').trim().split(' ')
+  const lines = []
+  let line = ''
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word
+    if (next.length > 18 && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = next
+    }
+  }
+  if (line) lines.push(line)
+  return lines.slice(0, 2).join('\\n')
+}
+
+async function download(url, target, timeoutMs = 120000) {async function download(url, target, timeoutMs = 120000) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -96,50 +144,82 @@ async function mediaDuration(file) {
 }
 
 function scenePrompts(body, title, script) {
-  const supplied = Array.isArray(body?.visualPrompts) ? body.visualPrompts.filter((x) => typeof x === 'string' && x.trim()) : []
-  if (supplied.length >= 3) return supplied.slice(0, 3)
-  const base = `${title}. ${script.slice(0, 280)}`
+  const supplied = Array.isArray(body?.visualPrompts)
+    ? body.visualPrompts.filter((x) => typeof x === 'string' && x.trim())
+    : []
+  if (supplied.length >= 3) return supplied.slice(0, 4)
+
+  const story = `${title}. ${script.slice(0, 320)}`
+  const common = 'cinematic photorealistic film still, premium commercial photography, natural skin and hands, realistic lighting, high dynamic range, vertical 9:16, no words, no captions, no typography, no watermark, no logos'
+
   return [
-    `cinematic Christian encouragement, ${base}, sunrise over mountains, hopeful natural golden light, realistic photography, detailed, vertical 9:16, no text, no watermark`,
-    `cinematic close-up of an open Bible beside soft morning window light, peaceful prayer atmosphere, ${base}, realistic photography, shallow depth of field, vertical 9:16, no text, no watermark`,
-    `cinematic person standing in a vast natural landscape facing bright sunrise, hopeful faith journey, ${base}, realistic photography, subtle clouds and light rays, vertical 9:16, no text, no watermark`,
+    `${common}, emotional opening scene about overcoming fear, solitary person near a rain-streaked window at blue hour, distant warm light breaking through storm clouds, intimate realistic atmosphere, ${story}`,
+    `${common}, close-up of natural hands in prayer beside an open Bible on a wooden table, warm sunrise through a window, shallow depth of field, peaceful reverent atmosphere, ${story}`,
+    `${common}, hopeful person walking along a quiet path toward a brilliant sunrise, subtle cross-shaped light in distant clouds, wide cinematic composition, fresh morning mist, ${story}`,
+    `${common}, uplifting worship moment seen from behind with a small diverse group in soft golden light, hands raised naturally, hopeful sky, authentic documentary feeling, ${story}`,
   ]
 }
 
-async function generateCloudScene(providers, prompt, index, work) {
-  const imageOutput = await callGradio(providers.image.baseUrl, '/infer', [
-    prompt, 100 + index, true, 576, 1024, 4,
+async function generateCloudScene(providers, prompt, index, work, seconds) {
+  const imageOutput = await callGradio(providers.image.baseUrl, '/generate_image', [
+    prompt, 1024, 576, 7, 100 + index, true,
   ], 240000)
+
   const imageUrl = collectAssetUrls(imageOutput)[0]
   if (!imageUrl) throw new Error(`Scene ${index + 1}: image provider returned no asset`)
 
-  const image = await uploadRemoteFileToGradio(providers.video.baseUrl, imageUrl, `scene-${index + 1}.webp`)
-  const videoOutput = await callGradio(providers.video.baseUrl, '/generate_video', [
-    image,
-    'slow cinematic camera push, subtle natural motion, realistic clouds and light movement, gentle parallax, peaceful inspirational mood, preserve scene structure',
-    4,
-    'distorted text, warped objects, flicker, jitter, low quality, extra limbs, duplicated objects',
-    5, 3.5, 3.5, 200 + index, true,
-  ], 480000)
-  const videoUrl = collectAssetUrls(videoOutput)[0]
-  if (!videoUrl) throw new Error(`Scene ${index + 1}: video provider returned no asset`)
-  const local = path.join(work, `scene-${index + 1}.mp4`)
-  await download(videoUrl, local, 120000)
-  return { imageUrl, videoUrl, local, source: 'cloud-ai' }
-}
+  const still = path.join(work, `ai-still-${index + 1}.png`)
+  await download(imageUrl, still, 120000)
 
-async function generateScene(providers, prompt, index, work) {
-  if (process.env.LOCAL_VISUALS_ONLY === 'true') return createLocalFallbackScene(index, work, 5)
+  if (process.env.FREE_VIDEO_MOTION_ENABLED === 'false') {
+    const localMotion = await animateStillImage(still, index, work, seconds, 'cloud-image-local-motion')
+    return { ...localMotion, imageUrl }
+  }
+
   try {
-    return await generateCloudScene(providers, prompt, index, work)
+    const image = await uploadRemoteFileToGradio(providers.video.baseUrl, imageUrl, `scene-${index + 1}.png`)
+    const videoOutput = await callGradio(providers.video.baseUrl, '/generate_video', [
+      image,
+      'slow premium cinematic camera movement, subtle natural subject movement, realistic clouds and light, gentle parallax, stable composition, preserve identity and scene structure',
+      4,
+      'text, watermark, warped face, distorted hands, extra fingers, duplicated objects, flicker, jitter, camera shake, low quality',
+      Math.max(3, Math.min(5, Math.round(seconds))), 3.5, 3.5, 200 + index, true,
+    ], 480000)
+
+    const videoUrl = collectAssetUrls(videoOutput)[0]
+    if (!videoUrl) throw new Error('video provider returned no asset')
+    const local = path.join(work, `scene-${index + 1}.mp4`)
+    await download(videoUrl, local, 120000)
+    return { imageUrl, videoUrl, local, source: 'cloud-ai-video' }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.warn('FREE_AI_SCENE_FALLBACK', JSON.stringify({ index, error: message }))
-    return createLocalFallbackScene(index, work, 5)
+    console.warn('FREE_AI_VIDEO_MOTION_FALLBACK', JSON.stringify({ index, error: message }))
+    const localMotion = await animateStillImage(still, index, work, seconds, 'cloud-image-local-motion')
+    return { ...localMotion, imageUrl }
   }
 }
 
-async function generateEdgeVoice(script, work) {
+async function generateScene(providers, prompt, index, work, seconds) {
+  const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
+
+  if (process.env.LOCAL_VISUALS_ONLY === 'true') {
+    if (!allowProcedural) throw new Error('Quality gate blocked: procedural visuals are test-only')
+    return createLocalFallbackScene(index, work, seconds)
+  }
+
+  try {
+    return await generateCloudScene(providers, prompt, index, work, seconds)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!allowProcedural) {
+      throw new Error(`Quality gate blocked scene ${index + 1}: AI image unavailable (${message})`)
+    }
+    console.warn('FREE_AI_PROCEDURAL_TEST_FALLBACK', JSON.stringify({ index, error: message }))
+    return createLocalFallbackScene(index, work, seconds)
+  }
+}
+
+async function generateEdgeVoice(script, work) {async function generateEdgeVoice(script, work) {
   const local = path.join(work, 'voice.mp3')
   const cli = path.join(process.cwd(), 'node_modules', '.bin', 'node-edge-tts')
   const voiceName = process.env.EDGE_TTS_VOICE || 'en-ZA-LeahNeural'
@@ -220,18 +300,20 @@ async function generateMusic(providers, duration, work) {
 
 async function compose({ scenes, voice, music, script, title, work }) {
   const voiceDuration = await mediaDuration(voice.local)
-  const captions = path.join(work, 'captions.srt')
+  const captions = path.join(work, 'captions.ass')
   const titlePath = path.join(work, 'title.txt')
   const concatPath = path.join(work, 'concat.txt')
   const visualPath = path.join(work, 'visuals.mp4')
   const out = path.join(work, 'master.mp4')
-  const allLocal = scenes.every((scene) => scene.source === 'local-procedural-cinematic')
+  const streamCopySafe = scenes.every((scene) =>
+    scene.source === 'local-procedural-cinematic' || scene.source === 'cloud-image-local-motion'
+  )
 
-  await fs.writeFile(captions, buildSrt(script, voiceDuration), 'utf8')
-  await fs.writeFile(titlePath, title, 'utf8')
-  await fs.writeFile(concatPath, scenes.map((scene) => `file '${scene.local.replaceAll("'", "'\\''")}'`).join('\n'), 'utf8')
+  await fs.writeFile(captions, buildAss(script, voiceDuration), 'utf8')
+  await fs.writeFile(titlePath, wrapTitle(title), 'utf8')
+  await fs.writeFile(concatPath, scenes.map((scene) => `file '${scene.local.replaceAll("'", "'\\\\''")}'`).join('\\n'), 'utf8')
 
-  if (allLocal) {
+  if (streamCopySafe) {
     await execFileAsync('ffmpeg', [
       '-y', '-fflags', '+genpts', '-f', 'concat', '-safe', '0', '-i', concatPath,
       '-an', '-c:v', 'copy', '-movflags', '+faststart', visualPath,
@@ -241,16 +323,18 @@ async function compose({ scenes, voice, music, script, title, work }) {
       '-y', '-f', 'concat', '-safe', '0', '-i', concatPath,
       '-filter_threads', '1',
       '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},fps=${FPS}`,
-      '-an', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '21', '-threads', '2', '-pix_fmt', 'yuv420p', visualPath,
+      '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-threads', '2', '-pix_fmt', 'yuv420p', visualPath,
     ], { timeout: 300000, maxBuffer: 8 * 1024 * 1024 })
   }
 
-  const font = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+  const titleFont = '/usr/share/fonts/truetype/lato/Lato-Black.ttf'
+  const labelFont = '/usr/share/fonts/truetype/lato/Lato-Semibold.ttf'
+  const fadeOutStart = Math.max(0, voiceDuration - 0.35)
   const filter = [
-    `[0:v]setsar=1,subtitles=${captions}:force_style='FontName=DejaVu Sans,FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H99000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=175',drawtext=fontfile=${font}:textfile=${titlePath}:fontcolor=white:fontsize=54:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.32:boxborderw=18,drawtext=fontfile=${font}:text='ONE MILLION SOULS':fontcolor=white@0.88:fontsize=26:x=(w-text_w)/2:y=h-80[v]`,
-    `[1:a]volume=1.0[voice]`,
-    `[2:a]volume=0.13[music]`,
-    `[voice][music]amix=inputs=2:duration=first:dropout_transition=2[a]`,
+    `[0:v]setsar=1,eq=contrast=1.03:saturation=1.05:gamma=1.01,drawbox=x=0:y=0:w=iw:h=410:color=black@0.30:t=fill:enable='between(t,0,3.5)',drawbox=x=72:y=122:w=180:h=5:color=0xF6C453@0.96:t=fill:enable='between(t,0,3.5)',drawtext=fontfile=${labelFont}:text='ONE MILLION SOULS':fontcolor=white@0.90:fontsize=27:x=72:y=68:enable='between(t,0,3.5)',drawtext=fontfile=${titleFont}:textfile=${titlePath}:fontcolor=white:fontsize=70:line_spacing=8:x=72:y=150:enable='between(t,0,3.5)',ass=${captions}:fontsdir=/usr/share/fonts/truetype/lato,drawbox=x=72:y=h-92:w=170:h=4:color=0xF6C453@0.88:t=fill,drawtext=fontfile=${labelFont}:text='ONE MILLION SOULS':fontcolor=white@0.82:fontsize=24:x=265:y=h-108,fade=t=in:st=0:d=0.30,fade=t=out:st=${fadeOutStart.toFixed(2)}:d=0.35[v]`,
+    '[1:a]highpass=f=80,lowpass=f=13500,acompressor=threshold=0.12:ratio=2.5:attack=20:release=180,volume=1.12[voice]',
+    '[2:a]volume=0.10[music]',
+    '[voice][music]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:LRA=7:TP=-1.5[a]',
   ].join(';')
 
   await execFileAsync('ffmpeg', [
@@ -259,7 +343,7 @@ async function compose({ scenes, voice, music, script, title, work }) {
     '-filter_complex_threads', '1',
     '-filter_complex', filter,
     '-map', '[v]', '-map', '[a]', '-t', voiceDuration.toFixed(2),
-    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '21', '-threads', '2', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-threads', '2', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
   ], { timeout: 420000, maxBuffer: 8 * 1024 * 1024 })
 
@@ -269,7 +353,7 @@ async function compose({ scenes, voice, music, script, title, work }) {
   return { out, duration: voiceDuration }
 }
 
-async function persist(file, id) {
+async function persist(file, id) {async function persist(file, id) {
   if (!s3) throw new Error('Persistent storage is required for render-v2')
   const key = `renders-v2/${new Date().toISOString().slice(0, 10)}/${id}.mp4`
   const bytes = await fs.readFile(file)
@@ -302,8 +386,9 @@ export async function renderFreeV2(body = {}) {
 
     const musicPromise = generateMusic(providers, voiceDuration, work)
     const scenes = []
+    const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
-      const scene = await generateScene(providers, prompts[index], index, work)
+      const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds)
       scenes.push(scene)
       console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
     }
@@ -311,7 +396,11 @@ export async function renderFreeV2(body = {}) {
     console.log('FREE_AI_MUSIC_READY', JSON.stringify({ id, provider: music.provider || providers.music.name }))
 
     if (scenes.length < 3 || scenes.some((scene) => !scene?.local)) {
-      throw new Error('Quality gate failed: three motion scenes are required')
+      throw new Error('Quality gate failed: at least three motion scenes are required')
+    }
+    if (scenes.some((scene) => scene.source === 'local-procedural-cinematic') &&
+        process.env.ALLOW_PROCEDURAL_FALLBACK !== 'true') {
+      throw new Error('Quality gate failed: procedural visuals are not production-approved')
     }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
@@ -329,8 +418,8 @@ export async function renderFreeV2(body = {}) {
       sceneCount: scenes.length,
       sceneSources,
       voiceProvider: voice.provider,
-      imageProvider: sceneSources.every((source) => source === 'cloud-ai') ? providers.image.name : 'hybrid/local fallback',
-      videoProvider: sceneSources.every((source) => source === 'cloud-ai') ? providers.video.name : 'hybrid/local FFmpeg motion',
+      imageProvider: sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name,
+      videoProvider: sceneSources.some((source) => source === 'cloud-ai-video') ? 'hybrid Wan 2.2 + local cinematic motion' : 'local cinematic motion from AI stills',
       musicProvider: music.provider || providers.music.name,
       captionsPresent: true,
       narrationPresent: true,
@@ -339,6 +428,7 @@ export async function renderFreeV2(body = {}) {
       paidGenerationCreditsUsed: false,
       persistentStorage: true,
       qualityGate: 'passed',
+      designSystem: 'v4-lato-gold-ass-captions',
       publishingAllowed: false,
       reviewRequired: true,
     }
