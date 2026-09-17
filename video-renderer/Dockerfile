@@ -12,6 +12,7 @@ RUN npm install --omit=dev
 COPY server.mjs ./
 COPY smoke-test.mjs ./
 COPY schedule-loop.mjs ./
+COPY daily-factory.mjs ./
 COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
