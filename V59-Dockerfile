@@ -9,6 +9,19 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
  && test -f package.json \
  && test -d app
 
+# Next.js 16 requires route segment config values to be declared locally,
+# not re-exported from another route module.
+RUN printf "%s\n" \
+ "export { GET, POST } from '@/app/api/campaign/execute/route'" \
+ "export const runtime = 'nodejs'" \
+ "export const maxDuration = 300" \
+ > app/api/cron/campaign-execute/route.ts \
+ && printf "%s\n" \
+ "export { GET, POST } from '@/app/api/orchestrate/route'" \
+ "export const runtime = 'nodejs'" \
+ "export const maxDuration = 300" \
+ > app/api/cron/daily/route.ts
+
 RUN npm install
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
