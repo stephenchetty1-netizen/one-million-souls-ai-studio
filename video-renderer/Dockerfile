@@ -20,6 +20,7 @@ COPY free-ai-smoke.mjs ./
 COPY free-ai-render-v2.mjs ./
 COPY free-ai-sample-v3.mjs ./
 COPY local-kokoro-smoke.mjs ./
+COPY local-media-fallback.mjs ./
 COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
