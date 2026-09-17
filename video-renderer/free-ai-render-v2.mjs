@@ -8,6 +8,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { KokoroTTS } from 'kokoro-js'
 import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
+import { createLocalFallbackScene, createLocalAmbientMusic } from './local-media-fallback.mjs'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -107,7 +108,7 @@ function scenePrompts(body, title, script) {
   ]
 }
 
-async function generateScene(providers, prompt, index, work) {
+async function generateCloudScene(providers, prompt, index, work) {
   const imageOutput = await callGradio(providers.image.baseUrl, '/infer', [
     prompt, 100 + index, true, 576, 1024, 4,
   ], 240000)
@@ -126,7 +127,21 @@ async function generateScene(providers, prompt, index, work) {
   if (!videoUrl) throw new Error(`Scene ${index + 1}: video provider returned no asset`)
   const local = path.join(work, `scene-${index + 1}.mp4`)
   await download(videoUrl, local, 120000)
-  return { imageUrl, videoUrl, local }
+  return { imageUrl, videoUrl, local, source: 'cloud-ai' }
+}
+
+async function generateScene(providers, prompt, index, work) {
+  if (process.env.LOCAL_VISUALS_ONLY === 'true') {
+    return createLocalFallbackScene(index, work, 5)
+  }
+
+  try {
+    return await generateCloudScene(providers, prompt, index, work)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('FREE_AI_SCENE_FALLBACK', JSON.stringify({ index, error: message }))
+    return createLocalFallbackScene(index, work, 5)
+  }
 }
 
 async function getLocalKokoro() {
@@ -166,7 +181,7 @@ async function generateVoice(providers, script, work) {
   return { url, local, provider: providers.voice.name }
 }
 
-async function generateMusic(providers, duration, work) {
+async function generateCloudMusic(providers, duration, work) {
   const seconds = Math.max(10, Math.min(30, Math.ceil(duration)))
   const output = await callGradio(providers.music.baseUrl, '/generate_audio', [
     'gentle cinematic inspirational ambient instrumental, warm piano, soft pads, subtle strings, hopeful Christian encouragement background, no vocals, no drums dominating',
@@ -181,7 +196,21 @@ async function generateMusic(providers, duration, work) {
     timeout: 180000,
     maxBuffer: 20 * 1024 * 1024,
   })
-  return { url, local }
+  return { url, local, provider: providers.music.name }
+}
+
+async function generateMusic(providers, duration, work) {
+  if (process.env.LOCAL_MUSIC_ONLY === 'true') {
+    return createLocalAmbientMusic(duration, work)
+  }
+
+  try {
+    return await generateCloudMusic(providers, duration, work)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('FREE_AI_MUSIC_FALLBACK', JSON.stringify({ error: message }))
+    return createLocalAmbientMusic(duration, work)
+  }
 }
 
 async function compose({ scenes, voice, music, script, title, work }) {
@@ -250,31 +279,36 @@ export async function renderFreeV2(body = {}) {
   try {
     const voice = await generateVoice(providers, script, work)
     const voiceDuration = await mediaDuration(voice.local)
-    const [music, ...scenes] = await Promise.all([
-      generateMusic(providers, voiceDuration, work),
-      ...prompts.map((prompt, index) => generateScene(providers, prompt, index, work)),
-    ])
+
+    const musicPromise = generateMusic(providers, voiceDuration, work)
+    const scenes = []
+    for (let index = 0; index < prompts.length; index += 1) {
+      scenes.push(await generateScene(providers, prompts[index], index, work))
+    }
+    const music = await musicPromise
 
     if (scenes.length < 3 || scenes.some((scene) => !scene?.local)) {
-      throw new Error('Quality gate failed: three generated motion scenes are required')
+      throw new Error('Quality gate failed: three motion scenes are required')
     }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
     const mediaUrl = await persist(composed.out, id)
+    const sceneSources = scenes.map((scene) => scene.source || 'unknown')
 
     const result = {
       ok: true,
-      renderer: 'one-million-souls-zero-credit-v2',
+      renderer: 'one-million-souls-zero-credit-v3',
       mediaUrl,
       width: WIDTH,
       height: HEIGHT,
       fps: FPS,
       durationSeconds: Number(composed.duration.toFixed(2)),
       sceneCount: scenes.length,
+      sceneSources,
       voiceProvider: voice.provider,
-      imageProvider: providers.image.name,
-      videoProvider: providers.video.name,
-      musicProvider: providers.music.name,
+      imageProvider: sceneSources.every((source) => source === 'cloud-ai') ? providers.image.name : 'hybrid/local fallback',
+      videoProvider: sceneSources.every((source) => source === 'cloud-ai') ? providers.video.name : 'hybrid/local FFmpeg motion',
+      musicProvider: music.provider || providers.music.name,
       captionsPresent: true,
       narrationPresent: true,
       musicPresent: true,
