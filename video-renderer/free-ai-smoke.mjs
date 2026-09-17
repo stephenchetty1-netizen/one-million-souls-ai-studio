@@ -46,9 +46,11 @@ async function generateVoice(providers) {
 async function generateMusic(providers) {
   console.log('FREE_AI_SMOKE_START_MUSIC')
   try {
+    // MusicGen's public Zero Space exposes a batched Gradio function whose Python
+    // implementation expects lists for both texts and melodies.
     const output = await callGradio(providers.music.baseUrl, '/predict_batched', [
-      'gentle cinematic inspirational ambient instrumental, warm piano and soft pads, hopeful Christian encouragement background, no vocals',
-      null,
+      ['gentle cinematic inspirational ambient instrumental, warm piano and soft pads, hopeful Christian encouragement background, no vocals'],
+      [null],
     ], 300000)
     const urls = collectAssetUrls(output)
     const result = { ok: urls.length > 0, urls: urls.slice(0, 4) }
