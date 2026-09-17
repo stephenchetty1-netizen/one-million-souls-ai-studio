@@ -10,6 +10,9 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
+const WIDTH = Number(process.env.RENDER_WIDTH || 720)
+const HEIGHT = Number(process.env.RENDER_HEIGHT || 1280)
+const FPS = Number(process.env.RENDER_FPS || 24)
 const publicBase = () => {
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/$/, '')
   if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -157,7 +160,7 @@ async function renderVideo(body) {
     '-w', wavPath,
   ], { timeout: 120_000 })
 
-  let duration = Math.max(8, Math.min(90, script.split(/\s+/).length / 2.2))
+  let duration = Math.max(8, Math.min(60, script.split(/\s+/).length / 2.2))
   try {
     const { stdout } = await execFileAsync('ffprobe', [
       '-v', 'error',
@@ -166,33 +169,36 @@ async function renderVideo(body) {
       wavPath,
     ], { timeout: 30_000 })
     const parsed = Number.parseFloat(stdout.trim())
-    if (Number.isFinite(parsed) && parsed > 0) duration = Math.min(90, parsed)
+    if (Number.isFinite(parsed) && parsed > 0) duration = Math.min(60, parsed)
   } catch {}
 
   await fs.writeFile(srtPath, buildSrt(script, duration), 'utf8')
 
   const font = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
   const filter = [
-    `drawtext=fontfile=${font}:textfile=${titlePath}:fontcolor=white:fontsize=62:x=(w-text_w)/2:y=180:box=1:boxcolor=black@0.38:boxborderw=26`,
-    `subtitles=${srtPath}:force_style='FontName=DejaVu Sans,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=210'`,
-    `drawtext=fontfile=${font}:text='ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR':fontcolor=white@0.92:fontsize=30:x=(w-text_w)/2:y=h-120`,
+    `drawtext=fontfile=${font}:textfile=${titlePath}:fontcolor=white:fontsize=42:x=(w-text_w)/2:y=120:box=1:boxcolor=black@0.38:boxborderw=18`,
+    `subtitles=${srtPath}:force_style='FontName=DejaVu Sans,FontSize=14,PrimaryColour=&H00FFFFFF,OutlineColour=&H80000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=140'`,
+    `drawtext=fontfile=${font}:text='ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR':fontcolor=white@0.92:fontsize=20:x=(w-text_w)/2:y=h-80`,
   ].join(',')
 
   await execFileAsync('ffmpeg', [
     '-y',
     '-f', 'lavfi',
-    '-i', `color=c=0x071A33:s=1080x1920:r=30:d=${Math.max(8, duration + 0.5).toFixed(2)}`,
+    '-i', `color=c=0x071A33:s=${WIDTH}x${HEIGHT}:r=${FPS}:d=${Math.max(8, duration + 0.5).toFixed(2)}`,
     '-i', wavPath,
+    '-filter_threads', '1',
     '-vf', filter,
     '-map', '0:v:0',
     '-map', '1:a:0',
     '-shortest',
     '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-crf', '23',
+    '-preset', 'ultrafast',
+    '-tune', 'stillimage',
+    '-crf', '27',
+    '-threads', '2',
     '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
-    '-b:a', '128k',
+    '-b:a', '96k',
     '-movflags', '+faststart',
     mp4Path,
   ], { timeout: 300_000, maxBuffer: 20 * 1024 * 1024 })
@@ -218,8 +224,8 @@ async function renderVideo(body) {
     ok: true,
     renderer: 'one-million-souls-offline-renderer-v1',
     mediaUrl,
-    width: 1080,
-    height: 1920,
+    width: WIDTH,
+    height: HEIGHT,
     durationSeconds: Number(duration.toFixed(2)),
     captionsPresent: true,
     audioPresent: true,
@@ -262,6 +268,7 @@ const server = http.createServer(async (req, res) => {
       ffmpeg: true,
       offlineTts: true,
       persistentStorage: storageReady,
+      renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
     })
   }
 
