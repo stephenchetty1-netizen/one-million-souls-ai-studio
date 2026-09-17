@@ -2,7 +2,11 @@ function endpointPath(endpoint) {
   return endpoint.replace(/^\//, '')
 }
 
-function parseSse(text) {
+function safeJson(value) {
+  try { return JSON.stringify(value) } catch { return String(value) }
+}
+
+function parseSse(text, context = {}) {
   const events = []
   let event = ''
   for (const rawLine of text.split(/\r?\n/)) {
@@ -12,14 +16,25 @@ function parseSse(text) {
       const raw = line.slice(5).trim()
       let data = raw
       try { data = JSON.parse(raw) } catch {}
-      events.push({ event, data })
+      events.push({ event, data, raw })
       event = ''
     }
   }
+
   const complete = [...events].reverse().find((item) => item.event === 'complete')
   if (complete) return complete.data
+
   const error = [...events].reverse().find((item) => item.event === 'error')
-  if (error) throw new Error(typeof error.data === 'string' ? error.data : JSON.stringify(error.data))
+  if (error) {
+    const payload = error.data == null ? error.raw : (typeof error.data === 'string' ? error.data : safeJson(error.data))
+    const tail = events.slice(-8).map((item) => `${item.event || 'data'}:${item.raw}`).join(' | ')
+    throw new Error(`Gradio SSE error endpoint=${context.endpoint || '?'} eventId=${context.eventId || '?'} payload=${payload || '<empty>'} tail=${tail || '<none>'}`)
+  }
+
+  if (!events.length) {
+    throw new Error(`Gradio returned no SSE events endpoint=${context.endpoint || '?'} eventId=${context.eventId || '?'} body=${text.slice(0, 1000)}`)
+  }
+
   return events.at(-1)?.data
 }
 
@@ -44,16 +59,24 @@ export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
   }, 30000)
 
   const submitText = await submit.text()
-  if (!submit.ok) throw new Error(`Gradio submit ${submit.status}: ${submitText.slice(0, 500)}`)
+  if (!submit.ok) throw new Error(`Gradio submit endpoint=${endpoint} status=${submit.status}: ${submitText.slice(0, 1000)}`)
   let eventId = ''
   try { eventId = JSON.parse(submitText)?.event_id || '' } catch {}
-  if (!eventId) throw new Error(`Gradio did not return event_id: ${submitText.slice(0, 500)}`)
+  if (!eventId) throw new Error(`Gradio did not return event_id endpoint=${endpoint}: ${submitText.slice(0, 1000)}`)
+
+  console.log('FREE_AI_GRADIO_SUBMITTED', JSON.stringify({ endpoint, eventId }))
 
   const resultUrl = `${callUrl}/${encodeURIComponent(eventId)}`
-  const result = await fetchWithDeadline(resultUrl, { headers: { accept: 'text/event-stream' } }, timeoutMs)
+  let result
+  try {
+    result = await fetchWithDeadline(resultUrl, { headers: { accept: 'text/event-stream' } }, timeoutMs)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Gradio result request failed endpoint=${endpoint} eventId=${eventId}: ${message}`)
+  }
   const resultText = await result.text()
-  if (!result.ok) throw new Error(`Gradio result ${result.status}: ${resultText.slice(0, 500)}`)
-  return parseSse(resultText)
+  if (!result.ok) throw new Error(`Gradio result endpoint=${endpoint} eventId=${eventId} status=${result.status}: ${resultText.slice(0, 1000)}`)
+  return parseSse(resultText, { endpoint, eventId })
 }
 
 export function collectAssetUrls(value) {
@@ -84,10 +107,10 @@ export async function uploadRemoteFileToGradio(baseUrl, remoteUrl, fileName = 'i
   form.append('files', new Blob([bytes], { type: contentType }), fileName)
   const upload = await fetchWithDeadline(`${baseUrl.replace(/\/$/, '')}/gradio_api/upload`, { method: 'POST', body: form }, 60000)
   const text = await upload.text()
-  if (!upload.ok) throw new Error(`Gradio upload ${upload.status}: ${text.slice(0, 500)}`)
+  if (!upload.ok) throw new Error(`Gradio upload ${upload.status}: ${text.slice(0, 1000)}`)
   let paths = []
   try { paths = JSON.parse(text) } catch {}
   const path = Array.isArray(paths) ? paths[0] : paths?.files?.[0] || paths?.path
-  if (!path) throw new Error(`Gradio upload returned no path: ${text.slice(0, 500)}`)
+  if (!path) throw new Error(`Gradio upload returned no path: ${text.slice(0, 1000)}`)
   return { path, orig_name: fileName, meta: { _type: 'gradio.FileData' } }
 }
