@@ -101,15 +101,25 @@ async function callGradioOnce(root, endpoint, requestedEndpoint, data, timeoutMs
 
 export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
   const root = baseUrl.replace(/\/$/, '')
-  const actualEndpoint = endpoint === '/generate_all' && /kokoro/i.test(root)
-    ? '/generate_first'
-    : endpoint
+
+  let actualEndpoint = endpoint
+  let actualData = data
+
+  if (endpoint === '/generate_all' && /kokoro/i.test(root)) {
+    actualEndpoint = '/generate_first'
+  }
+
+  if (endpoint === '/infer' && /z-image-turbo/i.test(root)) {
+    actualEndpoint = '/generate_image'
+    const [prompt, seed, randomizeSeed, width, height, steps] = data
+    actualData = [prompt, height, width, steps, seed, randomizeSeed]
+  }
 
   return withProviderLock(root, async () => {
     let lastError
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
-        return await callGradioOnce(root, actualEndpoint, endpoint, data, timeoutMs, attempt)
+        return await callGradioOnce(root, actualEndpoint, endpoint, actualData, timeoutMs, attempt)
       } catch (error) {
         lastError = error
         const message = error instanceof Error ? error.message : String(error)
