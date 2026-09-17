@@ -60,18 +60,18 @@ function assTime(seconds) {
 }
 
 function cleanAssText(text) {
-  return text.replace(/[{}]/g, '').replace(/\\s+/g, ' ').trim()
+  return text.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim()
 }
 
 function highlightCaption(text) {
   const clean = cleanAssText(text)
   const gold = '&H0053C4F6&'
-  return clean.replace(/\\b(God|Jesus|Lord|Christ|faith|pray|praying|believe|believing|hope|grace|fear)\\b/gi,
-    (word) => `{\\\\c${gold}\\\\b1}${word}{\\\\rCaption}`)
+  return clean.replace(/\b(God|Jesus|Lord|Christ|faith|pray|praying|believe|believing|hope|grace|fear)\b/gi,
+    (word) => `{\\c${gold}\\b1}${word}{\\rCaption}`)
 }
 
 function buildAss(script, duration) {
-  const words = script.replace(/\\s+/g, ' ').trim().split(' ').filter(Boolean)
+  const words = script.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
   const chunks = []
   for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5).join(' '))
   if (!chunks.length) chunks.push('Keep trusting God')
@@ -99,11 +99,11 @@ function buildAss(script, duration) {
     return `Dialogue: 0,${assTime(start)},${assTime(Math.max(start + 0.9, end))},Caption,,0,0,0,,${highlightCaption(text)}`
   })
 
-  return [...header, ...events, ''].join('\\n')
+  return [...header, ...events, ''].join('\n')
 }
 
 function wrapTitle(title) {
-  const words = title.toUpperCase().replace(/\\s+/g, ' ').trim().split(' ')
+  const words = title.toUpperCase().replace(/\s+/g, ' ').trim().split(' ')
   const lines = []
   let line = ''
   for (const word of words) {
@@ -116,10 +116,10 @@ function wrapTitle(title) {
     }
   }
   if (line) lines.push(line)
-  return lines.slice(0, 2).join('\\n')
+  return lines.slice(0, 2).join('\n')
 }
 
-async function download(url, target, timeoutMs = 120000) {async function download(url, target, timeoutMs = 120000) {
+async function download(url, target, timeoutMs = 120000) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -219,7 +219,7 @@ async function generateScene(providers, prompt, index, work, seconds) {
   }
 }
 
-async function generateEdgeVoice(script, work) {async function generateEdgeVoice(script, work) {
+async function generateEdgeVoice(script, work) {
   const local = path.join(work, 'voice.mp3')
   const cli = path.join(process.cwd(), 'node_modules', '.bin', 'node-edge-tts')
   const voiceName = process.env.EDGE_TTS_VOICE || 'en-ZA-LeahNeural'
@@ -311,7 +311,7 @@ async function compose({ scenes, voice, music, script, title, work }) {
 
   await fs.writeFile(captions, buildAss(script, voiceDuration), 'utf8')
   await fs.writeFile(titlePath, wrapTitle(title), 'utf8')
-  await fs.writeFile(concatPath, scenes.map((scene) => `file '${scene.local.replaceAll("'", "'\\\\''")}'`).join('\\n'), 'utf8')
+  await fs.writeFile(concatPath, scenes.map((scene) => `file '${scene.local.replaceAll("'", "'\\\\''")}'`).join('\n'), 'utf8')
 
   if (streamCopySafe) {
     await execFileAsync('ffmpeg', [
