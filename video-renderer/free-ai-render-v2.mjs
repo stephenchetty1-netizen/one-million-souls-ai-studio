@@ -5,7 +5,6 @@ import crypto from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { KokoroTTS } from 'kokoro-js'
 import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic } from './local-media-fallback.mjs'
@@ -14,7 +13,6 @@ const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
 const HEIGHT = Number(process.env.RENDER_HEIGHT || 1920)
 const FPS = Number(process.env.RENDER_FPS || 30)
-let localKokoroPromise = null
 
 const storageReady = Boolean(
   process.env.ENDPOINT && process.env.BUCKET && process.env.REGION &&
@@ -131,10 +129,7 @@ async function generateCloudScene(providers, prompt, index, work) {
 }
 
 async function generateScene(providers, prompt, index, work) {
-  if (process.env.LOCAL_VISUALS_ONLY === 'true') {
-    return createLocalFallbackScene(index, work, 5)
-  }
-
+  if (process.env.LOCAL_VISUALS_ONLY === 'true') return createLocalFallbackScene(index, work, 5)
   try {
     return await generateCloudScene(providers, prompt, index, work)
   } catch (error) {
@@ -144,30 +139,29 @@ async function generateScene(providers, prompt, index, work) {
   }
 }
 
-async function getLocalKokoro() {
-  if (!localKokoroPromise) {
-    const modelId = process.env.LOCAL_KOKORO_MODEL || 'onnx-community/Kokoro-82M-v1.0-ONNX'
-    localKokoroPromise = KokoroTTS.from_pretrained(modelId, {
-      dtype: process.env.LOCAL_KOKORO_DTYPE || 'q8',
-      device: 'cpu',
-    })
-  }
-  return localKokoroPromise
+async function generateEdgeVoice(script, work) {
+  const local = path.join(work, 'voice.mp3')
+  const cli = path.join(process.cwd(), 'node_modules', '.bin', 'node-edge-tts')
+  const voiceName = process.env.EDGE_TTS_VOICE || 'en-ZA-LeahNeural'
+  const lang = process.env.EDGE_TTS_LANG || 'en-ZA'
+  const rate = process.env.EDGE_TTS_RATE || '-4%'
+  const timeout = process.env.EDGE_TTS_TIMEOUT || '30000'
+
+  await execFileAsync(cli, [
+    '-t', script,
+    '-f', local,
+    '-v', voiceName,
+    '-l', lang,
+    `--rate=${rate}`,
+    '--timeout', timeout,
+  ], { timeout: Number(timeout) + 15000, maxBuffer: 5 * 1024 * 1024 })
+
+  const stat = await fs.stat(local)
+  if (stat.size < 2000) throw new Error('Edge neural TTS produced an invalid audio file')
+  return { url: null, local, provider: `Edge neural TTS (${voiceName})` }
 }
 
-async function generateVoice(providers, script, work) {
-  const localEnabled = process.env.LOCAL_KOKORO_ENABLED !== 'false'
-  if (localEnabled) {
-    const tts = await getLocalKokoro()
-    const voiceName = process.env.LOCAL_KOKORO_VOICE || 'af_heart'
-    const output = await tts.generate(script, { voice: voiceName })
-    const local = path.join(work, 'voice.wav')
-    await output.save(local)
-    const stat = await fs.stat(local)
-    if (stat.size < 1000) throw new Error('Local Kokoro produced an invalid WAV')
-    return { url: null, local, provider: `Kokoro 82M local CPU (${voiceName})` }
-  }
-
+async function generateCloudVoice(providers, script, work) {
   const output = await callGradio(providers.voice.baseUrl, '/generate_all', [
     script,
     process.env.FREE_TTS_VOICE || 'bm_george',
@@ -175,10 +169,24 @@ async function generateVoice(providers, script, work) {
     true,
   ], 240000)
   const url = collectAssetUrls(output)[0]
-  if (!url) throw new Error('Voice provider returned no audio asset')
+  if (!url) throw new Error('Cloud voice provider returned no audio asset')
   const local = path.join(work, 'voice.wav')
   await download(url, local, 120000)
+  const stat = await fs.stat(local)
+  if (stat.size < 2000) throw new Error('Cloud voice provider returned invalid audio')
   return { url, local, provider: providers.voice.name }
+}
+
+async function generateVoice(providers, script, work) {
+  if (process.env.EDGE_TTS_ENABLED !== 'false') {
+    try {
+      return await generateEdgeVoice(script, work)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn('EDGE_TTS_FALLBACK', JSON.stringify({ error: message }))
+    }
+  }
+  return generateCloudVoice(providers, script, work)
 }
 
 async function generateCloudMusic(providers, duration, work) {
@@ -200,10 +208,7 @@ async function generateCloudMusic(providers, duration, work) {
 }
 
 async function generateMusic(providers, duration, work) {
-  if (process.env.LOCAL_MUSIC_ONLY === 'true') {
-    return createLocalAmbientMusic(duration, work)
-  }
-
+  if (process.env.LOCAL_MUSIC_ONLY === 'true') return createLocalAmbientMusic(duration, work)
   try {
     return await generateCloudMusic(providers, duration, work)
   } catch (error) {
@@ -279,13 +284,17 @@ export async function renderFreeV2(body = {}) {
   try {
     const voice = await generateVoice(providers, script, work)
     const voiceDuration = await mediaDuration(voice.local)
+    console.log('FREE_AI_VOICE_READY', JSON.stringify({ id, provider: voice.provider, durationSeconds: Number(voiceDuration.toFixed(2)) }))
 
     const musicPromise = generateMusic(providers, voiceDuration, work)
     const scenes = []
     for (let index = 0; index < prompts.length; index += 1) {
-      scenes.push(await generateScene(providers, prompts[index], index, work))
+      const scene = await generateScene(providers, prompts[index], index, work)
+      scenes.push(scene)
+      console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
     }
     const music = await musicPromise
+    console.log('FREE_AI_MUSIC_READY', JSON.stringify({ id, provider: music.provider || providers.music.name }))
 
     if (scenes.length < 3 || scenes.some((scene) => !scene?.local)) {
       throw new Error('Quality gate failed: three motion scenes are required')
