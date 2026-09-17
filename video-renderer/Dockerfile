@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg espeak-ng fonts-dejavu-core ca-certificates \
+ && apt-get install -y --no-install-recommends ffmpeg espeak-ng fonts-dejavu-core fonts-lato ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
