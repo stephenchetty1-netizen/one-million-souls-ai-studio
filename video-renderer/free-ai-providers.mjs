@@ -1,6 +1,6 @@
 const defaults = {
   image: ['FLUX.1 Schnell', 'FREE_IMAGE_SPACE_URL', 'https://black-forest-labs-flux-1-schnell.hf.space', true],
-  video: ['Wan 2.2 14B Fast', 'FREE_VIDEO_SPACE_URL', 'https://zerogpu-aoti-wan2-2-14b-fast.hf.space', false],
+  video: ['Wan 2.2 14B Fast', 'FREE_VIDEO_SPACE_URL', 'https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space', false],
   voice: ['Kokoro TTS', 'FREE_VOICE_SPACE_URL', 'https://innersignal-kokoro-tts.hf.space', true],
   music: ['MusicGen', 'FREE_MUSIC_SPACE_URL', 'https://facebook-musicgen.hf.space', true],
 }
@@ -14,30 +14,61 @@ export function getFreeProviders() {
   }]))
 }
 
-async function tryUrl(url) {
+async function fetchWithTimeout(url, asJson = false) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 12000)
   try {
     const response = await fetch(url, { redirect: 'follow', signal: controller.signal })
-    return { ok: response.ok, status: response.status }
+    let body = null
+    if (asJson && response.ok) body = await response.json().catch(() => null)
+    return { ok: response.ok, status: response.status, body }
   } finally {
     clearTimeout(timer)
   }
 }
 
+function endpointSummary(info) {
+  const named = info?.named_endpoints || {}
+  return Object.entries(named).slice(0, 12).map(([name, spec]) => ({
+    name,
+    parameters: Array.isArray(spec?.parameters)
+      ? spec.parameters.map((p) => p?.parameter_name || p?.label || p?.component || '?').slice(0, 12)
+      : [],
+  }))
+}
+
 export async function probeProvider(provider) {
   const startedAt = Date.now()
+  const infoUrl = `${provider.baseUrl}/gradio_api/info`
   let error = ''
-  for (const url of [`${provider.baseUrl}/gradio_api/info`, `${provider.baseUrl}/config`, provider.baseUrl]) {
+  try {
+    const info = await fetchWithTimeout(infoUrl, true)
+    if (info.ok) {
+      return {
+        ok: true,
+        name: provider.name,
+        url: infoUrl,
+        status: info.status,
+        latencyMs: Date.now() - startedAt,
+        endpoints: endpointSummary(info.body),
+      }
+    }
+    error = `HTTP ${info.status}`
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e)
+  }
+
+  for (const url of [`${provider.baseUrl}/config`, provider.baseUrl]) {
     try {
-      const result = await tryUrl(url)
-      if (result.ok) return { ok: true, name: provider.name, url, status: result.status, latencyMs: Date.now() - startedAt }
+      const result = await fetchWithTimeout(url)
+      if (result.ok) return { ok: true, name: provider.name, url, status: result.status, latencyMs: Date.now() - startedAt, endpoints: [] }
       error = `HTTP ${result.status}`
     } catch (e) {
       error = e instanceof Error ? e.message : String(e)
     }
   }
-  return { ok: false, name: provider.name, error, latencyMs: Date.now() - startedAt }
+
+  return { ok: false, name: provider.name, error, latencyMs: Date.now() - startedAt, endpoints: [] }
 }
 
 export async function probeFreeProviders() {
