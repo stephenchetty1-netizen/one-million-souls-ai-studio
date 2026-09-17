@@ -10,6 +10,7 @@ COPY package.json ./
 RUN npm install --omit=dev
 
 COPY server.mjs ./
+COPY smoke-test.mjs ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
