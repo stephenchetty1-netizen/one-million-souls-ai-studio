@@ -353,7 +353,7 @@ async function compose({ scenes, voice, music, script, title, work }) {
   return { out, duration: voiceDuration }
 }
 
-async function persist(file, id) {async function persist(file, id) {
+async function persist(file, id) {
   if (!s3) throw new Error('Persistent storage is required for render-v2')
   const key = `renders-v2/${new Date().toISOString().slice(0, 10)}/${id}.mp4`
   const bytes = await fs.readFile(file)
