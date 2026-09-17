@@ -1,0 +1,12 @@
+{
+  "name": "one-million-souls-video-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.883.0"
+  }
+}
