@@ -225,20 +225,29 @@ async function compose({ scenes, voice, music, script, title, work }) {
   const concatPath = path.join(work, 'concat.txt')
   const visualPath = path.join(work, 'visuals.mp4')
   const out = path.join(work, 'master.mp4')
+  const allLocal = scenes.every((scene) => scene.source === 'local-procedural-cinematic')
 
   await fs.writeFile(captions, buildSrt(script, voiceDuration), 'utf8')
   await fs.writeFile(titlePath, title, 'utf8')
-  await fs.writeFile(concatPath, scenes.map((s) => `file '${s.local.replaceAll("'", "'\\''")}'`).join('\n'), 'utf8')
+  await fs.writeFile(concatPath, scenes.map((scene) => `file '${scene.local.replaceAll("'", "'\\''")}'`).join('\n'), 'utf8')
 
-  await execFileAsync('ffmpeg', [
-    '-y', '-f', 'concat', '-safe', '0', '-i', concatPath,
-    '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},fps=${FPS}`,
-    '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', visualPath,
-  ], { timeout: 300000, maxBuffer: 30 * 1024 * 1024 })
+  if (allLocal) {
+    await execFileAsync('ffmpeg', [
+      '-y', '-fflags', '+genpts', '-f', 'concat', '-safe', '0', '-i', concatPath,
+      '-an', '-c:v', 'copy', '-movflags', '+faststart', visualPath,
+    ], { timeout: 60000, maxBuffer: 5 * 1024 * 1024 })
+  } else {
+    await execFileAsync('ffmpeg', [
+      '-y', '-f', 'concat', '-safe', '0', '-i', concatPath,
+      '-filter_threads', '1',
+      '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},fps=${FPS}`,
+      '-an', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '21', '-threads', '2', '-pix_fmt', 'yuv420p', visualPath,
+    ], { timeout: 300000, maxBuffer: 8 * 1024 * 1024 })
+  }
 
   const font = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
   const filter = [
-    `[0:v]scale=${WIDTH}:${HEIGHT},setsar=1,subtitles=${captions}:force_style='FontName=DejaVu Sans,FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H99000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=175',drawtext=fontfile=${font}:textfile=${titlePath}:fontcolor=white:fontsize=54:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.32:boxborderw=18,drawtext=fontfile=${font}:text='ONE MILLION SOULS':fontcolor=white@0.88:fontsize=26:x=(w-text_w)/2:y=h-80[v]`,
+    `[0:v]setsar=1,subtitles=${captions}:force_style='FontName=DejaVu Sans,FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H99000000,BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginV=175',drawtext=fontfile=${font}:textfile=${titlePath}:fontcolor=white:fontsize=54:x=(w-text_w)/2:y=105:box=1:boxcolor=black@0.32:boxborderw=18,drawtext=fontfile=${font}:text='ONE MILLION SOULS':fontcolor=white@0.88:fontsize=26:x=(w-text_w)/2:y=h-80[v]`,
     `[1:a]volume=1.0[voice]`,
     `[2:a]volume=0.13[music]`,
     `[voice][music]amix=inputs=2:duration=first:dropout_transition=2[a]`,
@@ -246,11 +255,16 @@ async function compose({ scenes, voice, music, script, title, work }) {
 
   await execFileAsync('ffmpeg', [
     '-y', '-stream_loop', '-1', '-i', visualPath, '-i', voice.local, '-stream_loop', '-1', '-i', music.local,
+    '-filter_threads', '1',
+    '-filter_complex_threads', '1',
     '-filter_complex', filter,
     '-map', '[v]', '-map', '[a]', '-t', voiceDuration.toFixed(2),
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '21', '-threads', '2', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', out,
-  ], { timeout: 420000, maxBuffer: 40 * 1024 * 1024 })
+  ], { timeout: 420000, maxBuffer: 8 * 1024 * 1024 })
+
+  const outStat = await fs.stat(out)
+  if (outStat.size < 10000) throw new Error('Final master render produced an invalid MP4')
 
   return { out, duration: voiceDuration }
 }
