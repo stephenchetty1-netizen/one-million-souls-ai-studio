@@ -6,6 +6,7 @@ import crypto from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { renderFreeV2 } from './free-ai-render-v2.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -267,6 +268,7 @@ const server = http.createServer(async (req, res) => {
       service: 'one-million-souls-video-renderer',
       ffmpeg: true,
       offlineTts: true,
+      v2RendererReady: true,
       persistentStorage: storageReady,
       renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
     })
@@ -275,6 +277,21 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname.startsWith('/media/')) {
     const key = url.pathname.slice('/media/'.length).split('/').map(decodeURIComponent).join('/')
     return serveMedia(req, res, key)
+  }
+
+  if (req.method === 'POST' && url.pathname === '/render-v2') {
+    if (!authorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' })
+    try {
+      const body = await readJson(req)
+      const result = await renderFreeV2(body)
+      return sendJson(res, 200, result)
+    } catch (error) {
+      console.error(error)
+      return sendJson(res, 500, {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Render V2 failed',
+      })
+    }
   }
 
   if (req.method === 'POST' && (url.pathname === '/render' || url.pathname === '/')) {
