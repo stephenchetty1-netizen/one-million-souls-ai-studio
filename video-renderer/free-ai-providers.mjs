@@ -1,5 +1,5 @@
 const defaults = {
-  image: ['FLUX.1 Schnell', 'FREE_IMAGE_SPACE_URL', 'https://black-forest-labs-flux-1-schnell.hf.space', true],
+  image: ['Z-Image Turbo', 'FREE_IMAGE_SPACE_URL', 'https://mrfakename-z-image-turbo.hf.space', true],
   video: ['Wan 2.2 14B Fast', 'FREE_VIDEO_SPACE_URL', 'https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space', false],
   voice: ['Kokoro TTS', 'FREE_VOICE_SPACE_URL', 'https://innersignal-kokoro-tts.hf.space', true],
   music: ['Stable Audio Open Zero', 'FREE_MUSIC_SPACE_URL', 'https://artificialguybr-stable-audio-open-zero.hf.space', true],
