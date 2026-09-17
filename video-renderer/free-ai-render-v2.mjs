@@ -388,9 +388,23 @@ export async function renderFreeV2(body = {}) {
     const scenes = []
     const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
-      const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds)
-      scenes.push(scene)
-      console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
+      try {
+        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds)
+        scenes.push(scene)
+        console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (scenes.length >= 3) {
+          console.warn('FREE_AI_SCENE_QUOTA_STOP', JSON.stringify({
+            id,
+            attemptedIndex: index + 1,
+            completedScenes: scenes.length,
+            error: message,
+          }))
+          break
+        }
+        throw error
+      }
     }
     const music = await musicPromise
     console.log('FREE_AI_MUSIC_READY', JSON.stringify({ id, provider: music.provider || providers.music.name }))
