@@ -12,6 +12,10 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function isNonRetryable(message = '') {
+  return /quota exceeded|exceeded your zerogpu quota|try again in 23:|authentication required|invalid api name|not found/i.test(message)
+}
+
 async function withProviderLock(root, fn) {
   const previous = providerQueues.get(root) || Promise.resolve()
   let release
@@ -123,7 +127,9 @@ export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
       } catch (error) {
         lastError = error
         const message = error instanceof Error ? error.message : String(error)
-        console.warn('FREE_AI_GRADIO_RETRY', JSON.stringify({ endpoint: actualEndpoint, attempt, error: message }))
+        const nonRetryable = isNonRetryable(message)
+        console.warn('FREE_AI_GRADIO_RETRY', JSON.stringify({ endpoint: actualEndpoint, attempt, nonRetryable, error: message }))
+        if (nonRetryable) break
         if (attempt < 3) await sleep(1800 * attempt)
       }
     }
