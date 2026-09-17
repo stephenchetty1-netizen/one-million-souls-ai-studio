@@ -5,6 +5,7 @@ import crypto from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { KokoroTTS } from 'kokoro-js'
 import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 
@@ -12,6 +13,7 @@ const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
 const HEIGHT = Number(process.env.RENDER_HEIGHT || 1920)
 const FPS = Number(process.env.RENDER_FPS || 30)
+let localKokoroPromise = null
 
 const storageReady = Boolean(
   process.env.ENDPOINT && process.env.BUCKET && process.env.REGION &&
@@ -127,7 +129,30 @@ async function generateScene(providers, prompt, index, work) {
   return { imageUrl, videoUrl, local }
 }
 
+async function getLocalKokoro() {
+  if (!localKokoroPromise) {
+    const modelId = process.env.LOCAL_KOKORO_MODEL || 'onnx-community/Kokoro-82M-v1.0-ONNX'
+    localKokoroPromise = KokoroTTS.from_pretrained(modelId, {
+      dtype: process.env.LOCAL_KOKORO_DTYPE || 'q8',
+      device: 'cpu',
+    })
+  }
+  return localKokoroPromise
+}
+
 async function generateVoice(providers, script, work) {
+  const localEnabled = process.env.LOCAL_KOKORO_ENABLED !== 'false'
+  if (localEnabled) {
+    const tts = await getLocalKokoro()
+    const voiceName = process.env.LOCAL_KOKORO_VOICE || 'af_heart'
+    const output = await tts.generate(script, { voice: voiceName })
+    const local = path.join(work, 'voice.wav')
+    await output.save(local)
+    const stat = await fs.stat(local)
+    if (stat.size < 1000) throw new Error('Local Kokoro produced an invalid WAV')
+    return { url: null, local, provider: `Kokoro 82M local CPU (${voiceName})` }
+  }
+
   const output = await callGradio(providers.voice.baseUrl, '/generate_all', [
     script,
     process.env.FREE_TTS_VOICE || 'bm_george',
@@ -138,7 +163,7 @@ async function generateVoice(providers, script, work) {
   if (!url) throw new Error('Voice provider returned no audio asset')
   const local = path.join(work, 'voice.wav')
   await download(url, local, 120000)
-  return { url, local }
+  return { url, local, provider: providers.voice.name }
 }
 
 async function generateMusic(providers, duration, work) {
@@ -246,7 +271,7 @@ export async function renderFreeV2(body = {}) {
       fps: FPS,
       durationSeconds: Number(composed.duration.toFixed(2)),
       sceneCount: scenes.length,
-      voiceProvider: providers.voice.name,
+      voiceProvider: voice.provider,
       imageProvider: providers.image.name,
       videoProvider: providers.video.name,
       musicProvider: providers.music.name,
