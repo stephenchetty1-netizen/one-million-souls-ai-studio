@@ -11,6 +11,8 @@ RUN npm install --omit=dev
 
 COPY server.mjs ./
 COPY smoke-test.mjs ./
+COPY schedule-loop.mjs ./
+COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
 ENV PORT=3000
