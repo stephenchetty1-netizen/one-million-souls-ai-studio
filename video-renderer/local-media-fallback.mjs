@@ -65,28 +65,35 @@ function sceneSvg(index = 0) {
   </svg>`
 }
 
-export async function createLocalFallbackScene(index, work, seconds = 5) {
-  const png = path.join(work, `local-scene-${index + 1}.png`)
-  const mp4 = path.join(work, `local-scene-${index + 1}.mp4`)
-  await sharp(Buffer.from(sceneSvg(index))).png().toFile(png)
-
+async function renderStillMotion(input, output, index = 0, seconds = 5) {
   const frames = Math.max(1, Math.round(seconds * 30))
   const zoomExpr = index % 2 === 0
     ? `zoom='min(zoom+0.00065,1.10)':x='iw/2-(iw/zoom/2)+sin(on/30)*7':y='ih/2-(ih/zoom/2)+cos(on/37)*6'`
     : `zoom='if(eq(on,1),1.08,max(1.0,zoom-0.00055))':x='iw/2-(iw/zoom/2)+cos(on/34)*6':y='ih/2-(ih/zoom/2)+sin(on/41)*7'`
 
   await execFileAsync('ffmpeg', [
-    '-y', '-loop', '1', '-i', png,
+    '-y', '-loop', '1', '-i', input,
     '-filter_threads', '1',
-    '-vf', `zoompan=${zoomExpr}:d=${frames}:s=1080x1920:fps=30,eq=contrast=1.03:saturation=1.05,vignette=PI/6`,
+    '-vf', `scale=1200:2134:force_original_aspect_ratio=increase,crop=1200:2134,zoompan=${zoomExpr}:d=${frames}:s=1080x1920:fps=30,eq=contrast=1.035:saturation=1.07:gamma=1.01,vignette=PI/7`,
     '-t', String(seconds), '-an',
-    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '21', '-threads', '2', '-pix_fmt', 'yuv420p',
-    mp4,
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '20', '-threads', '2', '-pix_fmt', 'yuv420p',
+    output,
   ], { timeout: 180000, maxBuffer: 8 * 1024 * 1024 })
 
-  const stat = await fs.stat(mp4)
-  if (stat.size < 10000) throw new Error(`Local scene ${index + 1} produced an invalid MP4`)
-  return { local: mp4, source: 'local-procedural-cinematic', imageUrl: null, videoUrl: null }
+  const stat = await fs.stat(output)
+  if (stat.size < 10000) throw new Error('Still-image motion render produced an invalid MP4')
+}
+
+export async function animateStillImage(inputPath, index, work, seconds = 5, source = 'cloud-image-local-motion') {
+  const mp4 = path.join(work, `motion-scene-${index + 1}.mp4`)
+  await renderStillMotion(inputPath, mp4, index, seconds)
+  return { local: mp4, source, imageUrl: null, videoUrl: null }
+}
+
+export async function createLocalFallbackScene(index, work, seconds = 5) {
+  const png = path.join(work, `local-scene-${index + 1}.png`)
+  await sharp(Buffer.from(sceneSvg(index))).png().toFile(png)
+  return animateStillImage(png, index, work, seconds, 'local-procedural-cinematic')
 }
 
 export async function createLocalAmbientMusic(duration, work) {
