@@ -56,14 +56,14 @@ async function generateVoice(providers) {
 async function generateMusic(providers) {
   console.log('FREE_AI_SMOKE_START_MUSIC')
   try {
-    const output = await callGradio(providers.music.baseUrl, '/predict', [
+    const output = await callGradio(providers.music.baseUrl, '/generate_audio', [
       'gentle cinematic inspirational ambient instrumental, warm piano and soft pads, hopeful background music for Christian encouragement, no vocals',
       10,
-      50,
-      7,
+      1.5,
+      5,
     ], 300000)
     const urls = collectAssetUrls(output)
-    const result = { ok: urls.length > 0, urls: urls.slice(0, 4) }
+    const result = { ok: urls.length > 0, urls: urls.slice(0, 4), rawType: typeof output }
     logStage('music', result)
     return result
   } catch (error) {
