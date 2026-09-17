@@ -17,6 +17,8 @@ COPY free-ai-providers.mjs ./
 COPY free-ai-probe.mjs ./
 COPY free-ai-gradio.mjs ./
 COPY free-ai-smoke.mjs ./
+COPY free-ai-render-v2.mjs ./
+COPY free-ai-sample-v3.mjs ./
 COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
