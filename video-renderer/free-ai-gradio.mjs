@@ -49,8 +49,11 @@ async function fetchWithDeadline(url, options = {}, timeoutMs = 300000) {
 }
 
 export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
-  const name = endpointPath(endpoint)
   const root = baseUrl.replace(/\/$/, '')
+  const actualEndpoint = endpoint === '/generate_all' && /kokoro/i.test(root)
+    ? '/generate_first'
+    : endpoint
+  const name = endpointPath(actualEndpoint)
   const callUrl = `${root}/gradio_api/call/${encodeURIComponent(name)}`
   const submit = await fetchWithDeadline(callUrl, {
     method: 'POST',
@@ -59,12 +62,12 @@ export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
   }, 30000)
 
   const submitText = await submit.text()
-  if (!submit.ok) throw new Error(`Gradio submit endpoint=${endpoint} status=${submit.status}: ${submitText.slice(0, 1000)}`)
+  if (!submit.ok) throw new Error(`Gradio submit endpoint=${actualEndpoint} status=${submit.status}: ${submitText.slice(0, 1000)}`)
   let eventId = ''
   try { eventId = JSON.parse(submitText)?.event_id || '' } catch {}
-  if (!eventId) throw new Error(`Gradio did not return event_id endpoint=${endpoint}: ${submitText.slice(0, 1000)}`)
+  if (!eventId) throw new Error(`Gradio did not return event_id endpoint=${actualEndpoint}: ${submitText.slice(0, 1000)}`)
 
-  console.log('FREE_AI_GRADIO_SUBMITTED', JSON.stringify({ endpoint, eventId }))
+  console.log('FREE_AI_GRADIO_SUBMITTED', JSON.stringify({ endpoint: actualEndpoint, requestedEndpoint: endpoint, eventId }))
 
   const resultUrl = `${callUrl}/${encodeURIComponent(eventId)}`
   let result
@@ -72,11 +75,11 @@ export async function callGradio(baseUrl, endpoint, data, timeoutMs = 300000) {
     result = await fetchWithDeadline(resultUrl, { headers: { accept: 'text/event-stream' } }, timeoutMs)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Gradio result request failed endpoint=${endpoint} eventId=${eventId}: ${message}`)
+    throw new Error(`Gradio result request failed endpoint=${actualEndpoint} eventId=${eventId}: ${message}`)
   }
   const resultText = await result.text()
-  if (!result.ok) throw new Error(`Gradio result endpoint=${endpoint} eventId=${eventId} status=${result.status}: ${resultText.slice(0, 1000)}`)
-  return parseSse(resultText, { endpoint, eventId })
+  if (!result.ok) throw new Error(`Gradio result endpoint=${actualEndpoint} eventId=${eventId} status=${result.status}: ${resultText.slice(0, 1000)}`)
+  return parseSse(resultText, { endpoint: actualEndpoint, eventId })
 }
 
 export function collectAssetUrls(value) {
