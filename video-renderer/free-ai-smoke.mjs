@@ -2,6 +2,16 @@ import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 
 const enabled = process.env.FREE_AI_SMOKE_ENABLED === 'true'
+const requestedStages = new Set(
+  (process.env.FREE_AI_SMOKE_STAGES || 'image,voice,music,video')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+)
+
+function wants(kind) {
+  return requestedStages.has(kind) || (kind === 'image' && requestedStages.has('video'))
+}
 
 function logStage(kind, value) {
   console.log('FREE_AI_SMOKE_STAGE', JSON.stringify({ kind, ...value }))
@@ -46,11 +56,11 @@ async function generateVoice(providers) {
 async function generateMusic(providers) {
   console.log('FREE_AI_SMOKE_START_MUSIC')
   try {
-    // MusicGen's public Zero Space exposes a batched Gradio function whose Python
-    // implementation expects lists for both texts and melodies.
-    const output = await callGradio(providers.music.baseUrl, '/predict_batched', [
-      ['gentle cinematic inspirational ambient instrumental, warm piano and soft pads, hopeful Christian encouragement background, no vocals'],
-      [null],
+    const output = await callGradio(providers.music.baseUrl, '/predict', [
+      'gentle cinematic inspirational ambient instrumental, warm piano and soft pads, hopeful background music for Christian encouragement, no vocals',
+      10,
+      50,
+      7,
     ], 300000)
     const urls = collectAssetUrls(output)
     const result = { ok: urls.length > 0, urls: urls.slice(0, 4) }
@@ -91,20 +101,25 @@ async function generateVideo(providers, imageResult) {
 }
 
 async function run() {
-  console.log('FREE_AI_SMOKE_START')
+  console.log('FREE_AI_SMOKE_START', JSON.stringify({ stages: [...requestedStages] }))
   const providers = getFreeProviders()
-  const [image, voice, music] = await Promise.all([
-    generateImage(providers),
-    generateVoice(providers),
-    generateMusic(providers),
-  ])
-  const video = await generateVideo(providers, image)
-  const report = { mode: 'zero-paid-credit', image, voice, music, video }
-  report.ok = ['image', 'voice', 'music', 'video'].every((kind) => report[kind]?.ok)
+  const report = { mode: 'zero-paid-credit', stages: [...requestedStages] }
+
+  let image = null
+  if (wants('image')) {
+    image = await generateImage(providers)
+    if (requestedStages.has('image')) report.image = image
+  }
+  if (wants('voice')) report.voice = await generateVoice(providers)
+  if (wants('music')) report.music = await generateMusic(providers)
+  if (wants('video')) report.video = await generateVideo(providers, image)
+
+  const requested = [...requestedStages]
+  report.ok = requested.every((kind) => report[kind]?.ok)
   console.log('FREE_AI_SMOKE_RESULT', JSON.stringify(report))
 }
 
 if (enabled) {
-  console.log('FREE_AI_SMOKE_ENABLED')
+  console.log('FREE_AI_SMOKE_ENABLED', JSON.stringify({ stages: [...requestedStages] }))
   setTimeout(() => run().catch((error) => console.error('FREE_AI_SMOKE_FATAL', error instanceof Error ? error.message : String(error))), 5000)
 }
