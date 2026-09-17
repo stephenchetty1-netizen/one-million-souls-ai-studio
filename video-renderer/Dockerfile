@@ -13,6 +13,8 @@ COPY server.mjs ./
 COPY smoke-test.mjs ./
 COPY schedule-loop.mjs ./
 COPY daily-factory.mjs ./
+COPY free-ai-providers.mjs ./
+COPY free-ai-probe.mjs ./
 COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
