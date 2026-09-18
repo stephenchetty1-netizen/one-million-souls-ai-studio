@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "mission": "Maintain a continuous supply of professional review-ready Christian media without automatically publishing unreviewed work.",
+  "publishingLocked": true,
+  "rollingBacklogDays": 14,
+  "dailyDraftTargets": {
+    "researchedIdeas": 20,
+    "developedConcepts": 6,
+    "shortScripts": 3,
+    "shortVideoPackages": 3,
+    "longFormOutlines": 1,
+    "longFormProductionPackages": 1,
+    "lyricSongConcepts": 1,
+    "lyricVideoDevelopmentPackages": 1,
+    "thumbnailVariantsPerShort": 2,
+    "thumbnailVariantsPerLong": 3
+  },
+  "weeklyTargets": {
+    "shortsReviewReady": 12,
+    "longFormReviewReady": 2,
+    "lyricVideosReviewReady": 1,
+    "experimentalFormats": 2,
+    "repurposedCutdowns": 6
+  },
+  "productionStages": [
+    "RESEARCH",
+    "IDEA_SCORE",
+    "THEOLOGY_FACT_CHECK",
+    "SCRIPT",
+    "HOOK_THUMBNAIL",
+    "RIGHTS_ASSET_SEARCH",
+    "STORYBOARD",
+    "VOICE_MUSIC",
+    "EDIT",
+    "CAPTION_OR_LYRIC_SYNC",
+    "THUMBNAIL_FINAL",
+    "QA",
+    "REVIEW_READY"
+  ],
+  "priorities": [
+    "moving video first",
+    "clean modern thumbnails",
+    "strong first-second hook for Shorts",
+    "meaningful first 10-15 seconds for long-form",
+    "accurate Scripture and facts",
+    "captivating but non-sensational storytelling",
+    "natural voice and clear audio",
+    "precise lyric sync",
+    "rights-cleared media only"
+  ],
+  "queuePolicy": {
+    "minimumReviewReadyShorts": 6,
+    "minimumReviewReadyLongForm": 1,
+    "minimumReviewReadyLyricVideos": 1,
+    "actionWhenBelowMinimum": "increase draft production before adding low-priority experiments"
+  }
+}
