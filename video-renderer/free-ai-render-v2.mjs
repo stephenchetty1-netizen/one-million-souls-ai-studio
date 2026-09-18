@@ -475,8 +475,12 @@ export async function renderFreeV2(body = {}) {
       rightsClearedStockScenes: scenes.filter((scene) => scene.source === 'rights-cleared-stock-video').map((scene) => ({ stockId:scene.stockId, sourcePage:scene.sourcePage, license:scene.license, rightsNote:scene.rightsNote })),
       sceneSources,
       voiceProvider: voice.provider,
-      imageProvider: sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name,
-      videoProvider: sceneSources.some((source) => source === 'cloud-ai-video') ? 'hybrid Wan 2.2 + local cinematic motion' : 'local cinematic motion from AI stills',
+      imageProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
+        ? 'not-used-stock-video-primary'
+        : (sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name),
+      videoProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
+        ? 'rights-cleared-stock-video'
+        : (sceneSources.some((source) => source === 'cloud-ai-video') ? 'hybrid Wan 2.2 + rights-cleared/local motion' : 'rights-cleared/local motion'),
       musicProvider: music.provider || providers.music.name,
       captionsPresent: true,
       narrationPresent: true,
