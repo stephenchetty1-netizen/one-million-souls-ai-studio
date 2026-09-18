@@ -43,3 +43,25 @@ export function createSystemRepairPlan(input = {}) {
     status: 'READY_FOR_SYSTEM_REPAIR',
   }
 }
+
+
+export async function runSystemRepairTeam(input = {}, adapters = {}) {
+  const plan = createSystemRepairPlan(input)
+  const results = []
+  for (const agent of SYSTEM_REPAIR_AGENTS) {
+    const runner = adapters[agent.id]
+    if (typeof runner !== 'function') {
+      results.push({ agentId:agent.id, status:'NOT_CONNECTED', passed:false, evidence:'No runtime adapter connected' })
+      continue
+    }
+    try {
+      const result = await runner({ ...input, plan, agent })
+      const passed = result?.passed === true
+      results.push({ agentId:agent.id, status:passed?'PASS':'FAIL', passed, evidence:result?.evidence || result || null })
+    } catch (error) {
+      results.push({ agentId:agent.id, status:'ERROR', passed:false, evidence:error instanceof Error ? error.message : String(error) })
+    }
+  }
+  const allPassed = results.length === SYSTEM_REPAIR_AGENTS.length && results.every(r => r.passed)
+  return { ...plan, status:allPassed?'GREEN':'REPAIR_REQUIRED', allPassed, results, completedAt:new Date().toISOString() }
+}
