@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -9,6 +10,20 @@ const HEIGHT = Number(process.env.RENDER_HEIGHT || 1920)
 const FPS = Number(process.env.RENDER_FPS || 30)
 const STOCK_CACHE_DIR = process.env.STOCK_CACHE_DIR || '/tmp/one-million-souls-stock-cache'
 const downloadLocks = new Map()
+const storageReady = Boolean(
+  process.env.ENDPOINT && process.env.BUCKET && process.env.REGION &&
+  process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY
+)
+const s3 = storageReady ? new S3Client({
+  endpoint:process.env.ENDPOINT,
+  region:process.env.REGION,
+  forcePathStyle:true,
+  credentials:{
+    accessKeyId:process.env.ACCESS_KEY_ID,
+    secretAccessKey:process.env.SECRET_ACCESS_KEY,
+  },
+}) : null
+const STOCK_CACHE_PREFIX = 'stock-source-cache/v1'
 
 export const STOCK_VIDEO_LIBRARY = Object.freeze([
   {
@@ -27,7 +42,7 @@ export const STOCK_VIDEO_LIBRARY = Object.freeze([
   },
   {
     id:'sunrise-storm-portrait',
-    url:'https://upload.wikimedia.org/wikipedia/commons/0/05/Sunrise_on_a_Large_Spring_Storm_%28CIRA_2026-04-02_-_nolabels_portrait%29.webm',
+    url:'https://satlib.cira.colostate.edu/wp-content/uploads/sites/23/2026/04/20260402120117-20260402144617_g19_abi_conus_geocolor_the-sun-rises-on-early-April-storm_nolabels_portrait.mp4',
     sourcePage:'https://commons.wikimedia.org/wiki/File:Sunrise_on_a_Large_Spring_Storm_(CIRA_2026-04-02_-_nolabels_portrait).webm',
     license:'Public-Domain-US-NOAA',
     rightsNote:'U.S. NOAA federal-government material; public domain as documented by Wikimedia Commons.',
@@ -47,8 +62,22 @@ export const STOCK_VIDEO_LIBRARY = Object.freeze([
     rightsNote:'Copyright holder dedicated the work to the public domain under CC0 1.0.',
   },
   {
+    id:'sunrise-yoga-broll',
+    url:'https://d34w7g4gy10iej.cloudfront.net/video/2609/DOD_111960718/DOD_111960718.mp4',
+    sourcePage:'https://commons.wikimedia.org/wiki/File:Sunrise_Yoga_B-Roll_(1022214).webm',
+    license:'Public-Domain-US-Navy',
+    rightsNote:'U.S. Navy work created as part of official duties; public domain as documented by Wikimedia Commons.',
+  },
+  {
+    id:'sunrise-yoga-no-template',
+    url:'https://d34w7g4gy10iej.cloudfront.net/video/2609/DOD_111960716/DOD_111960716.mp4',
+    sourcePage:'https://commons.wikimedia.org/wiki/File:260902-SDB-SunriseYoga_No_Template_(1022213).webm',
+    license:'Public-Domain-US-Navy',
+    rightsNote:'U.S. Navy work created as part of official duties; public domain as documented by Wikimedia Commons.',
+  },
+  {
     id:'sunrise-yoga',
-    url:'https://upload.wikimedia.org/wikipedia/commons/3/3b/Sunrise_Yoga_%281021677%29.webm',
+    url:'https://d34w7g4gy10iej.cloudfront.net/video/2609/DOD_111947415/DOD_111947415-1920x1080-9000k.mp4',
     sourcePage:'https://commons.wikimedia.org/wiki/File:Sunrise_Yoga_(1021677).webm',
     license:'Public-Domain-US-Navy',
     rightsNote:'U.S. Navy work created as part of official duties; public domain as documented by Wikimedia Commons.',
@@ -94,6 +123,33 @@ async function downloadWithRetry(url, target) {
   throw lastError || new Error('stock download failed')
 }
 
+async function restoreFromPersistentCache(item, cached, ext) {
+  if (!s3) return false
+  const key = `${STOCK_CACHE_PREFIX}/${item.id}${ext}`
+  try {
+    const result = await s3.send(new GetObjectCommand({ Bucket:process.env.BUCKET, Key:key }))
+    const bytes = Buffer.from(await result.Body.transformToByteArray())
+    if (bytes.length < 10000) return false
+    await fs.writeFile(cached, bytes)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function persistSourceCache(item, cached, ext) {
+  if (!s3) return
+  const key = `${STOCK_CACHE_PREFIX}/${item.id}${ext}`
+  const bytes = await fs.readFile(cached)
+  await s3.send(new PutObjectCommand({
+    Bucket:process.env.BUCKET,
+    Key:key,
+    Body:bytes,
+    ContentType: ext === '.mp4' ? 'video/mp4' : 'video/webm',
+    CacheControl:'private, max-age=31536000, immutable',
+  }))
+}
+
 async function ensureCached(item) {
   await fs.mkdir(STOCK_CACHE_DIR, { recursive:true })
   const ext = item.url.toLowerCase().includes('.mp4') ? '.mp4' : '.webm'
@@ -109,8 +165,14 @@ async function ensureCached(item) {
   }
 
   const task = (async () => {
+    if (await restoreFromPersistentCache(item, cached, ext)) {
+      console.log('STOCK_SOURCE_CACHE_RESTORE', JSON.stringify({ stockId:item.id }))
+      return
+    }
     await sleep(900)
     await downloadWithRetry(item.url, cached)
+    await persistSourceCache(item, cached, ext)
+    console.log('STOCK_SOURCE_CACHE_STORE', JSON.stringify({ stockId:item.id }))
   })()
   downloadLocks.set(item.id, task)
   try {
