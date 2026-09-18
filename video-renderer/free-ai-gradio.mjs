@@ -12,6 +12,11 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function hfAuthHeaders() {
+  const token = String(process.env.HF_TOKEN || '').trim()
+  return token ? { authorization: `Bearer ${token}` } : {}
+}
+
 function isNonRetryable(message = '') {
   return /quota exceeded|exceeded your zerogpu quota|try again in 23:|authentication required|invalid api name|not found/i.test(message)
 }
@@ -78,7 +83,7 @@ async function callGradioOnce(root, endpoint, requestedEndpoint, data, timeoutMs
   const callUrl = `${root}/gradio_api/call/${encodeURIComponent(name)}`
   const submit = await fetchWithDeadline(callUrl, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...hfAuthHeaders() },
     body: JSON.stringify({ data }),
   }, 30000)
 
@@ -93,7 +98,7 @@ async function callGradioOnce(root, endpoint, requestedEndpoint, data, timeoutMs
   const resultUrl = `${callUrl}/${encodeURIComponent(eventId)}`
   let result
   try {
-    result = await fetchWithDeadline(resultUrl, { headers: { accept: 'text/event-stream' } }, timeoutMs)
+    result = await fetchWithDeadline(resultUrl, { headers: { accept: 'text/event-stream', ...hfAuthHeaders() } }, timeoutMs)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Gradio result request failed endpoint=${endpoint} eventId=${eventId}: ${message}`)
@@ -157,13 +162,13 @@ export function collectAssetUrls(value) {
 }
 
 export async function uploadRemoteFileToGradio(baseUrl, remoteUrl, fileName = 'input.png') {
-  const source = await fetchWithDeadline(remoteUrl, {}, 60000)
+  const source = await fetchWithDeadline(remoteUrl, { headers: { ...hfAuthHeaders() } }, 60000)
   if (!source.ok) throw new Error(`Source download ${source.status}`)
   const bytes = await source.arrayBuffer()
   const contentType = source.headers.get('content-type') || 'application/octet-stream'
   const form = new FormData()
   form.append('files', new Blob([bytes], { type: contentType }), fileName)
-  const upload = await fetchWithDeadline(`${baseUrl.replace(/\/$/, '')}/gradio_api/upload`, { method: 'POST', body: form }, 60000)
+  const upload = await fetchWithDeadline(`${baseUrl.replace(/\/$/, '')}/gradio_api/upload`, { method: 'POST', headers: { ...hfAuthHeaders() }, body: form }, 60000)
   const text = await upload.text()
   if (!upload.ok) throw new Error(`Gradio upload ${upload.status}: ${text.slice(0, 1000)}`)
   let paths = []
