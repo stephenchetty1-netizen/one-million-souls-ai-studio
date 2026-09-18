@@ -1,10 +1,13 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import crypto from 'node:crypto'
 
 const PORT = Number(process.env.PORT || 3000)
 const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
+const PIPELINE_VERSION = 'v59-professional-master-50-v2'
+
 const s3 = storageReady ? new S3Client({
   endpoint: process.env.ENDPOINT,
   region: process.env.REGION,
@@ -37,38 +40,115 @@ function tomorrowDate() { return localDate(new Date(Date.now()+24*60*60*1000)).d
 function hashDate(s) { return [...s].reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7) }
 function manifestKey(date) { return `manifests/${date}.json` }
 
-async function exists(key) {
-  if (!s3) return false
-  try { await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key})); return true } catch { return false }
+async function readJsonObject(key) {
+  if (!s3) return null
+  try {
+    const result = await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key}))
+    const text = await result.Body?.transformToString()
+    return text ? JSON.parse(text) : null
+  } catch {
+    return null
+  }
+}
+
+function configuredSlots() {
+  const slots = (process.env.PUBLISH_SLOTS || '08:00,15:30,20:30').split(',').map(s=>s.trim()).filter(Boolean)
+  if (slots.length !== 3 || slots.some(slot => !/^([01]\d|2[0-3]):[0-5]\d$/.test(slot))) {
+    throw new Error('PUBLISH_SLOTS must contain exactly 3 valid HH:MM slots')
+  }
+  return slots
+}
+
+function manifestIsCurrent(manifest, date, slots) {
+  if (!manifest || manifest.targetDate !== date || manifest.pipelineVersion !== PIPELINE_VERSION) return false
+  if (!Array.isArray(manifest.entries) || manifest.entries.length !== slots.length) return false
+  return manifest.entries.every((entry, index) =>
+    entry?.slot === slots[index] &&
+    entry?.renderer === 'one-million-souls-zero-credit-v3' &&
+    entry?.renderQualityGate === 'PASS' &&
+    typeof entry?.masterHash === 'string' &&
+    entry.masterHash.length === 64 &&
+    entry?.publishingLocked === true &&
+    entry?.releaseStatus === 'AWAITING_50_AGENT_APPROVAL'
+  )
 }
 
 async function render(item) {
   const headers = {'content-type':'application/json'}
   if (SECRET) headers.authorization = `Bearer ${SECRET}`
-  const r = await fetch(`http://127.0.0.1:${PORT}/render`, {method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script})})
+  const r = await fetch(`http://127.0.0.1:${PORT}/render-v2`, {method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script})})
   const data = await r.json().catch(()=>({}))
   if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
+  if (data?.qualityGate !== 'passed' || data?.publishingAllowed !== false || !data?.masterHash) {
+    throw new Error('render-v2 did not return a fail-closed quality-gated master')
+  }
   return data
 }
 
 async function generateFor(date) {
   if (!enabled || !s3) return
   const key = manifestKey(date)
-  if (await exists(key)) { console.log('DAILY_FACTORY_EXISTS', date); return }
+  const slotTimes = configuredSlots()
+  const existing = await readJsonObject(key)
+  if (manifestIsCurrent(existing, date, slotTimes)) {
+    console.log('DAILY_FACTORY_CURRENT', JSON.stringify({ targetDate: date, pipelineVersion: PIPELINE_VERSION }))
+    return
+  }
+  if (existing) {
+    console.warn('DAILY_FACTORY_STALE_REGENERATE', JSON.stringify({
+      targetDate: date,
+      oldPipelineVersion: existing.pipelineVersion || 'legacy',
+      oldSlots: Array.isArray(existing.entries) ? existing.entries.map(e=>e?.slot) : [],
+      newPipelineVersion: PIPELINE_VERSION,
+      newSlots: slotTimes,
+    }))
+  }
   const seed = hashDate(date)
-  const slotTimes = (process.env.PUBLISH_SLOTS || '08:00,15:30,20:30').split(',').map(s=>s.trim()).filter(Boolean)
-  if (slotTimes.length !== 3) throw new Error('PUBLISH_SLOTS must contain exactly 3 HH:MM slots')
   const entries = []
   for (let i=0;i<3;i++) {
     const item = BANK[(seed + i*5) % BANK.length]
     const video = await render(item)
-    entries.push({slot:slotTimes[i],title:item.title,scriptureReference:item.ref,caption:item.caption,mediaUrl:video.mediaUrl,width:video.width,height:video.height,durationSeconds:video.durationSeconds,aiDisclosure:true})
+    const contentHash = crypto.createHash('sha256').update(JSON.stringify({
+      title:item.title,
+      script:item.script,
+      scriptureReference:item.ref,
+      caption:item.caption,
+      mediaMasterHash:video.masterHash,
+      slot:slotTimes[i],
+      targetDate:date,
+    })).digest('hex')
+    entries.push({
+      slot:slotTimes[i],
+      title:item.title,
+      scriptureReference:item.ref,
+      caption:item.caption,
+      mediaUrl:video.mediaUrl,
+      width:video.width,
+      height:video.height,
+      fps:video.fps,
+      durationSeconds:video.durationSeconds,
+      aiDisclosure:true,
+      renderer:video.renderer,
+      masterHash:video.masterHash,
+      contentHash,
+      renderQualityGate:'PASS',
+      sceneCount:video.sceneCount,
+      sceneSources:video.sceneSources,
+      voiceProvider:video.voiceProvider,
+      imageProvider:video.imageProvider,
+      videoProvider:video.videoProvider,
+      musicProvider:video.musicProvider,
+      releaseStandard:'PROFESSIONAL_MASTER',
+      requiredApprovals:50,
+      publishingLocked:true,
+      releaseStatus:'AWAITING_50_AGENT_APPROVAL',
+    })
   }
-  const manifest = {ok:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),entries}
+  const manifest = {ok:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
   const body = JSON.stringify(manifest,null,2)
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
-  console.log('DAILY_FACTORY_SUCCESS', JSON.stringify({targetDate:date,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl}))}))
+  console.log('DAILY_FACTORY_SUCCESS', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
 }
 
 let lastFactoryDate = ''
