@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "updatedAt": "2026-09-18",
+  "version": 3,
+  "updatedAt": "2026-09-19",
   "policy": "FAIL_CLOSED",
   "gates": {
     "thumbnailQuality": {
@@ -64,6 +64,32 @@
         "platform safe zones, aspect ratio and export quality are correct",
         "final piece feels coherent and professionally finished from first frame to last"
       ]
+    },
+    "technicalMaster": {
+      "required": true,
+      "checks": [
+        "final encoded file exists and is decodable",
+        "resolution/aspect/fps/codec/bitrate/audio settings are platform-ready",
+        "no black/dead/corrupt frames",
+        "no clipping, broken audio, or export corruption",
+        "mobile safe zones pass",
+        "final file hash is recorded"
+      ]
+    },
+    "creativeMaster": {
+      "required": true,
+      "checks": [
+        "actual assembled final video watched from first frame to last",
+        "hook works without greeting/logo/setup filler",
+        "story and visual progression remain coherent through the ending",
+        "no static-image slideshow or animated-still substitute presented as professional moving video",
+        "no obvious AI anatomy, motion, continuity, text, face, hand, lip-sync, flicker, warp, or realism defects",
+        "no repeated or irrelevant B-roll filler",
+        "voice performance sounds natural and intentional",
+        "music, ambience, captions and edit support the emotional arc",
+        "thumbnail and metadata accurately represent the final master",
+        "piece is strong enough to publish even when no quota or schedule pressure exists"
+      ]
     }
   },
   "thumbnailSpecs": {
@@ -89,11 +115,20 @@
     "obvious AI anatomy/artifact in hero thumbnail",
     "caption or lyric clipping",
     "poor audio intelligibility",
-    "final assembled piece does not meet Professional Master standard"
+    "final assembled piece does not meet Professional Master standard",
+    "release vote attempted before an actual immutable assembled master exists",
+    "static-image pan/zoom or animated-still substitute used as publishable moving-video master",
+    "legacy, substituted, silently repaired, or recompressed media after approval",
+    "any content, thumbnail, caption, audio, title, description, or metadata change after approval without full re-approval",
+    "creativeMaster or technicalMaster below PASS",
+    "quota or scheduled slot used to justify a lower-quality release"
   ],
   "releaseStandard": {
     "name": "PROFESSIONAL_MASTER",
     "rule": "No content is publishable merely because component checks pass. The final assembled piece must pass an end-to-end professional execution review.",
-    "outcomeOnFailure": "REVISE_AND_REVIEW_AGAIN"
+    "outcomeOnFailure": "REVISE_AND_REVIEW_AGAIN",
+    "masterReadyRule": "Release voting starts only after the actual assembled video, final audio, captions/lyrics, thumbnail, metadata, rights manifest, Scripture/fact checks, safe-zone inspection, export inspection, full-watch review, and immutable master hash exist.",
+    "certification": "PROFESSIONAL_MASTER_CERTIFIED",
+    "certificationRule": "TECHNICAL_MASTER=PASS and CREATIVE_MASTER=PASS and all required QA=PASS and exact-hash 49 approvals plus Publisher-last approval. Any subsequent media or metadata change invalidates certification and approvals."
   }
 }
