@@ -404,6 +404,25 @@ function inspectCaptionSafeZones(script, duration) {
   return { status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
 }
 
+async function inspectVisualVariety(scenes) {
+  if (!Array.isArray(scenes) || scenes.length < 3) throw new Error('Visual variety gate failed: at least three scenes required')
+  const hashes = []
+  for (const scene of scenes) {
+    const bytes = await fs.readFile(scene.local)
+    hashes.push(crypto.createHash('sha256').update(bytes).digest('hex'))
+  }
+  const uniqueHashes = new Set(hashes)
+  if (uniqueHashes.size !== hashes.length) throw new Error('Visual variety gate failed: duplicate scene media detected')
+  const stockIds = scenes.map((s) => s.stockId).filter(Boolean)
+  if (new Set(stockIds).size !== stockIds.length) throw new Error('Visual variety gate failed: repeated stock footage detected')
+  const sources = scenes.map((s) => s.source || 'unknown')
+  const longestRun = sources.reduce((state, source) => {
+    const run = source === state.last ? state.run + 1 : 1
+    return { last:source, run, max:Math.max(state.max,run) }
+  }, {last:null,run:0,max:0}).max
+  return { status:'PASS', sceneCount:scenes.length, uniqueSceneCount:uniqueHashes.size, repeatedStockIds:0, longestSameSourceRun:longestRun, sceneSources:sources }
+}
+
 async function inspectAudioMaster(file) {
   const { stderr } = await execFileAsync('ffmpeg', [
     '-hide_banner','-nostats','-i',file,
@@ -544,6 +563,7 @@ export async function renderFreeV2(body = {}) {
     }
 
     const captionInspection = inspectCaptionSafeZones(script, voiceDuration)
+    const visualVarietyInspection = await inspectVisualVariety(scenes)
     const composed = await compose({ scenes, voice, music, script, title, work })
     const masterInspection = await inspectMaster(composed.out, composed.duration)
     const audioInspection = await inspectAudioMaster(composed.out)
@@ -584,6 +604,7 @@ export async function renderFreeV2(body = {}) {
       masterInspection,
       captionInspection,
       audioInspection,
+      visualVarietyInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
