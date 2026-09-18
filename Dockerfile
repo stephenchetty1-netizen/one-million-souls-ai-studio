@@ -32,6 +32,9 @@ RUN printf "%s\n" \
  "export const maxDuration = 300" \
  > app/api/cron/daily/route.ts
 
+RUN mkdir -p app/api/system-agents/autonomy-status
+COPY docker-overrides/system-agents/autonomy-status-route.ts /workspace/app/api/system-agents/autonomy-status/route.ts
+
 RUN npm install
 
 RUN node -e "const fs=require('fs'); const p='tsconfig.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.compilerOptions=j.compilerOptions||{}; j.compilerOptions.ignoreDeprecations='6.0'; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" \
