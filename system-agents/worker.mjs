@@ -17,7 +17,7 @@ async function call(path,method='GET',body){
  const r=await fetch(base+path,{method,headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:body?JSON.stringify(body):undefined})
  const text=await r.text(); if(!r.ok) throw new Error(path+':'+r.status+':'+text.slice(0,300)); return text
 }
-async function waitReady(){for(let i=0;i<60;i++){try{await call('/api/system-agents/status');return}catch{} await sleep(2000)}throw new Error('APP_NOT_READY')}
+async function waitReady(){for(let i=0;i<60;i++){try{await call('/api/system-agents/autonomy-status');return}catch{} await sleep(2000)}throw new Error('APP_NOT_READY')}
 async function cycle(){
  const evidence={at:new Date().toISOString(),providerConnected:provider}
  evidence.systemAgents=await call('/api/system-agents/status')
