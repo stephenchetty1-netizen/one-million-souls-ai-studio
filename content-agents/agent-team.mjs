@@ -32,9 +32,25 @@ export const AGENTS = Object.freeze([
   { id:'shorts-editor', role:'Build 9:16 short-form edit plan optimized for hook and retention.', output:'shortEdit' },
   { id:'longform-producer', role:'Build 16:9 long-form structure plus B-roll and Shorts cutdowns.', output:'longEdit' },
   { id:'lyric-producer', role:'Build lyric video only from original/user-owned/verified public-domain material and produce phrase-level lyric timing derived from the actual vocal track.', output:'lyricEdit' },
+  { id:'concept-architect', role:'Turn research into distinctive, biblically grounded content concepts with a clear audience promise, format, hook, and payoff.', output:'conceptBlueprint' },
+  { id:'story-arc-writer', role:'Build emotional narrative arcs with setup, tension, biblical truth, practical application, and a satisfying close.', output:'storyArc' },
+  { id:'devotional-punchup-editor', role:'Strengthen scripts for warmth, clarity, emotional resonance, memorability, and natural Christian language without hype.', output:'scriptPunchup' },
+  { id:'visual-concept-designer', role:'Design original cinematic visual concepts that match the message and avoid generic slideshow treatment.', output:'visualConcept' },
+  { id:'broll-sequence-designer', role:'Plan varied realistic moving-video sequences with shot changes, continuity, visual progression, and no repetitive filler.', output:'brollSequence' },
+  { id:'voice-performance-director', role:'Direct narration pacing, emphasis, pauses, pronunciation, emotional tone, and natural delivery.', output:'voicePerformancePlan' },
+  { id:'caption-design-editor', role:'Create readable phrase-level captions with timing, hierarchy, emphasis, safe zones, and mobile-first typography.', output:'captionDesign' },
+  { id:'platform-packaging-producer', role:'Create platform-specific opening frames, cover choices, titles, descriptions, CTAs, and presentation while preserving truthfulness.', output:'platformPackaging' },
+  { id:'scripture-context-auditor', role:'Independently verify Scripture references, quoted wording, context, application, and theological framing in the final master.', output:'scriptureAudit' },
+  { id:'factual-verification-auditor', role:'Independently verify factual claims, statistics, dates, attributions, and source support used in content or metadata.', output:'factAudit' },
+  { id:'visual-realism-auditor', role:'Inspect the final video for artificial-looking scenes, visual artifacts, implausible motion, continuity failures, and low-quality generated imagery.', output:'visualRealismAudit' },
+  { id:'frame-quality-inspector', role:'Inspect representative and transition frames for sharpness, composition, temporal artifacts, text clarity, cropping, and visible defects.', output:'frameQualityAudit' },
+  { id:'audio-mastering-auditor', role:'Inspect narration clarity, music balance, clipping, noise, loudness consistency, transitions, and final audio polish.', output:'audioMasterAudit' },
+  { id:'mobile-safe-zone-inspector', role:'Verify captions, titles, faces, Scripture text, and focal elements remain readable inside TikTok and YouTube mobile UI safe zones.', output:'safeZoneAudit' },
+  { id:'export-encoding-inspector', role:'Verify final resolution, aspect ratio, frame rate, bitrate, codec, audio settings, duration, file integrity, and platform-ready export quality.', output:'exportAudit' },
+  { id:'master-integrity-auditor', role:'Verify the released file is the exact approved contentHash, is not a legacy or substituted asset, and matches the approved metadata and release record.', output:'masterIntegrityAudit' },
   { id:'qa', role:'Run rights, theology, factual, media, caption, audio, visual, originality, and platform checks.', output:'qaReport' },
-  { id:'publisher', role:'Publish only when every required gate passes.', output:'publishResult' },
   { id:'analytics-learner', role:'Read performance and generate lessons for the next content cycle.', output:'learningReport' },
+  { id:'publisher', role:'Publish only when every required gate passes and all 49 other agents approved this exact contentHash.', output:'publishResult' },
 ])
 
 export const RND_AGENTS = Object.freeze([
@@ -46,7 +62,14 @@ export const RND_AGENTS = Object.freeze([
 
 export const MEDIA_AGENTS = Object.freeze([
   'executive-producer','storyboard-producer','media-producer','motion-editor',
-  'sound-designer','repurposing-editor','media-librarian','production-scheduler'
+  'sound-designer','repurposing-editor','media-librarian','production-scheduler',
+  'concept-architect','story-arc-writer','devotional-punchup-editor','visual-concept-designer',
+  'broll-sequence-designer','voice-performance-director','caption-design-editor','platform-packaging-producer'
+])
+
+export const SPECIALIST_EVALUATION_AGENTS = Object.freeze([
+  'scripture-context-auditor','factual-verification-auditor','visual-realism-auditor','frame-quality-inspector',
+  'audio-mastering-auditor','mobile-safe-zone-inspector','export-encoding-inspector','master-integrity-auditor'
 ])
 
 export const TEAM_APPROVAL_AGENT_IDS = Object.freeze(AGENTS.map((agent) => agent.id))
@@ -168,7 +191,7 @@ export function createRunPlan(input={}) {
   const topic = String(input.topic || '').trim()
   if (!topic) throw new Error('topic is required')
 
-  const base = [...RND_AGENTS,'theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director','executive-producer','storyboard-producer','media-producer','motion-editor','sound-designer','media-librarian','production-scheduler']
+  const base = [...RND_AGENTS,'concept-architect','story-arc-writer','devotional-punchup-editor','theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','visual-concept-designer','broll-sequence-designer','voice-performance-director','caption-design-editor','thumbnail-director','platform-packaging-producer','executive-producer','storyboard-producer','media-producer','motion-editor','sound-designer','media-librarian','production-scheduler',...SPECIALIST_EVALUATION_AGENTS]
   const editor = mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer'
 
   return {
@@ -178,7 +201,7 @@ export function createRunPlan(input={}) {
     topic,
     audience: input.audience || 'Christian social media audience',
     platforms: input.platforms || ['youtube','tiktok'],
-    agents: [...base, editor, 'qa', 'publisher', 'analytics-learner'],
+    agents: [...base, editor, 'qa', 'analytics-learner', 'publisher'],
     publishingLocked: true,
     rightsDefault: 'BLOCK',
     originalityRule: 'Learn from format and performance patterns; do not copy protected expression.',
