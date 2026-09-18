@@ -1,8 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "updatedAt": "2026-09-18",
   "policy": "UNANIMOUS_VERSION_BOUND_APPROVAL",
   "requiredDecision": "APPROVE",
+  "requiredApprovals": 50,
   "requiredAgents": [
     "trend-scout",
     "million-view-scout",
@@ -35,19 +36,37 @@
     "shorts-editor",
     "longform-producer",
     "lyric-producer",
+    "concept-architect",
+    "story-arc-writer",
+    "devotional-punchup-editor",
+    "visual-concept-designer",
+    "broll-sequence-designer",
+    "voice-performance-director",
+    "caption-design-editor",
+    "platform-packaging-producer",
+    "scripture-context-auditor",
+    "factual-verification-auditor",
+    "visual-realism-auditor",
+    "frame-quality-inspector",
+    "audio-mastering-auditor",
+    "mobile-safe-zone-inspector",
+    "export-encoding-inspector",
+    "master-integrity-auditor",
     "qa",
-    "publisher",
-    "analytics-learner"
+    "analytics-learner",
+    "publisher"
   ],
   "rules": [
     "Every listed agent must approve the same exact contentHash.",
+    "All 49 non-publisher agents must approve before Publisher can approve.",
     "Publisher approval must be last, after all other agents have approved.",
     "Any content or metadata change creates a new contentHash and invalidates all previous approvals.",
     "Any PENDING, REVISE, BLOCK, missing, stale, or malformed approval blocks publication.",
     "Approvals must include approvedAt and evidence/notes for auditability.",
     "All normal QA gates must also be PASS.",
     "professionalExecution must be PASS before any approval envelope can unlock publishing.",
-    "Production volume targets never override quality or approval requirements."
+    "master-integrity-auditor must verify that the final media is not a legacy or substituted asset and matches the approved hash and metadata.",
+    "Production volume targets and publishing times never override quality or approval requirements."
   ],
   "releaseStandard": "PROFESSIONAL_MASTER"
 }
