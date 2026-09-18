@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-09-18",
   "strategy": "Model successful formats and audience needs, never copy protected expression.",
   "shortFormPillars": [
@@ -94,5 +94,35 @@
     "Use 2-5 word caption chunks, centered lower-third, with safe margins.",
     "Change shot or crop every 1.5-3.5 seconds for Shorts unless a deliberate emotional hold is stronger.",
     "Long-form uses slower 3-8 second B-roll beats and purposeful visual chapters."
+  ],
+  "thumbnailRules": [
+    "One clear focal point: one face, one action, or one symbolic object.",
+    "Use 0-4 words for Shorts covers and 2-5 words for long-form thumbnails.",
+    "No repeated title text, tiny text, paragraph text, or cluttered badges.",
+    "Text must be readable at phone-feed size with strong contrast and generous negative space.",
+    "Use truthful curiosity, not misleading clickbait.",
+    "Faces must look natural; avoid exaggerated AI expressions or warped anatomy.",
+    "Create at least 2 variants for Shorts and 3 variants for long-form; select the cleanest, clearest concept.",
+    "Thumbnail must visually match the first 3 seconds and actual topic."
+  ],
+  "contentQualityRules": [
+    "Every script must have one clear takeaway and a strong emotional or practical reason to keep watching.",
+    "Shorts hook within 1 second; long-form establishes tension/value within the first 10-15 seconds.",
+    "Use modern conversational language, not poster-copy or sermon-outline wording.",
+    "Motivation must be grounded in Scripture and reality; no guaranteed outcomes, fake urgency, or prosperity claims.",
+    "Prefer specific language and concrete situations over vague encouragement.",
+    "Every factual and Scripture claim must be verified before production.",
+    "Use pattern interrupts, story tension, contrast, or a question to maintain attention without becoming sensational.",
+    "CTAs should fit the message and not interrupt the emotional ending."
+  ],
+  "lyricSyncRules": [
+    "Timing must be derived from the final vocal track, not guessed from the written lyrics.",
+    "Lyrics appear at phrase level; no paragraph blocks.",
+    "Phrase start/end times must be snapped to video frames.",
+    "Target lyric timing drift is <=80 ms; anything visibly late/early fails QA.",
+    "No overlapping lyric lines unless musically intentional and visually separated.",
+    "Line breaks must follow sung phrasing, not arbitrary text width.",
+    "Final QA must review intro, every chorus, bridge, and final chorus at normal speed.",
+    "If alignment confidence is low, block publishing and require retiming."
   ]
 }
