@@ -1,0 +1,121 @@
+{
+  "id": "MV-S01",
+  "mode": "SHORT",
+  "status": "PRODUCTION_BRIEF_READY",
+  "inspirationPattern": "Direct-to-viewer prayer + search-intent need",
+  "originalityStatement": "Original script and edit. Does not reuse source creator wording, footage, music, thumbnail, or shot order.",
+  "title": "A Prayer for the Mind That Won't Slow Down",
+  "scripture": [
+    "Philippians 4:6-7"
+  ],
+  "targetSeconds": 27,
+  "hook": "If your thoughts won't slow down, stay for this prayer.",
+  "script": "If your thoughts won't slow down, stay for this prayer. Father, You know every worry this person is carrying. Your Word tells us to bring our needs to You. So we release what we cannot control. Give us wisdom for today, peace for this moment, and courage for the next step. Guard our hearts and minds in Christ Jesus. In Jesus' name, amen.",
+  "visualPlan": [
+    {
+      "time": "0.0-2.0",
+      "footage": "real close-up of a tired person awake beside a window at night; subtle handheld movement",
+      "text": "YOUR MIND WON'T STOP?"
+    },
+    {
+      "time": "2.0-7.0",
+      "footage": "real hands resting together in prayer, warm lamp light, slow push-in",
+      "text": "GIVE IT TO GOD"
+    },
+    {
+      "time": "7.0-13.0",
+      "footage": "real Bible pages turning, Philippians reference shown cleanly",
+      "text": "BRING IT TO HIM"
+    },
+    {
+      "time": "13.0-20.0",
+      "footage": "real person walking outside at first light; steady forward motion",
+      "text": "RELEASE THE WEIGHT"
+    },
+    {
+      "time": "20.0-27.0",
+      "footage": "real sunrise over water or hills; moving foreground",
+      "text": "RECEIVE HIS PEACE"
+    }
+  ],
+  "videoRules": {
+    "movingVideoOnly": true,
+    "stillImagesAllowed": false,
+    "aspect": "9:16",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "openingMotionRequired": true,
+    "shotLengthSeconds": [
+      2,
+      6
+    ],
+    "transitions": "simple cuts and subtle dissolves only",
+    "grade": "natural cinematic, warm highlights, realistic skin tones"
+  },
+  "narration": {
+    "voice": "en-ZA-LeahNeural or approved human voice",
+    "style": "warm, calm, intimate, confident",
+    "music": "soft original or rights-cleared piano/pad bed, no dominant melody",
+    "targetLufs": -16
+  },
+  "captions": {
+    "style": "2-5 words per beat",
+    "font": "clean bold sans",
+    "safeMargins": true,
+    "noRepeatedTitle": true,
+    "keywordAccent": [
+      "God",
+      "peace",
+      "Christ Jesus"
+    ]
+  },
+  "thumbnail": {
+    "variants": [
+      {
+        "text": "PEACE FOR YOUR MIND",
+        "visual": "realistic close-up profile at night with warm light beginning to enter frame"
+      },
+      {
+        "text": "PRAY THIS TONIGHT",
+        "visual": "real praying hands beside open Bible, cinematic warm light"
+      }
+    ],
+    "rules": [
+      "one focal point",
+      "max 4 words",
+      "high contrast",
+      "no clutter",
+      "no repeated title",
+      "must match first 3 seconds"
+    ],
+    "status": "PENDING_RENDER"
+  },
+  "theology": {
+    "status": "PASS_WITH_CONTEXT",
+    "note": "Philippians 4:6-7 is presented as an invitation to prayer and God's peace, not as a guarantee that anxiety or circumstances instantly disappear."
+  },
+  "rights": {
+    "status": "PENDING_ASSET_SELECTION",
+    "allowedSources": [
+      "Pexels",
+      "Pixabay",
+      "Mixkit Free License items"
+    ],
+    "blocked": [
+      "random TikTok reposts",
+      "YouTube reuploads",
+      "unclear-license footage",
+      "copyrighted worship tracks without permission"
+    ]
+  },
+  "qa": {
+    "thumbnailQuality": "PENDING",
+    "contentQuality": "PASS",
+    "lyricSync": "PASS",
+    "rightsStatus": "PENDING",
+    "visualQuality": "PENDING",
+    "audioMix": "PENDING",
+    "originality": "PASS"
+  },
+  "publishingAllowed": false
+}
