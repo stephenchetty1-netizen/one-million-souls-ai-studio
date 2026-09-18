@@ -79,6 +79,7 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
     entry?.visualVarietyInspection?.passed === true &&
+    Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
     typeof entry?.masterHash === 'string' &&
     entry.masterHash.length === 64 &&
     entry?.publishingLocked === true &&
@@ -156,6 +157,7 @@ async function generateFor(date) {
       entry?.audioInspection?.passed === true &&
       entry?.captionInspection?.passed === true &&
       entry?.visualVarietyInspection?.passed === true &&
+      Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
       typeof entry?.masterHash === 'string' &&
       entry.masterHash.length === 64 &&
       entry?.mediaUrl
@@ -202,6 +204,7 @@ async function generateFor(date) {
       audioInspection:video.audioInspection,
       captionInspection:video.captionInspection,
       visualVarietyInspection:video.visualVarietyInspection,
+      sceneMotionInspection:video.sceneMotionInspection,
       sceneCount:video.sceneCount,
       sceneSources:video.sceneSources,
       rightsClearedStockScenes:video.rightsClearedStockScenes || [],
