@@ -6,7 +6,8 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-50-v2'
+const PIPELINE_VERSION = 'v59-professional-master-50-v3'
+const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 
 const s3 = storageReady ? new S3Client({
   endpoint: process.env.ENDPOINT,
@@ -60,6 +61,12 @@ function configuredSlots() {
   return slots
 }
 
+function slotTimestamp(date, slot) {
+  const [hour, minute] = slot.split(':').map(Number)
+  // Africa/Johannesburg is UTC+02:00 year-round.
+  return Date.parse(`${date}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00+02:00`)
+}
+
 function manifestIsCurrent(manifest, date, slots) {
   if (!manifest || manifest.targetDate !== date || manifest.pipelineVersion !== PIPELINE_VERSION) return false
   if (!Array.isArray(manifest.entries) || manifest.entries.length !== slots.length) return false
@@ -70,7 +77,9 @@ function manifestIsCurrent(manifest, date, slots) {
     typeof entry?.masterHash === 'string' &&
     entry.masterHash.length === 64 &&
     entry?.publishingLocked === true &&
-    entry?.releaseStatus === 'AWAITING_50_AGENT_APPROVAL'
+    entry?.releaseStatus === 'AWAITING_50_AGENT_APPROVAL' &&
+    Number.isFinite(Date.parse(entry?.scheduledPublishAt || '')) &&
+    Date.parse(entry.scheduledPublishAt) === slotTimestamp(date, slots[index])
   )
 }
 
@@ -172,6 +181,9 @@ async function generateFor(date) {
       requiredApprovals:50,
       publishingLocked:true,
       releaseStatus:'AWAITING_50_AGENT_APPROVAL',
+      scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
+      releaseReadyDeadline:new Date(slotTimestamp(date, slotTimes[i]) - RELEASE_READY_BUFFER_MS).toISOString(),
+      minimumReleaseReadyBufferHours:2,
     }
     entries.push(entry)
 
