@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "mission": "Continuously research Christian channel opportunities and convert evidence into original, accurate, modern, captivating content concepts.",
+  "squads": {
+    "channelResearch": [
+      "trend-scout",
+      "million-view-scout",
+      "channel-strategist",
+      "competitor-mapper",
+      "search-intent-analyst",
+      "audience-insight-researcher",
+      "retention-scientist",
+      "hook-lab",
+      "format-innovation-lab",
+      "thumbnail-researcher",
+      "metadata-strategist",
+      "content-portfolio-planner"
+    ],
+    "mediaStudio": [
+      "executive-producer",
+      "storyboard-producer",
+      "media-producer",
+      "motion-editor",
+      "sound-designer",
+      "repurposing-editor",
+      "media-librarian",
+      "production-scheduler"
+    ]
+  },
+  "researchCadence": {
+    "every4Hours": [
+      "scan current Christian YouTube/TikTok trends and public high-performing examples",
+      "scan search questions and recurring audience problems",
+      "capture emerging formats, hook patterns, thumbnail patterns and storytelling mechanics",
+      "flag short-lived trends separately from evergreen opportunities"
+    ],
+    "daily": [
+      "generate at least 20 raw content ideas",
+      "score ideas for relevance, originality, biblical/factual accuracy, audience need, production feasibility and platform fit",
+      "promote the strongest 6 ideas to development",
+      "generate at least 3 hook variants and 2 thumbnail directions for each promoted idea",
+      "refresh the 14-day production slate"
+    ],
+    "weekly": [
+      "review channel analytics and retention",
+      "review competitor/channel movement",
+      "identify content gaps and overused themes",
+      "define 2 experimental formats",
+      "retire weak series and expand strong series"
+    ]
+  },
+  "ideaScoreWeights": {
+    "audienceNeed": 20,
+    "hookStrength": 15,
+    "biblicalFactualIntegrity": 20,
+    "originality": 15,
+    "retentionPotential": 10,
+    "searchPotential": 10,
+    "visualPotential": 5,
+    "productionFeasibility": 5
+  },
+  "innovationLanes": [
+    "direct prayer",
+    "search-intent Bible answers",
+    "cinematic Bible stories",
+    "modern Christian motivation",
+    "testimony/story structure",
+    "Bible misconception correction",
+    "daily devotional utility",
+    "original worship/lyric videos",
+    "interactive comment-led series",
+    "challenge/series formats",
+    "youth/Gen-Z faith formats",
+    "long-form teaching with Shorts cutdowns"
+  ],
+  "hardRules": [
+    "Never fabricate channel metrics.",
+    "Never copy scripts, footage, thumbnails, melodies or edits shot-for-shot.",
+    "Every Scripture claim must be verified.",
+    "Every factual claim must be verified before production.",
+    "Do not chase trends that conflict with channel identity or theological integrity.",
+    "Prefer realistic moving video and strong human storytelling over static poster-style content."
+  ]
+}
