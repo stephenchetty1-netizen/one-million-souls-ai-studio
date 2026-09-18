@@ -39,6 +39,7 @@ function localDate(date = new Date()) {
 function tomorrowDate() { return localDate(new Date(Date.now()+24*60*60*1000)).date }
 function hashDate(s) { return [...s].reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7) }
 function manifestKey(date) { return `manifests/${date}.json` }
+function buildingManifestKey(date) { return `manifests/${date}.building.json` }
 
 async function readJsonObject(key) {
   if (!s3) return null
@@ -88,6 +89,7 @@ async function render(item) {
 async function generateFor(date) {
   if (!enabled || !s3) return
   const key = manifestKey(date)
+  const buildingKey = buildingManifestKey(date)
   const slotTimes = configuredSlots()
   const existing = await readJsonObject(key)
   if (manifestIsCurrent(existing, date, slotTimes)) {
@@ -104,9 +106,36 @@ async function generateFor(date) {
     }))
   }
   const seed = hashDate(date)
+  const previousBuilding = await readJsonObject(buildingKey)
+  const reusableEntries = (
+    previousBuilding?.pipelineVersion === PIPELINE_VERSION &&
+    previousBuilding?.targetDate === date &&
+    Array.isArray(previousBuilding?.entries)
+  ) ? previousBuilding.entries : []
   const entries = []
+
   for (let i=0;i<3;i++) {
     const item = BANK[(seed + i*5) % BANK.length]
+    const reusable = reusableEntries.find((entry) =>
+      entry?.slot === slotTimes[i] &&
+      entry?.title === item.title &&
+      entry?.renderQualityGate === 'PASS' &&
+      typeof entry?.masterHash === 'string' &&
+      entry.masterHash.length === 64 &&
+      entry?.mediaUrl
+    )
+
+    if (reusable) {
+      entries.push(reusable)
+      console.log('DAILY_FACTORY_REUSE_PARTIAL', JSON.stringify({
+        targetDate:date,
+        slot:slotTimes[i],
+        title:item.title,
+        masterHash:reusable.masterHash,
+      }))
+      continue
+    }
+
     const video = await render(item)
     const contentHash = crypto.createHash('sha256').update(JSON.stringify({
       title:item.title,
@@ -117,7 +146,7 @@ async function generateFor(date) {
       slot:slotTimes[i],
       targetDate:date,
     })).digest('hex')
-    entries.push({
+    const entry = {
       slot:slotTimes[i],
       title:item.title,
       scriptureReference:item.ref,
@@ -134,6 +163,7 @@ async function generateFor(date) {
       renderQualityGate:'PASS',
       sceneCount:video.sceneCount,
       sceneSources:video.sceneSources,
+      rightsClearedStockScenes:video.rightsClearedStockScenes || [],
       voiceProvider:video.voiceProvider,
       imageProvider:video.imageProvider,
       videoProvider:video.videoProvider,
@@ -142,7 +172,36 @@ async function generateFor(date) {
       requiredApprovals:50,
       publishingLocked:true,
       releaseStatus:'AWAITING_50_AGENT_APPROVAL',
-    })
+    }
+    entries.push(entry)
+
+    const partial = {
+      ok:true,
+      partial:true,
+      mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',
+      pipelineVersion:PIPELINE_VERSION,
+      targetDate:date,
+      timezone:TIMEZONE,
+      generatedAt:new Date().toISOString(),
+      publishingLocked:true,
+      releaseStandard:'PROFESSIONAL_MASTER',
+      requiredApprovals:50,
+      entries,
+    }
+    await s3.send(new PutObjectCommand({
+      Bucket:process.env.BUCKET,
+      Key:buildingKey,
+      Body:JSON.stringify(partial,null,2),
+      ContentType:'application/json',
+      CacheControl:'no-store',
+    }))
+    console.log('DAILY_FACTORY_PARTIAL_SAVED', JSON.stringify({
+      targetDate:date,
+      completed:entries.length,
+      slot:entry.slot,
+      title:entry.title,
+      masterHash:entry.masterHash,
+    }))
   }
   const manifest = {ok:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
   const body = JSON.stringify(manifest,null,2)
