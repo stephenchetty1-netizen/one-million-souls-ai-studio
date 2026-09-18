@@ -43,7 +43,9 @@ export async function GET() {
       requiredTeamApprovals: 34,
       publisherMustApproveLast: true,
       approvalsVersionBound: true,
-      hardGates: ['thumbnailQuality','contentQuality','lyricSync'],
+      hardGates: ['thumbnailQuality','contentQuality','lyricSync','professionalExecution'],
+      releaseStandard: 'PROFESSIONAL_MASTER',
+      qualityOverQuantity: true,
       cadence: {
         research: rd.researchCadence,
         dailyDraftTargets: studio.dailyDraftTargets,
