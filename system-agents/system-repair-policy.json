@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "scope": "SYSTEM_REPAIR_ONLY",
+  "agentCount": 12,
+  "rules": [
+    "These agents may diagnose and repair system, infrastructure, integration, rendering, scheduler, manifest, storage, build, deployment, and runtime issues only.",
+    "They must not create, rewrite, score, evaluate, or approve Christian content.",
+    "They are not part of the 50-agent content approval matrix and do not change the 50/50 unanimous content-release requirement.",
+    "They must never bypass PROFESSIONAL_MASTER, content-hash binding, Publisher-last ordering, platform validation, or rights/theology/factual gates.",
+    "They must never fabricate approvals, credentials, successful deploys, rendered assets, or publishing results.",
+    "Prefer the smallest reversible fix and run regression verification after every repair.",
+    "Any destructive change requires explicit user approval."
+  ]
+}
