@@ -19,19 +19,19 @@ async function policy() {
   return JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','approval-policy.json'),'utf8'))
 }
 function cleanHash(v:any) { return /^[a-f0-9]{64}$/i.test(String(v||'')) ? String(v).toLowerCase() : '' }
-function key(contentHash:string,agentId:string) { return `one-million-souls:v59:approval:${contentHash}:${agentId}` }
+function key(contentHash:string,masterHash:string,agentId:string) { return `one-million-souls:v59:approval:${contentHash}:${masterHash}:${agentId}` }
 async function redis(command:any[]) {
   if (!redisUrl || !redisToken) throw new Error('DURABLE_APPROVAL_STORE_NOT_CONFIGURED')
   const r=await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
   if(!r.ok) throw new Error(`APPROVAL_STORE_HTTP_${r.status}`)
   const data:any=await r.json(); return data?.result
 }
-async function readVote(contentHash:string,agentId:string) {
-  const raw=await redis(['GET',key(contentHash,agentId)])
+async function readVote(contentHash:string,masterHash:string,agentId:string) {
+  const raw=await redis(['GET',key(contentHash,masterHash,agentId)])
   return raw ? JSON.parse(raw) : null
 }
 async function writeVote(record:any) {
-  await redis(['SET',key(record.contentHash,record.agentId),JSON.stringify(record)])
+  await redis(['SET',key(record.contentHash,record.masterHash,record.agentId),JSON.stringify(record)])
 }
 
 export async function POST(req: Request) {
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     if(agentId==='publisher'&&decision==='APPROVE') {
       const missing:string[]=[]
       for(const id of required.filter((x)=>x!=='publisher')) {
-        const vote=await readVote(contentHash,id)
+        const vote=await readVote(contentHash,masterHash,id)
         if(!vote||vote.decision!=='APPROVE'||vote.contentHash!==contentHash||vote.masterHash!==masterHash) missing.push(id)
       }
       if(missing.length) return NextResponse.json({ok:false,blocked:true,error:'Publisher approval requires all 49 prior approvals',missing},{status:423})
@@ -64,12 +64,14 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   if(!authorized(req)) return NextResponse.json({ok:false,error:'Unauthorized'},{status:401})
-  const contentHash=cleanHash(new URL(req.url).searchParams.get('contentHash'))
-  if(!contentHash) return NextResponse.json({ok:false,error:'Valid contentHash required'},{status:400})
+  const url=new URL(req.url)
+  const contentHash=cleanHash(url.searchParams.get('contentHash'))
+  const masterHash=cleanHash(url.searchParams.get('masterHash'))
+  if(!contentHash||!masterHash) return NextResponse.json({ok:false,error:'Valid contentHash and masterHash required'},{status:400})
   const p=await policy(); const required:string[]=p.requiredAgents||[]; const approvals:any={}
   try {
-    for(const id of required) approvals[id]=await readVote(contentHash,id)||{agentId:id,decision:'PENDING',contentHash,approvedAt:null,evidence:''}
-    return NextResponse.json({ok:true,publishingLocked:true,durable:true,contentHash,approvals})
+    for(const id of required) approvals[id]=await readVote(contentHash,masterHash,id)||{agentId:id,decision:'PENDING',contentHash,masterHash,approvedAt:null,evidence:''}
+    return NextResponse.json({ok:true,publishingLocked:true,durable:true,contentHash,masterHash,approvals})
   } catch(error) {
     return NextResponse.json({ok:false,blocked:true,error:error instanceof Error?error.message:'approval store failed'},{status:503})
   }
