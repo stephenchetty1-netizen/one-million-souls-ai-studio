@@ -3,6 +3,24 @@ import crypto from 'node:crypto'
 export const AGENTS = Object.freeze([
   { id:'trend-scout', role:'Research current Christian topics, search demand, hooks, formats, and audience patterns.', output:'trendBrief' },
   { id:'million-view-scout', role:'Find publicly verifiable TikTok/YouTube Christian content above 1M views and extract reusable format patterns without copying protected expression.', output:'millionViewPatternBrief' },
+  { id:'channel-strategist', role:'Study channel positioning, content pillars, series architecture, audience promise, differentiation, and growth opportunities.', output:'channelStrategy' },
+  { id:'competitor-mapper', role:'Map comparable Christian channels and creators, their recurring formats, upload patterns, audience signals, and white-space opportunities without copying.', output:'competitorMap' },
+  { id:'search-intent-analyst', role:'Research YouTube/TikTok search questions, keywords, recurring viewer problems, and searchable topic clusters.', output:'searchDemandMap' },
+  { id:'audience-insight-researcher', role:'Develop audience personas from comments, watch behavior, recurring questions, age/life-stage needs, and platform context.', output:'audienceInsightReport' },
+  { id:'retention-scientist', role:'Study hook strength, drop-off points, pacing, scene duration, caption density, payoff timing, and rewatch triggers.', output:'retentionReport' },
+  { id:'hook-lab', role:'Generate and test multiple original hook families for each concept: question, tension, promise, story, prayer, contrast, surprise, and search-intent.', output:'hookVariants' },
+  { id:'format-innovation-lab', role:'Invent fresh Christian content formats by combining proven mechanics with new storytelling, visual, interactive, devotional, and community structures.', output:'formatConcepts' },
+  { id:'thumbnail-researcher', role:'Study high-performing thumbnail composition, focal points, contrast, text economy, curiosity, emotion, and topic-match patterns.', output:'thumbnailResearch' },
+  { id:'metadata-strategist', role:'Develop titles, descriptions, chapters, tags, hashtags, playlists, series names, and search packaging without spam or misleading claims.', output:'metadataPackage' },
+  { id:'content-portfolio-planner', role:'Balance the channel across evergreen, trend-responsive, search-led, devotional, story, worship, testimony, Bible education, and experimental content.', output:'contentPortfolio' },
+  { id:'executive-producer', role:'Convert approved research into a prioritized production slate with deadlines, dependencies, format assignments, and resource constraints.', output:'productionSlate' },
+  { id:'storyboard-producer', role:'Turn scripts into detailed moving-video storyboards with shot purpose, pacing, transitions, B-roll needs, and visual continuity.', output:'storyboard' },
+  { id:'media-producer', role:'Coordinate footage, voice, music, graphics, captions, aspect ratios, file versions, and delivery requirements across productions.', output:'mediaProductionPackage' },
+  { id:'motion-editor', role:'Build or direct polished motion edits, pacing, reframing, transitions, kinetic captions, and platform-safe visual rhythm.', output:'motionEditPlan' },
+  { id:'sound-designer', role:'Design music beds, ambience, impact moments, transitions, ducking, loudness, and emotional audio arcs that support narration.', output:'soundDesignPlan' },
+  { id:'repurposing-editor', role:'Turn approved long-form and lyric productions into multiple original Shorts, teasers, clips, hooks, quote moments, and platform variants.', output:'repurposePackage' },
+  { id:'media-librarian', role:'Maintain a rights-aware catalog of reusable footage, music, graphics, voice, thumbnails, project files, and prior successful scenes.', output:'mediaLibraryIndex' },
+  { id:'production-scheduler', role:'Keep a rolling draft-production calendar, manage queue health, prevent content gaps, and ensure a consistent supply of review-ready media.', output:'productionSchedule' },
   { id:'rights-scout', role:'Verify item-level usage rights and block ambiguous assets.', output:'rightsLedger' },
   { id:'theology-guard', role:'Check Scripture references, context, quotations, and doctrine-sensitive claims.', output:'theologyReport' },
   { id:'script-writer', role:'Write original Shorts and long-form scripts from approved briefs.', output:'scriptPackage' },
@@ -17,6 +35,18 @@ export const AGENTS = Object.freeze([
   { id:'qa', role:'Run rights, theology, factual, media, caption, audio, visual, originality, and platform checks.', output:'qaReport' },
   { id:'publisher', role:'Publish only when every required gate passes.', output:'publishResult' },
   { id:'analytics-learner', role:'Read performance and generate lessons for the next content cycle.', output:'learningReport' },
+])
+
+export const RND_AGENTS = Object.freeze([
+  'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
+  'search-intent-analyst','audience-insight-researcher','retention-scientist',
+  'hook-lab','format-innovation-lab','thumbnail-researcher','metadata-strategist',
+  'content-portfolio-planner'
+])
+
+export const MEDIA_AGENTS = Object.freeze([
+  'executive-producer','storyboard-producer','media-producer','motion-editor',
+  'sound-designer','repurposing-editor','media-librarian','production-scheduler'
 ])
 
 export const REQUIRED_GATES = Object.freeze([
@@ -54,7 +84,7 @@ export function createRunPlan(input={}) {
   const topic = String(input.topic || '').trim()
   if (!topic) throw new Error('topic is required')
 
-  const base = ['trend-scout','million-view-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director']
+  const base = [...RND_AGENTS,'theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director','executive-producer','storyboard-producer','media-producer','motion-editor','sound-designer','media-librarian','production-scheduler']
   const editor = mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer'
 
   return {
