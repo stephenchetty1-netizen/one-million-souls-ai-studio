@@ -56,7 +56,9 @@ export async function POST(req: Request) {
         contentQuality:'PENDING',
         lyricSync: mode === 'LYRIC' ? 'PENDING' : 'PASS',
         originality:'PENDING',
+        professionalExecution:'PENDING',
       },
+      releaseStandard: 'PROFESSIONAL_MASTER',
       approvalPolicy: 'UNANIMOUS_VERSION_BOUND_APPROVAL',
       requiredApprovals: 34,
       approvalMatrix: Object.fromEntries([
