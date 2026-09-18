@@ -2,7 +2,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node system-agents/worker.mjs --with-app",
     "smoke-test": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
