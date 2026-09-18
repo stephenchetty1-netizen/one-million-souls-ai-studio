@@ -11,6 +11,7 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
 
 RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute
 COPY content-agents /workspace/content-agents
+COPY system-agents /workspace/system-agents
 COPY docker-overrides/content-agents/status-route.ts /workspace/app/api/content-agents/status/route.ts
 COPY docker-overrides/content-agents/queue-route.ts /workspace/app/api/content-agents/queue/route.ts
 COPY docker-overrides/content-agents/plan-route.ts /workspace/app/api/content-agents/plan/route.ts
