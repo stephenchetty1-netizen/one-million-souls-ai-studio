@@ -448,6 +448,22 @@ async function inspectAudioMaster(file) {
   return { status:'PASS', integratedLufs:integrated, truePeakDbtp:truePeak, loudnessRangeLu:lra, thresholdLufs:threshold, target:'-16 LUFS / <= -1.0 dBTP' }
 }
 
+async function inspectSceneMotion(scene, index) {
+  const audit = await execFileAsync('ffmpeg', [
+    '-hide_banner','-nostats','-i',scene.local,
+    '-vf','scale=270:480,blackdetect=d=0.35:pix_th=0.08,freezedetect=n=-50dB:d=1.5',
+    '-an','-f','null','-'
+  ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+  const log = String(audit?.stderr || '')
+  const defects = []
+  if (/black_start/.test(log)) defects.push('black')
+  if (/freeze_start/.test(log)) defects.push('freeze')
+  if (defects.length) {
+    throw new Error(`Scene quality gate failed: scene ${index + 1} (${scene.stockId || scene.source || 'unknown'}) contains ${defects.join('/')} defect`)
+  }
+  return { status:'PASS', index:index + 1, stockId:scene.stockId || null, source:scene.source || 'unknown' }
+}
+
 async function inspectMaster(file, expectedDuration) {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v','error','-show_entries','stream=index,codec_type,width,height,r_frame_rate,pix_fmt,sample_rate,channels:format=duration,bit_rate',
@@ -563,6 +579,8 @@ export async function renderFreeV2(body = {}) {
     }
 
     const captionInspection = inspectCaptionSafeZones(script, voiceDuration)
+    const sceneMotionInspection = []
+    for (let index = 0; index < scenes.length; index += 1) sceneMotionInspection.push(await inspectSceneMotion(scenes[index], index))
     const visualVarietyInspection = await inspectVisualVariety(scenes)
     const composed = await compose({ scenes, voice, music, script, title, work })
     const masterInspection = await inspectMaster(composed.out, composed.duration)
