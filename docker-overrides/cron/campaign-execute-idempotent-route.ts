@@ -10,17 +10,16 @@ const redisUrl = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''
 const LOCK_TTL_SECONDS = 36 * 60 * 60
 
+async function redis(command:any[]) {
+  if (!redisUrl || !redisToken) throw new Error('DURABLE_IDEMPOTENCY_STORE_NOT_CONFIGURED')
+  const response = await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
+  if(!response.ok) throw new Error(`IDEMPOTENCY_STORE_HTTP_${response.status}`)
+  return (await response.json())?.result
+}
+
 async function claim(key:string) {
-  if (!redisUrl || !redisToken) return { ok:false, reason:'DURABLE_IDEMPOTENCY_STORE_NOT_CONFIGURED' }
-  const response = await fetch(redisUrl, {
-    method:'POST',
-    headers:{ authorization:`Bearer ${redisToken}`, 'content-type':'application/json' },
-    body:JSON.stringify(['SET', key, new Date().toISOString(), 'NX', 'EX', LOCK_TTL_SECONDS]),
-    cache:'no-store',
-  })
-  if (!response.ok) return { ok:false, reason:`IDEMPOTENCY_STORE_HTTP_${response.status}` }
-  const data:any = await response.json()
-  return data?.result === 'OK' ? { ok:true } : { ok:false, reason:'ALREADY_EXECUTED_OR_IN_PROGRESS' }
+  try { const result=await redis(['SET',key,new Date().toISOString(),'NX','EX',LOCK_TTL_SECONDS]); return result==='OK'?{ok:true}:{ok:false,reason:'ALREADY_EXECUTED_OR_IN_PROGRESS'} }
+  catch(e){ return {ok:false,reason:e instanceof Error?e.message:String(e)} }
 }
 
 export async function POST(req:Request) {
@@ -39,5 +38,12 @@ export async function POST(req:Request) {
     const duplicate = lock.reason === 'ALREADY_EXECUTED_OR_IN_PROGRESS'
     return NextResponse.json({ok:duplicate,executed:false,duplicate,reason:lock.reason,scheduledSlot},{status:duplicate ? 200 : 503})
   }
-  return campaignPOST(req)
+  try {
+    const response = await campaignPOST(req)
+    if (!response.ok) await redis(['DEL',lockKey]).catch(()=>null)
+    return response
+  } catch (error) {
+    await redis(['DEL',lockKey]).catch(()=>null)
+    throw error
+  }
 }
