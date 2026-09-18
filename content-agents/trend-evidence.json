@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "capturedAt": "2026-09-18",
+  "externalTrendSignals": [
+    {
+      "signal": "Christian short-form discovery is strongest around bite-sized encouragement, prayer, verse explainers, questions, misconception correction, and story-driven clips.",
+      "sources": [
+        "Word Embassy AI Bible Shorts",
+        "Sermon Clips 2026 church Shorts strategy",
+        "FrontGate Media Christian Influencers 2026"
+      ]
+    },
+    {
+      "signal": "Short-form is a primary discovery channel for Christian creators, while long-form builds depth and trust.",
+      "sources": [
+        "FrontGate Media Christian Influencers 2026"
+      ]
+    },
+    {
+      "signal": "Search-oriented titles such as 'What does the Bible say about anxiety?' and verse explainers are recommended for YouTube Shorts.",
+      "sources": [
+        "Sermon Clips 2026 church Shorts strategy"
+      ]
+    },
+    {
+      "signal": "Recent public Christian prayer/video datasets show prayer, blessings, Bible verse, Jesus, hope, and motivation repeatedly appearing in stronger-performing short posts.",
+      "sources": [
+        "SubSub public Christian prayer channel data"
+      ]
+    }
+  ],
+  "rightsSignals": [
+    {
+      "source": "Pexels",
+      "status": "approved-source-with-item-check",
+      "note": "Free personal/commercial photo and video use under Pexels license; depicted third-party rights can still matter."
+    },
+    {
+      "source": "Pixabay",
+      "status": "approved-source-with-item-check",
+      "note": "Free use and modification subject to Pixabay Content License and prohibited uses; music can be used as part of larger creative video works."
+    },
+    {
+      "source": "Mixkit",
+      "status": "item-license-required",
+      "note": "Some assets use Free License while others use Restricted License. The rights agent must inspect each selected item."
+    },
+    {
+      "source": "YouTube Audio Library",
+      "status": "approved-for-youtube-with-track-check",
+      "note": "YouTube describes library music/SFX as copyright-safe on YouTube; Creative Commons tracks may require attribution."
+    }
+  ],
+  "ownedChannelSignals": {
+    "platform": "TikTok",
+    "brandId": "6920066",
+    "window": "2026-09-11 to 2026-09-18",
+    "posts": [
+      {
+        "topic": "Believe You Have Received",
+        "durationSeconds": 35,
+        "views": 194,
+        "likes": 28,
+        "avgWatchSeconds": 8
+      },
+      {
+        "topic": "Be Still and Know",
+        "durationSeconds": 60,
+        "views": 141,
+        "likes": 26,
+        "avgWatchSeconds": 7
+      },
+      {
+        "topic": "Pray Without Ceasing",
+        "durationSeconds": 58,
+        "views": 121,
+        "likes": 16,
+        "avgWatchSeconds": 8
+      },
+      {
+        "topic": "Living Sacrifice",
+        "durationSeconds": 43,
+        "views": 144,
+        "likes": 13,
+        "avgWatchSeconds": 6
+      },
+      {
+        "topic": "Psalm 27:8 Seek My Face",
+        "durationSeconds": 23,
+        "views": 68,
+        "likes": 5,
+        "avgWatchSeconds": 4
+      }
+    ],
+    "workingHypothesis": "Lead with a direct emotional promise/question, keep most Shorts near 22-40 seconds, use moving video, and avoid long text-heavy captions."
+  }
+}
