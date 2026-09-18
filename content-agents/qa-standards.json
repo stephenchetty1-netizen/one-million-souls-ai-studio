@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-09-18",
   "policy": "FAIL_CLOSED",
   "gates": {
@@ -47,6 +47,23 @@
         "ending verified",
         "no clipped or overlapping text"
       ]
+    },
+    "professionalExecution": {
+      "required": true,
+      "checks": [
+        "opening immediately communicates value or emotion",
+        "script is concise, accurate, modern and free of filler",
+        "visuals feel intentional, realistic and platform-native",
+        "editing rhythm matches the emotional arc",
+        "captions are clean, readable and correctly timed",
+        "voice is natural and intelligible",
+        "music and sound design support rather than overpower the message",
+        "thumbnail/cover is clean, catchy and truthful",
+        "title and metadata accurately package the content",
+        "no visible rendering defects, awkward crops, dead frames or placeholder assets",
+        "platform safe zones, aspect ratio and export quality are correct",
+        "final piece feels coherent and professionally finished from first frame to last"
+      ]
     }
   },
   "thumbnailSpecs": {
@@ -71,6 +88,12 @@
     "copyright/rights uncertainty",
     "obvious AI anatomy/artifact in hero thumbnail",
     "caption or lyric clipping",
-    "poor audio intelligibility"
-  ]
+    "poor audio intelligibility",
+    "final assembled piece does not meet Professional Master standard"
+  ],
+  "releaseStandard": {
+    "name": "PROFESSIONAL_MASTER",
+    "rule": "No content is publishable merely because component checks pass. The final assembled piece must pass an end-to-end professional execution review.",
+    "outcomeOnFailure": "REVISE_AND_REVIEW_AGAIN"
+  }
 }
