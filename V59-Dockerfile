@@ -36,6 +36,9 @@ RUN printf "%s\n" \
  "export const maxDuration = 300" \
  > app/api/cron/daily/route.ts
 
+RUN mkdir -p app/api/system-agents/autonomy-status
+COPY docker-overrides/system-agents/autonomy-status-route.ts /workspace/app/api/system-agents/autonomy-status/route.ts
+
 RUN npm install
 
 # TS6 compatibility and legacy V42-V58 contract migration bridge.
