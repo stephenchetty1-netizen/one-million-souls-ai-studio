@@ -56,7 +56,8 @@ async function generateFor(date) {
   const key = manifestKey(date)
   if (await exists(key)) { console.log('DAILY_FACTORY_EXISTS', date); return }
   const seed = hashDate(date)
-  const slotTimes = ['00:01','06:00','18:00']
+  const slotTimes = (process.env.PUBLISH_SLOTS || '08:00,15:30,20:30').split(',').map(s=>s.trim()).filter(Boolean)
+  if (slotTimes.length !== 3) throw new Error('PUBLISH_SLOTS must contain exactly 3 HH:MM slots')
   const entries = []
   for (let i=0;i<3;i++) {
     const item = BANK[(seed + i*5) % BANK.length]
