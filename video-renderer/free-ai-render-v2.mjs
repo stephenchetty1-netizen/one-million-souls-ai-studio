@@ -401,7 +401,7 @@ function inspectCaptionSafeZones(script, duration) {
   if (horizontalSafeMargin < 80) problems.push('horizontal caption safe margin below 80px')
   if (bottomSafeMargin < 160) problems.push('bottom caption safe margin below 160px')
   if (problems.length) throw new Error('Caption/mobile safe-zone gate failed: ' + problems.join('; '))
-  return { status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
+  return { passed:true, status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
 }
 
 async function inspectVisualVariety(scenes) {
@@ -420,7 +420,7 @@ async function inspectVisualVariety(scenes) {
     const run = source === state.last ? state.run + 1 : 1
     return { last:source, run, max:Math.max(state.max,run) }
   }, {last:null,run:0,max:0}).max
-  return { status:'PASS', sceneCount:scenes.length, uniqueSceneCount:uniqueHashes.size, repeatedStockIds:0, longestSameSourceRun:longestRun, sceneSources:sources }
+  return { passed:true, status:'PASS', sceneCount:scenes.length, uniqueSceneCount:uniqueHashes.size, repeatedStockIds:0, longestSameSourceRun:longestRun, sceneSources:sources }
 }
 
 async function inspectAudioMaster(file) {
@@ -445,7 +445,7 @@ async function inspectAudioMaster(file) {
   if (integrated < -18.5 || integrated > -13.5) throw new Error(`Audio mastering gate failed: integrated loudness ${integrated} LUFS outside -18.5..-13.5`)
   if (truePeak > -1.0) throw new Error(`Audio mastering gate failed: true peak ${truePeak} dBTP exceeds -1.0 dBTP ceiling`)
   if (lra > 12) throw new Error(`Audio mastering gate failed: loudness range ${lra} LU is too wide for mobile narration`)
-  return { status:'PASS', integratedLufs:integrated, truePeakDbtp:truePeak, loudnessRangeLu:lra, thresholdLufs:threshold, target:'-16 LUFS / <= -1.0 dBTP' }
+  return { passed:true, status:'PASS', integratedLufs:integrated, truePeakDbtp:truePeak, loudnessRangeLu:lra, thresholdLufs:threshold, target:'-16 LUFS / <= -1.0 dBTP' }
 }
 
 async function inspectSceneMotion(scene, index) {
@@ -461,7 +461,7 @@ async function inspectSceneMotion(scene, index) {
   if (defects.length) {
     throw new Error(`Scene quality gate failed: scene ${index + 1} (${scene.stockId || scene.source || 'unknown'}) contains ${defects.join('/')} defect`)
   }
-  return { status:'PASS', index:index + 1, stockId:scene.stockId || null, source:scene.source || 'unknown' }
+  return { passed:true, status:'PASS', index:index + 1, stockId:scene.stockId || null, source:scene.source || 'unknown' }
 }
 
 async function inspectMaster(file, expectedDuration) {
@@ -492,7 +492,7 @@ async function inspectMaster(file, expectedDuration) {
   if (/black_start|freeze_start/.test(frameAuditLog)) {
     throw new Error('Master integrity failed: black/frozen-frame defect detected')
   }
-  return { status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
+  return { passed:true, status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
 }
 
 async function persist(file, id) {
