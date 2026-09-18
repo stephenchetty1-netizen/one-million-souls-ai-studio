@@ -23,6 +23,11 @@ export async function POST(req:Request){
  if(!contentHash||!masterHash)return NextResponse.json({ok:false,error:'Valid contentHash and masterHash required'},{status:400})
  const evidence=body.evidence
  if(!evidence||typeof evidence!=='object')return NextResponse.json({ok:false,blocked:true,error:'Measured evidence bundle required; executor will not synthesize approvals'},{status:423})
+ const requiredEvidence=['fullWatch','technicalMaster','creativeMaster','rightsManifest','thumbnailInspection','metadataInspection','theologyInspection','factualInspection','safeZoneInspection','exportInspection','masterIntegrityInspection']
+ const missingEvidence=requiredEvidence.filter((key)=>!evidence?.[key])
+ if(missingEvidence.length)return NextResponse.json({ok:false,blocked:true,error:'MASTER_READY_EVIDENCE_MISSING',missingEvidence},{status:423})
+ if(evidence.technicalMaster?.status!=='PASS'||evidence.creativeMaster?.status!=='PASS'||evidence.fullWatch?.status!=='PASS'||evidence.masterIntegrityInspection?.status!=='PASS')
+   return NextResponse.json({ok:false,blocked:true,error:'MASTER_READY_REQUIRES_FULL_WATCH_TECHNICAL_CREATIVE_AND_INTEGRITY_PASS'},{status:423})
  const p=await policy(); const required:string[]=p.requiredAgents||[]
  const decisions=body.decisions
  if(!decisions||typeof decisions!=='object')return NextResponse.json({ok:false,blocked:true,error:'Explicit per-agent decisions required'},{status:423})
@@ -41,5 +46,6 @@ export async function POST(req:Request){
    results.push({agentId,status:r.status,ok:!!data.ok,decision})
    if(!r.ok)return NextResponse.json({ok:false,blocked:true,error:`Approval recording stopped at ${agentId}`,results,detail:data},{status:423})
  }
- return NextResponse.json({ok:true,publishingLocked:true,contentHash,masterHash,recorded:results.length,results})
+ const unanimous=results.length===required.length&&results.every((x)=>x.ok&&x.decision==='APPROVE')
+ return NextResponse.json({ok:true,publishingLocked:!unanimous,contentHash,masterHash,recorded:results.length,results,masterReady:true,certification:unanimous?'PROFESSIONAL_MASTER_CERTIFIED':'NOT_CERTIFIED',releaseStatus:unanimous?'APPROVED_AWAITING_POST_TIME':'RETURN_TO_PRODUCTION'})
 }
