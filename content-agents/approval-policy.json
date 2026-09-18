@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-09-18",
   "policy": "UNANIMOUS_VERSION_BOUND_APPROVAL",
   "requiredDecision": "APPROVE",
@@ -45,6 +45,9 @@
     "Any content or metadata change creates a new contentHash and invalidates all previous approvals.",
     "Any PENDING, REVISE, BLOCK, missing, stale, or malformed approval blocks publication.",
     "Approvals must include approvedAt and evidence/notes for auditability.",
-    "All normal QA gates must also be PASS."
-  ]
+    "All normal QA gates must also be PASS.",
+    "professionalExecution must be PASS before any approval envelope can unlock publishing.",
+    "Production volume targets never override quality or approval requirements."
+  ],
+  "releaseStandard": "PROFESSIONAL_MASTER"
 }
