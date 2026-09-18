@@ -1,0 +1,79 @@
+{
+  "id": "S001",
+  "mode": "SHORT",
+  "status": "DRAFT_READY_ASSET_SELECTION_PENDING",
+  "title": "Before You Scroll, Pray This for Peace",
+  "scripture": [
+    "Philippians 4:6-7"
+  ],
+  "targetSeconds": 28,
+  "hook": "Before you scroll, give God the next 20 seconds.",
+  "script": "Before you scroll, give God the next 20 seconds. Father, You see the worry I am carrying. Your Word tells us to bring everything to You in prayer. So I give You what I cannot control. Quiet my mind. Steady my heart. Fill me with the peace that comes from You. Help me trust You with today and leave tomorrow in Your hands. In Jesus' name, amen.",
+  "shotPlan": [
+    {
+      "time": "0.0-2.0",
+      "video": "real person awake beside a dark window; slow push-in; no text except hook",
+      "caption": "GIVE GOD 20 SECONDS"
+    },
+    {
+      "time": "2.0-7.0",
+      "video": "close moving shot of hands resting together in prayer; natural room light",
+      "caption": "HE SEES THE WORRY"
+    },
+    {
+      "time": "7.0-13.0",
+      "video": "open Bible pages moving gently; warm practical light; human hand enters frame",
+      "caption": "BRING IT TO GOD"
+    },
+    {
+      "time": "13.0-20.0",
+      "video": "person walking outdoors at dawn; visible breath or morning mist",
+      "caption": "RELEASE WHAT YOU CAN'T CONTROL"
+    },
+    {
+      "time": "20.0-28.0",
+      "video": "sunrise over water or hills; subtle camera movement",
+      "caption": "RECEIVE HIS PEACE"
+    }
+  ],
+  "assetSearches": [
+    {
+      "source": "Pexels",
+      "query": "person praying at night window cinematic video",
+      "rightsStatus": "REVIEW"
+    },
+    {
+      "source": "Pixabay",
+      "query": "prayer bible 4k video",
+      "rightsStatus": "REVIEW"
+    },
+    {
+      "source": "Mixkit",
+      "query": "Bible prayer Christian stock video",
+      "rightsStatus": "REVIEW_ITEM_LICENSE_REQUIRED"
+    }
+  ],
+  "audio": {
+    "narration": "Edge neural TTS en-ZA-LeahNeural or approved human voice",
+    "music": "licensed gentle cinematic piano/pads or original generated instrumental",
+    "mix": "voice -16 LUFS integrated target; music approximately 16-22 dB under narration"
+  },
+  "editRules": {
+    "aspect": "9:16",
+    "resolution": "1080x1920",
+    "fps": 30,
+    "movingVideoOnly": true,
+    "maxShotSeconds": 7,
+    "captions": "2-5 words per beat; clean lower-third; no repeated giant title",
+    "opening": "movement visible in first frame"
+  },
+  "theologyGuard": {
+    "status": "PASS_WITH_CONTEXT",
+    "notes": "Prayer asks for peace and trust rather than guaranteeing a specific earthly outcome. Philippians 4:6-7 is used as encouragement to pray and entrust anxiety to God."
+  },
+  "rightsGuard": {
+    "status": "PENDING_ASSET_SELECTION",
+    "rule": "No clip or music enters render until item-level license is stored in rights ledger."
+  },
+  "publishingAllowed": false
+}
