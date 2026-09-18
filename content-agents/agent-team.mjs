@@ -50,7 +50,7 @@ export const AGENTS = Object.freeze([
   { id:'master-integrity-auditor', role:'Verify the released file is the exact approved contentHash, is not a legacy or substituted asset, and matches the approved metadata and release record.', output:'masterIntegrityAudit' },
   { id:'qa', role:'Run rights, theology, factual, media, caption, audio, visual, originality, and platform checks.', output:'qaReport' },
   { id:'analytics-learner', role:'Read performance and generate lessons for the next content cycle.', output:'learningReport' },
-  { id:'publisher', role:'Publish only when every required gate passes and all 49 other agents approved this exact contentHash.', output:'publishResult' },
+  { id:'publisher', role:'Final release authority only. Publish the exact immutable PROFESSIONAL_MASTER_CERTIFIED contentHash/masterHash only after every gate passes and all 49 other agents approve. Never repair, substitute, recompress, edit metadata, or lower quality; otherwise RETURN_TO_PRODUCTION.', output:'publishResult' },
 ])
 
 export const RND_AGENTS = Object.freeze([
@@ -168,6 +168,8 @@ export const REQUIRED_GATES = Object.freeze([
   'lyricSync',
   'originality',
   'professionalExecution',
+  'technicalMaster',
+  'creativeMaster',
 ])
 
 export const SOURCE_PRIORITY = Object.freeze([
