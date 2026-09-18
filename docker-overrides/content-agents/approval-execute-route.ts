@@ -1,0 +1,45 @@
+import { NextResponse } from 'next/server'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+
+export const runtime='nodejs'
+export const dynamic='force-dynamic'
+export const maxDuration=300
+
+function authorized(req:Request){
+ const s=process.env.CRON_SECRET
+ if(!s)return false
+ const a=req.headers.get('authorization')||''
+ return a===`Bearer ${s}`||req.headers.get('x-cron-secret')===s
+}
+async function policy(){return JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','approval-policy.json'),'utf8'))}
+function hash(v:any){return /^[a-f0-9]{64}$/i.test(String(v||''))?String(v).toLowerCase():''}
+
+export async function POST(req:Request){
+ if(!authorized(req))return NextResponse.json({ok:false,error:'Unauthorized'},{status:401})
+ const body:any=await req.json().catch(()=>null)
+ if(!body)return NextResponse.json({ok:false,error:'Invalid JSON body'},{status:400})
+ const contentHash=hash(body.contentHash),masterHash=hash(body.masterHash)
+ if(!contentHash||!masterHash)return NextResponse.json({ok:false,error:'Valid contentHash and masterHash required'},{status:400})
+ const evidence=body.evidence
+ if(!evidence||typeof evidence!=='object')return NextResponse.json({ok:false,blocked:true,error:'Measured evidence bundle required; executor will not synthesize approvals'},{status:423})
+ const p=await policy(); const required:string[]=p.requiredAgents||[]
+ const decisions=body.decisions
+ if(!decisions||typeof decisions!=='object')return NextResponse.json({ok:false,blocked:true,error:'Explicit per-agent decisions required'},{status:423})
+ const base=new URL(req.url); const endpoint=new URL('/api/content-agents/approval-record',base)
+ const secret=process.env.CRON_SECRET!
+ const results:any[]=[]
+ for(const agentId of required){
+   const d=decisions[agentId]
+   if(!d)return NextResponse.json({ok:false,blocked:true,error:`Missing decision for ${agentId}`,completed:results.length},{status:423})
+   const decision=String(d.decision||'').toUpperCase()
+   const notes=String(d.evidence||d.notes||'').trim()
+   if(!['APPROVE','REVISE','BLOCK'].includes(decision)||!notes)
+     return NextResponse.json({ok:false,blocked:true,error:`Invalid decision/evidence for ${agentId}`,completed:results.length},{status:423})
+   const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json','x-cron-secret':secret},body:JSON.stringify({agentId,decision,contentHash,masterHash,evidence:notes})})
+   const data:any=await r.json().catch(()=>({ok:false,error:'Invalid approval-record response'}))
+   results.push({agentId,status:r.status,ok:!!data.ok,decision})
+   if(!r.ok)return NextResponse.json({ok:false,blocked:true,error:`Approval recording stopped at ${agentId}`,results,detail:data},{status:423})
+ }
+ return NextResponse.json({ok:true,publishingLocked:true,contentHash,masterHash,recorded:results.length,results})
+}
