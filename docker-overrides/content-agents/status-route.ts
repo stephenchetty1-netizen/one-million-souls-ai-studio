@@ -18,8 +18,8 @@ export async function GET() {
       publishingLocked: true,
       agents: [
         'trend-scout','rights-scout','theology-guard','script-writer','asset-scout',
-        'music-director','visual-director','shorts-editor','longform-producer',
-        'lyric-producer','qa','publisher','analytics-learner'
+        'music-director','visual-director','thumbnail-director','content-director',
+        'shorts-editor','longform-producer','lyric-producer','qa','publisher','analytics-learner'
       ],
       queue: {
         shorts: queue.shorts?.length || 0,
@@ -28,6 +28,7 @@ export async function GET() {
       },
       rightsSources: sources.sources?.map((s:any) => ({ id:s.id, type:s.type, priority:s.priority })) || [],
       qualityPolicy: 'FAIL_CLOSED',
+      hardGates: ['thumbnailQuality','contentQuality','lyricSync'],
     })
   } catch (error) {
     return NextResponse.json({ ok:false, error:error instanceof Error ? error.message : 'status failed' }, { status:500 })
