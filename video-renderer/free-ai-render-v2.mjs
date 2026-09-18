@@ -384,6 +384,37 @@ async function compose({ scenes, voice, music, script, title, work }) {
   return { out, duration: voiceDuration }
 }
 
+async function inspectMaster(file, expectedDuration) {
+  const { stdout } = await execFileAsync('ffprobe', [
+    '-v','error','-show_entries','stream=index,codec_type,width,height,r_frame_rate,pix_fmt,sample_rate,channels:format=duration,bit_rate',
+    '-of','json',file,
+  ], { timeout: 30000, maxBuffer: 5 * 1024 * 1024 })
+  const probe = JSON.parse(stdout)
+  const video = (probe.streams || []).find((s) => s.codec_type === 'video')
+  const audio = (probe.streams || []).find((s) => s.codec_type === 'audio')
+  const duration = Number(probe.format?.duration || 0)
+  const bitrate = Number(probe.format?.bit_rate || 0)
+  if (!video || !audio) throw new Error('Master integrity failed: video and audio streams are required')
+  const [fpsN,fpsD] = String(video.r_frame_rate || '0/1').split('/').map(Number)
+  const fps = fpsD ? fpsN / fpsD : 0
+  if (Number(video.width) < 1080 || Number(video.height) < 1920 || fps < 29.9) throw new Error('Master integrity failed: export profile below 1080x1920@30fps')
+  if (duration <= 0 || Math.abs(duration - expectedDuration) > 0.75) throw new Error('Master integrity failed: assembled duration does not match narration')
+  if (bitrate && bitrate < 1_500_000) throw new Error('Master integrity failed: final bitrate below professional floor')
+  if (Number(audio.sample_rate || 0) < 44100 || Number(audio.channels || 0) < 1) throw new Error('Master integrity failed: audio stream quality invalid')
+
+  const freezeDir = path.join(path.dirname(file), 'frame-audit')
+  await fs.mkdir(freezeDir, { recursive: true })
+  await execFileAsync('ffmpeg', [
+    '-y','-i',file,'-vf','fps=1/2,scale=270:480,blackdetect=d=0.35:pix_th=0.08,freezedetect=n=-50dB:d=1.5',
+    '-an','-f','null','-'
+  ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 }).catch((error) => {
+    const stderr = String(error?.stderr || '')
+    if (/black_start|freeze_start/.test(stderr)) throw new Error('Master integrity failed: black/frozen-frame defect detected')
+    throw error
+  })
+  return { status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
+}
+
 async function persist(file, id) {
   if (!s3) throw new Error('Persistent storage is required for render-v2')
   const key = `renders-v2/${new Date().toISOString().slice(0, 10)}/${id}.mp4`
@@ -468,6 +499,7 @@ export async function renderFreeV2(body = {}) {
     }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
+    const masterInspection = await inspectMaster(composed.out, composed.duration)
     const persisted = await persist(composed.out, id)
     const mediaUrl = persisted.mediaUrl
     const sceneSources = scenes.map((scene) => scene.source || 'unknown')
@@ -502,6 +534,7 @@ export async function renderFreeV2(body = {}) {
       persistentStorage: true,
       qualityGate: 'passed',
       professionalMasterCandidate: true,
+      masterInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
