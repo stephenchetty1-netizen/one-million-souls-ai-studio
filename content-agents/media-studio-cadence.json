@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-09-18",
   "mission": "Maintain a continuous supply of professional review-ready Christian media without automatically publishing unreviewed work.",
   "publishingLocked": true,
@@ -36,9 +36,11 @@
     "CAPTION_OR_LYRIC_SYNC",
     "THUMBNAIL_FINAL",
     "QA",
+    "PROFESSIONAL_MASTER",
     "REVIEW_READY"
   ],
   "priorities": [
+    "Professional Master quality outranks production volume",
     "moving video first",
     "clean modern thumbnails",
     "strong first-second hook for Shorts",
@@ -54,5 +56,7 @@
     "minimumReviewReadyLongForm": 1,
     "minimumReviewReadyLyricVideos": 1,
     "actionWhenBelowMinimum": "increase draft production before adding low-priority experiments"
-  }
+  },
+  "qualityOverQuantity": true,
+  "releaseRule": "Targets are aspirational. Never lower quality, accuracy, rights, sync, thumbnail, or professional-execution standards to hit output quotas."
 }
