@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "policy": "FAIL_CLOSED",
+  "gates": {
+    "thumbnailQuality": {
+      "required": true,
+      "checks": [
+        "single clear focal point",
+        "mobile readability",
+        "0-5 words maximum depending on format",
+        "no repeated title text",
+        "no clutter",
+        "truthful to actual content",
+        "clean safe margins",
+        "natural realistic imagery",
+        "no spelling errors"
+      ]
+    },
+    "contentQuality": {
+      "required": true,
+      "checks": [
+        "Scripture references verified",
+        "factual claims verified",
+        "modern conversational delivery",
+        "clear motivating takeaway",
+        "strong hook",
+        "captivating pacing",
+        "no generic filler",
+        "no misleading guarantees",
+        "original wording and structure",
+        "appropriate CTA"
+      ]
+    },
+    "lyricSync": {
+      "requiredFor": [
+        "LYRIC"
+      ],
+      "checks": [
+        "timing derived from final vocal audio",
+        "phrase-level cues",
+        "frame-snapped timestamps",
+        "target drift <=80ms",
+        "no visibly early or late lyric changes",
+        "all repeated choruses individually verified",
+        "bridge verified",
+        "ending verified",
+        "no clipped or overlapping text"
+      ]
+    }
+  },
+  "thumbnailSpecs": {
+    "shortCover": {
+      "canvas": "1080x1920",
+      "safePreview": "9:16 mobile feed",
+      "textWordsMax": 4,
+      "variantsMin": 2
+    },
+    "longForm": {
+      "canvas": "1280x720",
+      "safePreview": "16:9 YouTube feed",
+      "textWordsMax": 5,
+      "variantsMin": 3
+    }
+  },
+  "hardBlocks": [
+    "unverified Scripture quotation",
+    "unverified factual claim presented as certain",
+    "misleading thumbnail",
+    "visibly desynced lyrics",
+    "copyright/rights uncertainty",
+    "obvious AI anatomy/artifact in hero thumbnail",
+    "caption or lyric clipping",
+    "poor audio intelligibility"
+  ]
+}
