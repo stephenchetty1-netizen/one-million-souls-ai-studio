@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-50-v4'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v5'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 
 const s3 = storageReady ? new S3Client({
@@ -75,6 +75,12 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.renderer === 'one-million-souls-zero-credit-v3' &&
     entry?.renderQualityGate === 'PASS' &&
     entry?.professionalMasterCandidate === true &&
+      entry?.masterReady === true &&
+      entry?.technicalMaster === 'PASS' &&
+      entry?.creativeMaster === 'PASS' &&
+    entry?.masterReady === true &&
+    entry?.technicalMaster === 'PASS' &&
+    entry?.creativeMaster === 'PASS' &&
     entry?.masterInspection?.passed === true &&
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
@@ -200,6 +206,9 @@ async function generateFor(date) {
       contentHash,
       renderQualityGate:'PASS',
       professionalMasterCandidate:video.professionalMasterCandidate === true,
+      masterReady:video.masterReady === true,
+      technicalMaster:video.technicalMaster || 'PENDING',
+      creativeMaster:video.creativeMaster || 'PENDING',
       masterInspection:video.masterInspection,
       audioInspection:video.audioInspection,
       captionInspection:video.captionInspection,
@@ -215,7 +224,7 @@ async function generateFor(date) {
       releaseStandard:'PROFESSIONAL_MASTER',
       requiredApprovals:50,
       publishingLocked:true,
-      releaseStatus:'AWAITING_50_AGENT_APPROVAL',
+      releaseStatus:(video.masterReady === true && video.technicalMaster === 'PASS' && video.creativeMaster === 'PASS') ? 'AWAITING_50_AGENT_APPROVAL' : 'RETURN_TO_PRODUCTION',
       scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
       releaseReadyDeadline:new Date(slotTimestamp(date, slotTimes[i]) - RELEASE_READY_BUFFER_MS).toISOString(),
       minimumReleaseReadyBufferHours:2,
