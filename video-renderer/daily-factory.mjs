@@ -91,13 +91,30 @@ function manifestIsCurrent(manifest, date, slots) {
 async function render(item) {
   const headers = {'content-type':'application/json'}
   if (SECRET) headers.authorization = `Bearer ${SECRET}`
-  const r = await fetch(`http://127.0.0.1:${PORT}/render-v2`, {method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script})})
-  const data = await r.json().catch(()=>({}))
-  if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
-  if (data?.qualityGate !== 'passed' || data?.publishingAllowed !== false || !data?.masterHash) {
-    throw new Error('render-v2 did not return a fail-closed quality-gated master')
+  const timeoutMs = Math.max(120000, Number(process.env.DAILY_FACTORY_RENDER_TIMEOUT_MS || 600000))
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(new Error('render watchdog timeout')), timeoutMs)
+  console.log('DAILY_FACTORY_RENDER_START', JSON.stringify({title:item.title,timeoutMs}))
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/render-v2`, {
+      method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script}),signal:controller.signal
+    })
+    const data = await r.json().catch(()=>({}))
+    if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
+    if (data?.qualityGate !== 'passed' || data?.publishingAllowed !== false || !data?.masterHash) {
+      throw new Error('render-v2 did not return a fail-closed quality-gated master')
+    }
+    console.log('DAILY_FACTORY_RENDER_PASS', JSON.stringify({title:item.title,masterHash:data.masterHash}))
+    return data
+  } catch (error) {
+    const timedOut = controller.signal.aborted
+    console.error(timedOut ? 'DAILY_FACTORY_RENDER_TIMEOUT' : 'DAILY_FACTORY_RENDER_FAIL', JSON.stringify({
+      title:item.title,timeoutMs,error:error instanceof Error ? error.message : String(error)
+    }))
+    throw new Error(timedOut ? `render-v2 timed out after ${timeoutMs}ms` : (error instanceof Error ? error.message : String(error)))
+  } finally {
+    clearTimeout(timer)
   }
-  return data
 }
 
 async function generateFor(date) {
