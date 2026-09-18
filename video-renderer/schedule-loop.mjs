@@ -3,7 +3,8 @@ const V59_BASE_URL = (process.env.V59_BASE_URL || '').replace(/\/$/, '')
 const CRON_SECRET = process.env.CRON_SECRET || ''
 const TARGET_PATH = process.env.SCHEDULER_TARGET_PATH || '/api/cron/campaign-execute'
 const SCHEDULER_ENABLED = process.env.SCHEDULER_ENABLED === 'true'
-const SLOTS = new Set(['00:01', '06:00', '18:00'])
+const SLOT_CONFIG = process.env.PUBLISH_SLOTS || '08:00,15:30,20:30'
+const SLOTS = new Set(SLOT_CONFIG.split(',').map(slot => slot.trim()).filter(slot => /^([01]\d|2[0-3]):[0-5]\d$/.test(slot)))
 const lastTriggered = new Map()
 
 function localParts(date = new Date()) {
