@@ -1,3 +1,5 @@
+import crypto from 'node:crypto'
+
 export const AGENTS = Object.freeze([
   { id:'trend-scout', role:'Research current Christian topics, search demand, hooks, formats, and audience patterns.', output:'trendBrief' },
   { id:'rights-scout', role:'Verify item-level usage rights and block ambiguous assets.', output:'rightsLedger' },
