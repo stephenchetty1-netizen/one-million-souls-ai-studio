@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "strategy": "Model successful formats and audience needs, never copy protected expression.",
+  "shortFormPillars": [
+    {
+      "pillar": "Prayer and immediate encouragement",
+      "hooks": [
+        "Before you scroll, pray this with me.",
+        "If your mind will not slow down tonight, hear this.",
+        "This prayer is for the person carrying too much."
+      ],
+      "targetSeconds": [
+        20,
+        45
+      ]
+    },
+    {
+      "pillar": "What the Bible says about...",
+      "hooks": [
+        "What does the Bible actually say about anxiety?",
+        "What does Scripture say when you feel forgotten?",
+        "Here is one verse to remember when fear gets loud."
+      ],
+      "targetSeconds": [
+        25,
+        60
+      ]
+    },
+    {
+      "pillar": "God's promises",
+      "hooks": [
+        "One promise from God for your hardest day.",
+        "When everything feels uncertain, remember this promise.",
+        "God has not abandoned you."
+      ],
+      "targetSeconds": [
+        18,
+        40
+      ]
+    },
+    {
+      "pillar": "Misconception correction",
+      "hooks": [
+        "The Bible does not promise an easy life. It promises something better.",
+        "This verse is often quoted without the part that changes its meaning."
+      ],
+      "targetSeconds": [
+        30,
+        60
+      ]
+    },
+    {
+      "pillar": "Bible story in one minute",
+      "hooks": [
+        "The moment Peter stepped out of the boat teaches us this.",
+        "Why did Jesus sleep through the storm?"
+      ],
+      "targetSeconds": [
+        35,
+        60
+      ]
+    },
+    {
+      "pillar": "Story-driven motivation",
+      "hooks": [
+        "There was a season when nothing seemed to move...",
+        "You may be in the chapter where God feels silent."
+      ],
+      "targetSeconds": [
+        25,
+        60
+      ]
+    }
+  ],
+  "longFormPillars": [
+    "What the Bible says about anxiety, fear, waiting, forgiveness, purpose, prayer, temptation, and hope",
+    "Bible character studies with practical life application",
+    "Explaining frequently misunderstood verses",
+    "Guided prayer/devotional sessions",
+    "Christian motivation built around one clear Scripture theme",
+    "Full story + lesson videos that create 3-8 Shorts cutdowns"
+  ],
+  "lyricVideoRules": [
+    "Prefer original Christian lyrics and original instrumental/music generation.",
+    "Public-domain hymn text and tune must be verified separately.",
+    "Never reproduce modern worship lyrics without permission or an applicable license.",
+    "Keep lyric lines short enough for mobile reading and sync at phrase level."
+  ],
+  "visualRules": [
+    "Use real moving footage before still images.",
+    "Opening 1.0 second must contain movement and one clear hook.",
+    "Avoid giant repeated title text over faces or key visual subjects.",
+    "Use 2-5 word caption chunks, centered lower-third, with safe margins.",
+    "Change shot or crop every 1.5-3.5 seconds for Shorts unless a deliberate emotional hold is stronger.",
+    "Long-form uses slower 3-8 second B-roll beats and purposeful visual chapters."
+  ]
+}
