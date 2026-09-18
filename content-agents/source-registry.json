@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "policy": {
+    "defaultDecision": "BLOCK",
+    "rule": "No external asset enters production without an item-level rights record.",
+    "reminders": [
+      "A stock-site license does not remove trademark, privacy, publicity, property, or model-release concerns.",
+      "Do not trust 'no copyright' or 'copyright free' text in random uploads.",
+      "For songs, verify composition, lyrics, performance, and recording rights separately."
+    ]
+  },
+  "sources": [
+    {
+      "id": "pexels",
+      "type": [
+        "video",
+        "image"
+      ],
+      "priority": 1,
+      "homepage": "https://www.pexels.com/",
+      "licensePage": "https://www.pexels.com/license/",
+      "commercialUse": true,
+      "attributionUsuallyRequired": false,
+      "notes": "Preferred stock-video source. Check depicted people, brands, logos, and sensitive-use concerns."
+    },
+    {
+      "id": "pixabay",
+      "type": [
+        "video",
+        "image",
+        "music",
+        "sound-effect"
+      ],
+      "priority": 2,
+      "homepage": "https://pixabay.com/",
+      "licensePage": "https://pixabay.com/service/license-summary/",
+      "commercialUse": true,
+      "attributionUsuallyRequired": false,
+      "notes": "May be used and adapted subject to Pixabay prohibited uses. Item-level third-party rights still matter."
+    },
+    {
+      "id": "mixkit",
+      "type": [
+        "video",
+        "music",
+        "sound-effect"
+      ],
+      "priority": 3,
+      "homepage": "https://mixkit.co/",
+      "licensePage": "https://mixkit.co/license/",
+      "commercialUse": "depends-on-item-license",
+      "attributionUsuallyRequired": false,
+      "notes": "Only use items carrying the applicable Free License. Restricted-license items are blocked."
+    },
+    {
+      "id": "youtube-audio-library",
+      "type": [
+        "music",
+        "sound-effect"
+      ],
+      "priority": 1,
+      "homepage": "https://studio.youtube.com/",
+      "licensePage": "https://support.google.com/youtube/answer/3376882",
+      "commercialUse": "youtube-safe-subject-to-track-license",
+      "attributionUsuallyRequired": "depends-on-track",
+      "notes": "Preferred music source for YouTube uploads. If a track requires attribution, store the exact attribution text."
+    },
+    {
+      "id": "unsplash",
+      "type": [
+        "image"
+      ],
+      "priority": 4,
+      "homepage": "https://unsplash.com/",
+      "licensePage": "https://unsplash.com/license",
+      "commercialUse": true,
+      "attributionUsuallyRequired": false,
+      "notes": "Still images only. Rights Scout must check people, logos, buildings, artworks, and commercial-context concerns."
+    },
+    {
+      "id": "wikimedia-commons",
+      "type": [
+        "video",
+        "image",
+        "audio"
+      ],
+      "priority": 5,
+      "homepage": "https://commons.wikimedia.org/",
+      "licensePage": "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia",
+      "commercialUse": "item-specific",
+      "attributionUsuallyRequired": "item-specific",
+      "notes": "Every item has its own license. Use only after recording exact item license and attribution."
+    },
+    {
+      "id": "internet-archive",
+      "type": [
+        "video",
+        "image",
+        "audio"
+      ],
+      "priority": 6,
+      "homepage": "https://archive.org/",
+      "licensePage": "https://archive.org/about/terms.php",
+      "commercialUse": "item-specific",
+      "attributionUsuallyRequired": "item-specific",
+      "notes": "Archive hosting does not guarantee public-domain status. Verify each item."
+    }
+  ]
+}
