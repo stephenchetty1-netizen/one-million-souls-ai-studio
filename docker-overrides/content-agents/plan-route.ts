@@ -35,10 +35,14 @@ export async function POST(req: Request) {
       mode,
       item,
       agents: [
-        'trend-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout',
-        'music-director','visual-director','thumbnail-director',
+        'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
+        'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
+        'format-innovation-lab','thumbnail-researcher','metadata-strategist','content-portfolio-planner',
+        'theology-guard','script-writer','content-director','asset-scout','rights-scout',
+        'music-director','visual-director','thumbnail-director','executive-producer',
+        'storyboard-producer','media-producer','motion-editor','sound-designer','media-librarian','production-scheduler',
         mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer',
-        'qa','publisher','analytics-learner'
+        'qa','repurposing-editor','publisher','analytics-learner'
       ],
       gates: {
         rightsStatus:'PENDING',
@@ -54,7 +58,8 @@ export async function POST(req: Request) {
         originality:'PENDING',
       },
       publishingLocked: true,
-      nextAction: 'GENERATE_DRAFT_ASSETS',
+      nextAction: 'RUN_RND_THEN_GENERATE_DRAFT_ASSETS',
+      continuousMediaMode: true,
     }
 
     return NextResponse.json({ ok:true, plan })
