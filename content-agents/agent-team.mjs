@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 
 export const AGENTS = Object.freeze([
   { id:'trend-scout', role:'Research current Christian topics, search demand, hooks, formats, and audience patterns.', output:'trendBrief' },
+  { id:'million-view-scout', role:'Find publicly verifiable TikTok/YouTube Christian content above 1M views and extract reusable format patterns without copying protected expression.', output:'millionViewPatternBrief' },
   { id:'rights-scout', role:'Verify item-level usage rights and block ambiguous assets.', output:'rightsLedger' },
   { id:'theology-guard', role:'Check Scripture references, context, quotations, and doctrine-sensitive claims.', output:'theologyReport' },
   { id:'script-writer', role:'Write original Shorts and long-form scripts from approved briefs.', output:'scriptPackage' },
@@ -53,7 +54,7 @@ export function createRunPlan(input={}) {
   const topic = String(input.topic || '').trim()
   if (!topic) throw new Error('topic is required')
 
-  const base = ['trend-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director']
+  const base = ['trend-scout','million-view-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director']
   const editor = mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer'
 
   return {
