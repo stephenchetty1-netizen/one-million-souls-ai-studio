@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "updatedAt": "2026-09-18",
   "mission": "Maintain a continuous supply of professional review-ready Christian media without automatically publishing unreviewed work.",
   "publishingLocked": true,
@@ -35,9 +35,13 @@
     "EDIT",
     "CAPTION_OR_LYRIC_SYNC",
     "THUMBNAIL_FINAL",
-    "QA",
-    "PROFESSIONAL_MASTER",
-    "REVIEW_READY"
+    "MASTER_COMPLETE_T_MINUS_6H",
+    "QA_COMPLETE_T_MINUS_4H",
+    "FREEZE_HASH_T_MINUS_3H",
+    "49_AGENT_APPROVAL_T_MINUS_2H",
+    "PUBLISHER_FINAL_APPROVAL",
+    "RELEASE_READY_BUFFER",
+    "SCHEDULED_RELEASE"
   ],
   "priorities": [
     "Professional Master quality outranks production volume",
@@ -58,5 +62,16 @@
     "actionWhenBelowMinimum": "increase draft production before adding low-priority experiments"
   },
   "qualityOverQuantity": true,
-  "releaseRule": "Targets are aspirational. Never lower quality, accuracy, rights, sync, thumbnail, or professional-execution standards to hit output quotas."
+  "releaseRule": "Targets are aspirational. Never lower quality, accuracy, rights, sync, thumbnail, or professional-execution standards to hit output quotas.",
+  "releaseReadinessPolicy": {
+    "targetMasterCompleteHoursBeforePost": 6,
+    "allQaPassHoursBeforePost": 4,
+    "freezeAndHashHoursBeforePost": 3,
+    "unanimousPrePublisherApprovalHoursBeforePost": 2,
+    "minimumReleaseReadyBufferHours": 2,
+    "postingTimeAction": "RELEASE_PREAPPROVED_IMMUTABLE_MASTER_ONLY",
+    "lateChangePolicy": "Any content, media, thumbnail, caption, audio, export, title, description, or metadata change after freeze creates a new hash, invalidates approvals, and requires full re-approval.",
+    "missedGatePolicy": "If the exact master is not RELEASE_READY by T-2h, miss/reschedule the slot; never render, repair, substitute media, or bypass QA at posting time.",
+    "publisherRule": "Publisher approves last only after the other 49 approvals on the exact frozen hash and all QA gates PASS."
+  }
 }
