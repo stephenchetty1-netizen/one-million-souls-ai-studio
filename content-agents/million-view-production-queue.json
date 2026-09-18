@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-18",
+  "basis": "million-view public pattern scan",
+  "publishingLocked": true,
+  "shorts": [
+    {
+      "id": "MV-S01",
+      "pattern": "P01",
+      "title": "Before You Scroll, Let Me Pray for Your Mind",
+      "scripture": "Philippians 4:6-7",
+      "targetSeconds": 26,
+      "hook": "If your thoughts won't slow down, stay for this prayer.",
+      "visual": "realistic person at night, direct prayer, sunrise release",
+      "originality": "new script required"
+    },
+    {
+      "id": "MV-S02",
+      "pattern": "P02",
+      "title": "What Ezekiel Saw Was Not Ordinary",
+      "scripture": "Ezekiel 1",
+      "targetSeconds": 38,
+      "hook": "The Bible describes a vision so strange most people skip over it.",
+      "visual": "cinematic original biblical visualisation",
+      "originality": "do not recreate AI Bible shots"
+    },
+    {
+      "id": "MV-S03",
+      "pattern": "P03",
+      "title": "What Does the Bible Say When You Can't Stop Worrying?",
+      "scripture": "1 Peter 5:7",
+      "targetSeconds": 32,
+      "hook": "The Bible doesn't tell you to pretend the worry isn't real.",
+      "visual": "real moving lifestyle footage + Bible closeups"
+    },
+    {
+      "id": "MV-S04",
+      "pattern": "P04",
+      "title": "Faith Looks Like This When Nobody Is Watching",
+      "scripture": "Matthew 6:6",
+      "targetSeconds": 24,
+      "hook": "Some of the strongest prayers are never seen by a crowd.",
+      "visual": "authentic quiet prayer footage; documentary feel"
+    },
+    {
+      "id": "MV-S05",
+      "pattern": "P05",
+      "title": "Your Past Is Not Your Final Identity",
+      "scripture": "2 Corinthians 5:17",
+      "targetSeconds": 35,
+      "hook": "Grace can rewrite the direction of a life.",
+      "visual": "original staged symbolic transformation story, not fake testimony"
+    },
+    {
+      "id": "MV-S06",
+      "pattern": "P07",
+      "title": "POV: You Finally Stop Trying to Control Tomorrow",
+      "scripture": "Matthew 6:34",
+      "targetSeconds": 22,
+      "hook": "POV: you remember tomorrow belongs to God.",
+      "visual": "modern trend-native POV footage"
+    }
+  ],
+  "longForm": [
+    {
+      "id": "MV-L01",
+      "pattern": "P06",
+      "title": "Morning Prayer for Peace, Focus and Strength",
+      "targetMinutes": 12,
+      "structure": [
+        "60-second opening",
+        "Scripture",
+        "guided prayer",
+        "quiet reflection",
+        "closing blessing"
+      ],
+      "companionShorts": [
+        "MV-S01",
+        "MV-S03"
+      ]
+    },
+    {
+      "id": "MV-L02",
+      "pattern": "P06",
+      "title": "Sleep in God's Peace | Night Prayer and Scripture",
+      "targetMinutes": 30,
+      "structure": [
+        "calm opening",
+        "slow Scripture readings",
+        "guided prayer",
+        "ambient instrumental",
+        "extended quiet closing"
+      ]
+    },
+    {
+      "id": "MV-L03",
+      "pattern": "P03",
+      "title": "What the Bible Really Says About Worry",
+      "targetMinutes": 8,
+      "structure": [
+        "search hook",
+        "Philippians 4 context",
+        "1 Peter 5:7",
+        "Matthew 6",
+        "practical prayer routine"
+      ]
+    }
+  ],
+  "cinematicBible": [
+    {
+      "id": "MV-C01",
+      "pattern": "P02",
+      "title": "Ezekiel's Vision — Cinematic Bible Short",
+      "targetSeconds": 45,
+      "scripture": "Ezekiel 1",
+      "rule": "original visual design, Scripture-checked, no copying AI Bible imagery"
+    },
+    {
+      "id": "MV-C02",
+      "pattern": "P02",
+      "title": "Jesus Calms the Storm — Cinematic Short",
+      "targetSeconds": 50,
+      "scripture": "Mark 4:35-41",
+      "rule": "story-first, realistic cinematic motion, original composition"
+    }
+  ],
+  "lyricVideo": [
+    {
+      "id": "MV-M01",
+      "pattern": "P08",
+      "title": "Still Working",
+      "type": "ORIGINAL",
+      "targetMinutes": 3.2,
+      "direction": "live-worship emotional build, memorable original chorus, real moving worship/nature footage",
+      "syncRule": "final vocal-track alignment, phrase-level, <=80ms drift"
+    }
+  ]
+}
