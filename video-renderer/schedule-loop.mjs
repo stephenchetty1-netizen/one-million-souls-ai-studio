@@ -48,6 +48,6 @@ async function tick() {
   await trigger(key)
 }
 
-console.log('EMBEDDED_SCHEDULER', JSON.stringify({ enabled: SCHEDULER_ENABLED, timezone: TIMEZONE, slots: [...SLOTS], configured: Boolean(V59_BASE_URL && CRON_SECRET) }))
+console.log('EMBEDDED_SCHEDULER', JSON.stringify({ enabled: SCHEDULER_ENABLED, timezone: TIMEZONE, slots: [...SLOTS], configured: Boolean(V59_BASE_URL && CRON_SECRET), mode: 'guarded-live' }))
 setInterval(() => tick().catch(error => console.error('SCHEDULER_TICK_ERROR', error)), 10_000)
 tick().catch(error => console.error('SCHEDULER_INITIAL_ERROR', error))
