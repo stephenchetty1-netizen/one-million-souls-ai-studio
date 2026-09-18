@@ -1,0 +1,87 @@
+{
+  "id": "M001",
+  "mode": "LYRIC",
+  "status": "ORIGINAL_DRAFT_READY_MUSIC_PRODUCTION_PENDING",
+  "title": "Still Working",
+  "rightsType": "ORIGINAL",
+  "scriptureInspiration": [
+    "Philippians 1:6"
+  ],
+  "style": "cinematic worship-pop ballad",
+  "targetMinutes": 3.2,
+  "lyrics": {
+    "verse1": [
+      "I have waited in the silence",
+      "I have wondered where You are",
+      "But the night has never hidden",
+      "Who You have been from the start"
+    ],
+    "preChorus": [
+      "When I cannot see the answer",
+      "I will hold on to Your word"
+    ],
+    "chorus": [
+      "You are still working",
+      "Even when I cannot see",
+      "You are still faithful",
+      "Finishing Your work in me",
+      "Through the waiting, through the hurting",
+      "I will trust the hands I cannot see",
+      "You are still working",
+      "And You're not finished with me"
+    ],
+    "verse2": [
+      "Every season has a purpose",
+      "Every valley has an end",
+      "You are shaping what is broken",
+      "With a patience I can't comprehend"
+    ],
+    "bridge": [
+      "I will not call the silence empty",
+      "I will not call the waiting waste",
+      "You have carried me through every chapter",
+      "And I will trust Your heart again"
+    ],
+    "finalChorus": [
+      "You are still working",
+      "Even when I cannot see",
+      "You are still faithful",
+      "Finishing Your work in me",
+      "Through the waiting, through the hurting",
+      "I will trust the hands I cannot see",
+      "You are still working",
+      "And You're not finished with me"
+    ]
+  },
+  "musicDirection": {
+    "keySuggestion": "D major / B minor emotional palette",
+    "tempoBpm": 72,
+    "arrangement": [
+      "intro: felt piano + warm pad",
+      "verse: piano, subtle ambient guitar texture",
+      "pre-chorus: light strings rise",
+      "chorus: full piano, pads, restrained drums, cinematic strings",
+      "bridge: strip back to piano then build",
+      "final chorus: widest cinematic arrangement, no excessive choir"
+    ],
+    "requirement": "Original melody and instrumental. Do not imitate a specific living artist or existing worship song."
+  },
+  "lyricVideo": {
+    "visualStyle": "professional realistic moving video, not still-image slideshow",
+    "scenes": [
+      "night road / city lights in rain",
+      "person praying alone near window",
+      "hands opening Bible at dawn",
+      "walking through mist toward sunrise",
+      "worship silhouette from behind",
+      "wide sunrise landscape for final chorus"
+    ],
+    "textStyle": "one or two lyric lines at a time; premium serif/sans pairing; mobile safe margins; phrase-level sync",
+    "motion": "real footage throughout with slow cinematic cuts and occasional speed ramps"
+  },
+  "theologyGuard": {
+    "status": "PASS_WITH_NOTE",
+    "notes": "Lyrics are inspired by Philippians 1:6 and present trust/formation without promising a specific material outcome."
+  },
+  "publishingAllowed": false
+}
