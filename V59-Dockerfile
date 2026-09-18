@@ -39,6 +39,10 @@ RUN printf "%s\n" \
 RUN mkdir -p app/api/system-agents/autonomy-status
 COPY docker-overrides/system-agents/autonomy-status-route.ts /workspace/app/api/system-agents/autonomy-status/route.ts
 
+# Enforce the autonomous runtime inside the extracted V59 application.
+# The archive contains its own package.json, so patch that exact runtime package.
+RUN node -e "const fs=require('fs');const p='package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.scripts=j.scripts||{};j.scripts.start='node system-agents/worker.mjs --with-app';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\\n');"
+
 RUN npm install
 
 # TS6 compatibility and legacy V42-V58 contract migration bridge.
