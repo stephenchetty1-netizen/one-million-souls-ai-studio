@@ -404,6 +404,31 @@ function inspectCaptionSafeZones(script, duration) {
   return { status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
 }
 
+async function inspectAudioMaster(file) {
+  const { stderr } = await execFileAsync('ffmpeg', [
+    '-hide_banner','-nostats','-i',file,
+    '-vn','-af','loudnorm=I=-16:LRA=7:TP=-1.5:print_format=json',
+    '-f','null','-'
+  ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 }).catch((error) => {
+    if (error?.stderr) return { stderr: error.stderr }
+    throw error
+  })
+  const text = String(stderr || '')
+  const match = text.match(/\{[\s\S]*?"input_i"[\s\S]*?\}/g)
+  if (!match?.length) throw new Error('Audio mastering gate failed: loudness analysis unavailable')
+  let stats
+  try { stats = JSON.parse(match[match.length - 1]) } catch { throw new Error('Audio mastering gate failed: invalid loudness analysis') }
+  const integrated = Number(stats.input_i)
+  const truePeak = Number(stats.input_tp)
+  const lra = Number(stats.input_lra)
+  const threshold = Number(stats.input_thresh)
+  if (![integrated,truePeak,lra,threshold].every(Number.isFinite)) throw new Error('Audio mastering gate failed: non-finite loudness metrics')
+  if (integrated < -18.5 || integrated > -13.5) throw new Error(`Audio mastering gate failed: integrated loudness ${integrated} LUFS outside -18.5..-13.5`)
+  if (truePeak > -1.0) throw new Error(`Audio mastering gate failed: true peak ${truePeak} dBTP exceeds -1.0 dBTP ceiling`)
+  if (lra > 12) throw new Error(`Audio mastering gate failed: loudness range ${lra} LU is too wide for mobile narration`)
+  return { status:'PASS', integratedLufs:integrated, truePeakDbtp:truePeak, loudnessRangeLu:lra, thresholdLufs:threshold, target:'-16 LUFS / <= -1.0 dBTP' }
+}
+
 async function inspectMaster(file, expectedDuration) {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v','error','-show_entries','stream=index,codec_type,width,height,r_frame_rate,pix_fmt,sample_rate,channels:format=duration,bit_rate',
@@ -521,6 +546,7 @@ export async function renderFreeV2(body = {}) {
     const captionInspection = inspectCaptionSafeZones(script, voiceDuration)
     const composed = await compose({ scenes, voice, music, script, title, work })
     const masterInspection = await inspectMaster(composed.out, composed.duration)
+    const audioInspection = await inspectAudioMaster(composed.out)
     const persisted = await persist(composed.out, id)
     const mediaUrl = persisted.mediaUrl
     const sceneSources = scenes.map((scene) => scene.source || 'unknown')
@@ -557,6 +583,7 @@ export async function renderFreeV2(body = {}) {
       professionalMasterCandidate: true,
       masterInspection,
       captionInspection,
+      audioInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
