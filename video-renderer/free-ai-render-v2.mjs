@@ -8,6 +8,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
+import { createRightsClearedStockScene } from './stock-video-library.mjs'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -199,7 +200,7 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
   }
 }
 
-async function generateScene(providers, prompt, index, work, seconds) {
+async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
 
   if (process.env.LOCAL_VISUALS_ONLY === 'true') {
@@ -211,8 +212,25 @@ async function generateScene(providers, prompt, index, work, seconds) {
     return await generateCloudScene(providers, prompt, index, work, seconds)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
+    if (process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false') {
+      try {
+        const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed)
+        console.warn('FREE_AI_STOCK_VIDEO_FALLBACK', JSON.stringify({
+          index,
+          stockId: stock.stockId,
+          license: stock.license,
+          aiError: message,
+        }))
+        return stock
+      } catch (stockError) {
+        console.error('FREE_AI_STOCK_VIDEO_FAILED', JSON.stringify({
+          index,
+          error: stockError instanceof Error ? stockError.message : String(stockError),
+        }))
+      }
+    }
     if (!allowProcedural) {
-      throw new Error(`Quality gate blocked scene ${index + 1}: AI image unavailable (${message})`)
+      throw new Error(`Quality gate blocked scene ${index + 1}: AI image unavailable and rights-cleared stock fallback failed (${message})`)
     }
     console.warn('FREE_AI_PROCEDURAL_TEST_FALLBACK', JSON.stringify({ index, error: message }))
     return createLocalFallbackScene(index, work, seconds)
@@ -377,6 +395,7 @@ export async function renderFreeV2(body = {}) {
   const script = extractScript(body)
   const providers = getFreeProviders()
   const prompts = scenePrompts(body, title, script)
+  const stockSeed = [...`${title}|${script}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
 
   console.log('FREE_AI_V2_START', JSON.stringify({ id, title, sceneCount: prompts.length }))
 
@@ -390,7 +409,7 @@ export async function renderFreeV2(body = {}) {
     const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
       try {
-        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds)
+        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed)
         scenes.push(scene)
         console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
       } catch (error) {
@@ -417,7 +436,7 @@ export async function renderFreeV2(body = {}) {
         process.env.ALLOW_PROCEDURAL_FALLBACK !== 'true') {
       throw new Error('Quality gate failed: procedural visuals are not production-approved')
     }
-    const realMotionScenes = scenes.filter((scene) => scene.source === 'cloud-ai-video').length
+    const realMotionScenes = scenes.filter((scene) => ['cloud-ai-video','rights-cleared-stock-video'].includes(scene.source)).length
     const minimumRealMotionScenes = Math.min(2, scenes.length)
     if (realMotionScenes < minimumRealMotionScenes) {
       throw new Error(`Quality gate failed: at least ${minimumRealMotionScenes} real AI motion-video scenes are required; got ${realMotionScenes}`)
@@ -439,7 +458,8 @@ export async function renderFreeV2(body = {}) {
       fps: FPS,
       durationSeconds: Number(composed.duration.toFixed(2)),
       sceneCount: scenes.length,
-      realMotionSceneCount: sceneSources.filter((source) => source === 'cloud-ai-video').length,
+      realMotionSceneCount: sceneSources.filter((source) => ['cloud-ai-video','rights-cleared-stock-video'].includes(source)).length,
+      rightsClearedStockScenes: scenes.filter((scene) => scene.source === 'rights-cleared-stock-video').map((scene) => ({ stockId:scene.stockId, sourcePage:scene.sourcePage, license:scene.license, rightsNote:scene.rightsNote })),
       sceneSources,
       voiceProvider: voice.provider,
       imageProvider: sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name,
