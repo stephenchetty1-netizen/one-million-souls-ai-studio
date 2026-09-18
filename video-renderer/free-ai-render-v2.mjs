@@ -202,6 +202,19 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
 
 async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
+  const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
+  const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true'
+  const authenticatedHf = Boolean(String(process.env.HF_TOKEN || '').trim())
+
+  if (stockEnabled && stockPrimary && !authenticatedHf) {
+    const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed)
+    console.log('RIGHTS_CLEARED_STOCK_PRIMARY', JSON.stringify({
+      index,
+      stockId: stock.stockId,
+      license: stock.license,
+    }))
+    return stock
+  }
 
   if (process.env.LOCAL_VISUALS_ONLY === 'true') {
     if (!allowProcedural) throw new Error('Quality gate blocked: procedural visuals are test-only')
