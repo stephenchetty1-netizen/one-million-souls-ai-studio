@@ -417,6 +417,11 @@ export async function renderFreeV2(body = {}) {
         process.env.ALLOW_PROCEDURAL_FALLBACK !== 'true') {
       throw new Error('Quality gate failed: procedural visuals are not production-approved')
     }
+    const realMotionScenes = scenes.filter((scene) => scene.source === 'cloud-ai-video').length
+    const minimumRealMotionScenes = Math.min(2, scenes.length)
+    if (realMotionScenes < minimumRealMotionScenes) {
+      throw new Error(`Quality gate failed: at least ${minimumRealMotionScenes} real AI motion-video scenes are required; got ${realMotionScenes}`)
+    }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
     const persisted = await persist(composed.out, id)
@@ -434,6 +439,7 @@ export async function renderFreeV2(body = {}) {
       fps: FPS,
       durationSeconds: Number(composed.duration.toFixed(2)),
       sceneCount: scenes.length,
+      realMotionSceneCount: sceneSources.filter((source) => source === 'cloud-ai-video').length,
       sceneSources,
       voiceProvider: voice.provider,
       imageProvider: sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name,
