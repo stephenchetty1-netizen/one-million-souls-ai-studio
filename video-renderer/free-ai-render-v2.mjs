@@ -357,6 +357,7 @@ async function persist(file, id) {
   if (!s3) throw new Error('Persistent storage is required for render-v2')
   const key = `renders-v2/${new Date().toISOString().slice(0, 10)}/${id}.mp4`
   const bytes = await fs.readFile(file)
+  const masterHash = crypto.createHash('sha256').update(bytes).digest('hex')
   await s3.send(new PutObjectCommand({
     Bucket: process.env.BUCKET,
     Key: key,
@@ -364,7 +365,7 @@ async function persist(file, id) {
     ContentType: 'video/mp4',
     CacheControl: 'public, max-age=31536000, immutable',
   }))
-  return `${publicBase()}/media/${key.split('/').map(encodeURIComponent).join('/')}`
+  return { mediaUrl: `${publicBase()}/media/${key.split('/').map(encodeURIComponent).join('/')}`, masterHash, bytes: bytes.length }
 }
 
 export async function renderFreeV2(body = {}) {
@@ -418,13 +419,16 @@ export async function renderFreeV2(body = {}) {
     }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
-    const mediaUrl = await persist(composed.out, id)
+    const persisted = await persist(composed.out, id)
+    const mediaUrl = persisted.mediaUrl
     const sceneSources = scenes.map((scene) => scene.source || 'unknown')
 
     const result = {
       ok: true,
       renderer: 'one-million-souls-zero-credit-v3',
       mediaUrl,
+      masterHash: persisted.masterHash,
+      masterBytes: persisted.bytes,
       width: WIDTH,
       height: HEIGHT,
       fps: FPS,
