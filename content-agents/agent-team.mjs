@@ -49,6 +49,89 @@ export const MEDIA_AGENTS = Object.freeze([
   'sound-designer','repurposing-editor','media-librarian','production-scheduler'
 ])
 
+export const TEAM_APPROVAL_AGENT_IDS = Object.freeze(AGENTS.map((agent) => agent.id))
+export const PRE_PUBLISH_APPROVAL_AGENT_IDS = Object.freeze(
+  TEAM_APPROVAL_AGENT_IDS.filter((id) => id !== 'publisher')
+)
+
+export function buildApprovalMatrix(contentHash = '') {
+  return Object.fromEntries(
+    TEAM_APPROVAL_AGENT_IDS.map((agentId) => [
+      agentId,
+      {
+        decision: 'PENDING',
+        contentHash,
+        approvedAt: null,
+        notes: '',
+      },
+    ])
+  )
+}
+
+export function verifyPrePublishConsensus(approvals = {}, contentHash = '') {
+  const missing = []
+  const stale = []
+  const rejected = []
+
+  for (const agentId of PRE_PUBLISH_APPROVAL_AGENT_IDS) {
+    const vote = approvals?.[agentId]
+    if (!vote) {
+      missing.push(agentId)
+      continue
+    }
+    if (vote.contentHash !== contentHash) stale.push(agentId)
+    if (vote.decision !== 'APPROVE' || !vote.approvedAt) rejected.push(agentId)
+  }
+
+  return {
+    ok: missing.length === 0 && stale.length === 0 && rejected.length === 0,
+    required: PRE_PUBLISH_APPROVAL_AGENT_IDS.length,
+    approved: PRE_PUBLISH_APPROVAL_AGENT_IDS.length - new Set([...missing, ...stale, ...rejected]).size,
+    missing,
+    stale,
+    rejected,
+  }
+}
+
+export function verifyUnanimousTeamApproval(approvals = {}, contentHash = '') {
+  const pre = verifyPrePublishConsensus(approvals, contentHash)
+  const publisher = approvals?.publisher
+  const publisherApproved = Boolean(
+    publisher &&
+    publisher.decision === 'APPROVE' &&
+    publisher.approvedAt &&
+    publisher.contentHash === contentHash
+  )
+
+  const allPreTimes = PRE_PUBLISH_APPROVAL_AGENT_IDS
+    .map((id) => approvals?.[id]?.approvedAt)
+    .filter(Boolean)
+    .map((value) => Date.parse(value))
+    .filter(Number.isFinite)
+  const latestPreApproval = allPreTimes.length ? Math.max(...allPreTimes) : 0
+  const publisherTime = publisherApproved ? Date.parse(publisher.approvedAt) : 0
+  const publisherAfterTeam = publisherApproved && Number.isFinite(publisherTime) && publisherTime >= latestPreApproval
+
+  return {
+    ok: pre.ok && publisherApproved && publisherAfterTeam,
+    required: TEAM_APPROVAL_AGENT_IDS.length,
+    approved: pre.approved + (publisherApproved && publisherAfterTeam ? 1 : 0),
+    prePublishConsensus: pre,
+    publisherApproved,
+    publisherAfterTeam,
+  }
+}
+
+export function teamCanPublish({ qa = {}, approvals = {}, contentHash = '' } = {}) {
+  const gatesPass = REQUIRED_GATES.every((gate) => qa?.[gate] === 'PASS')
+  const consensus = verifyUnanimousTeamApproval(approvals, contentHash)
+  return {
+    ok: gatesPass && consensus.ok,
+    gatesPass,
+    consensus,
+  }
+}
+
 export const REQUIRED_GATES = Object.freeze([
   'rightsStatus',
   'theologyStatus',
@@ -109,8 +192,8 @@ export function rightsDecision(record={}) {
   return 'PASS'
 }
 
-export function canPublish(qa={}) {
-  return REQUIRED_GATES.every((gate) => qa[gate] === 'PASS')
+export function canPublish(qa = {}, approvals = {}, contentHash = '') {
+  return teamCanPublish({ qa, approvals, contentHash }).ok
 }
 
 export function buildQaTemplate() {
