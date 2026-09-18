@@ -10,7 +10,7 @@ const REQUIRED_AGENTS = ["trend-scout","million-view-scout","channel-strategist"
 
 const REQUIRED_GATES = [
   'rightsStatus','theologyStatus','factualStatus','mediaIntegrity','captionSync',
-  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality'
+  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality','professionalExecution'
 ]
 
 function canonicalize(value: any): any {
