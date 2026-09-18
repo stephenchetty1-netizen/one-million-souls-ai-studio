@@ -57,6 +57,23 @@ export async function POST(req: Request) {
         lyricSync: mode === 'LYRIC' ? 'PENDING' : 'PASS',
         originality:'PENDING',
       },
+      approvalPolicy: 'UNANIMOUS_VERSION_BOUND_APPROVAL',
+      requiredApprovals: 34,
+      approvalMatrix: Object.fromEntries([
+        'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
+        'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
+        'format-innovation-lab','thumbnail-researcher','metadata-strategist','content-portfolio-planner',
+        'executive-producer','storyboard-producer','media-producer','motion-editor','sound-designer',
+        'repurposing-editor','media-librarian','production-scheduler','rights-scout','theology-guard',
+        'script-writer','asset-scout','music-director','visual-director','thumbnail-director',
+        'content-director','shorts-editor','longform-producer','lyric-producer','qa','publisher',
+        'analytics-learner'
+      ].map((agentId) => [agentId, {
+        decision:'PENDING',
+        contentHash:'',
+        approvedAt:null,
+        evidence:'',
+      }])),
       publishingLocked: true,
       nextAction: 'RUN_RND_THEN_GENERATE_DRAFT_ASSETS',
       continuousMediaMode: true,
