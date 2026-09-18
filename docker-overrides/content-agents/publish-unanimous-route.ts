@@ -75,6 +75,14 @@ async function verify(body: any) {
   }
 
   const publisherTime = times.publisher || 0
+  const releaseReadyAt = Date.parse(envelope.releaseReadyAt || '')
+  const scheduledPublishAt = Date.parse(body?.scheduledPublishAt || body?.publishAt || '')
+  const MIN_RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
+  if (!Number.isFinite(releaseReadyAt)) problems.push('releaseReadyAt is missing or invalid')
+  if (!Number.isFinite(scheduledPublishAt)) problems.push('scheduledPublishAt/publishAt is missing or invalid')
+  if (Number.isFinite(releaseReadyAt) && Number.isFinite(scheduledPublishAt) && scheduledPublishAt - releaseReadyAt < MIN_RELEASE_READY_BUFFER_MS) {
+    problems.push('master was not RELEASE_READY for the required 2-hour safety buffer before publication')
+  }
   const latestOther = Math.max(
     0,
     ...REQUIRED_AGENTS
@@ -83,6 +91,9 @@ async function verify(body: any) {
   )
   if (!publisherTime || publisherTime < latestOther) {
     problems.push('publisher must approve last, after all other team members')
+  }
+  if (Number.isFinite(releaseReadyAt) && publisherTime && releaseReadyAt < publisherTime) {
+    problems.push('releaseReadyAt cannot precede final Publisher approval')
   }
 
   const qa = envelope.qa || {}
@@ -95,6 +106,9 @@ async function verify(body: any) {
     contentHash: hash,
     requiredApprovals: REQUIRED_AGENTS.length,
     receivedApprovals: REQUIRED_AGENTS.filter((id) => approvals[id]?.decision === 'APPROVE').length,
+    minimumReleaseReadyBufferHours: 2,
+    releaseReadyAt: envelope.releaseReadyAt || null,
+    scheduledPublishAt: body?.scheduledPublishAt || body?.publishAt || null,
     problems,
   }
 }
