@@ -22,11 +22,16 @@ export async function GET() {
         'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
         'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
         'format-innovation-lab','thumbnail-researcher','metadata-strategist','content-portfolio-planner',
+        'concept-architect','story-arc-writer','devotional-punchup-editor','visual-concept-designer',
+        'broll-sequence-designer','voice-performance-director','caption-design-editor','platform-packaging-producer',
         'rights-scout','theology-guard','script-writer','asset-scout','music-director',
         'visual-director','thumbnail-director','content-director','shorts-editor',
         'longform-producer','lyric-producer','executive-producer','storyboard-producer',
         'media-producer','motion-editor','sound-designer','repurposing-editor','media-librarian',
-        'production-scheduler','qa','publisher','analytics-learner'
+        'production-scheduler','scripture-context-auditor','factual-verification-auditor',
+        'visual-realism-auditor','frame-quality-inspector','audio-mastering-auditor',
+        'mobile-safe-zone-inspector','export-encoding-inspector','master-integrity-auditor',
+        'qa','analytics-learner','publisher'
       ],
       squads: {
         channelResearch: rd.squads?.channelResearch || [],
@@ -40,7 +45,7 @@ export async function GET() {
       rightsSources: sources.sources?.map((s:any) => ({ id:s.id, type:s.type, priority:s.priority })) || [],
       qualityPolicy: 'FAIL_CLOSED',
       unanimousApprovalRequired: true,
-      requiredTeamApprovals: 34,
+      requiredTeamApprovals: 50,
       publisherMustApproveLast: true,
       approvalsVersionBound: true,
       hardGates: ['thumbnailQuality','contentQuality','lyricSync','professionalExecution'],
