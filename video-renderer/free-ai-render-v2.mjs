@@ -450,9 +450,21 @@ export async function renderFreeV2(body = {}) {
       throw new Error('Quality gate failed: procedural visuals are not production-approved')
     }
     const realMotionScenes = scenes.filter((scene) => ['cloud-ai-video','rights-cleared-stock-video'].includes(scene.source)).length
-    const minimumRealMotionScenes = Math.min(2, scenes.length)
+    const minimumRealMotionScenes = scenes.length
     if (realMotionScenes < minimumRealMotionScenes) {
-      throw new Error(`Quality gate failed: at least ${minimumRealMotionScenes} real AI motion-video scenes are required; got ${realMotionScenes}`)
+      throw new Error(`Quality gate failed: every production scene must use real motion video; required ${minimumRealMotionScenes}, got ${realMotionScenes}`)
+    }
+    if (scenes.some((scene) => scene.source === 'cloud-image-local-motion')) {
+      throw new Error('Quality gate failed: animated still-image motion is not PROFESSIONAL_MASTER eligible')
+    }
+    if (WIDTH < 1080 || HEIGHT < 1920 || FPS < 30) {
+      throw new Error(`Quality gate failed: production export must be at least 1080x1920@30fps; got ${WIDTH}x${HEIGHT}@${FPS}`)
+    }
+    if (/local-ffmpeg-ambient/i.test(String(music.provider || ''))) {
+      throw new Error('Quality gate failed: synthetic local fallback music is not PROFESSIONAL_MASTER eligible')
+    }
+    if (!voice?.provider || /espeak/i.test(String(voice.provider))) {
+      throw new Error('Quality gate failed: legacy/synthetic fallback narration is not PROFESSIONAL_MASTER eligible')
     }
 
     const composed = await compose({ scenes, voice, music, script, title, work })
@@ -489,6 +501,9 @@ export async function renderFreeV2(body = {}) {
       paidGenerationCreditsUsed: false,
       persistentStorage: true,
       qualityGate: 'passed',
+      professionalMasterCandidate: true,
+      animatedStillScenes: 0,
+      minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
       publishingAllowed: false,
       reviewRequired: true,
