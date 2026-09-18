@@ -21,12 +21,9 @@ RUN mkdir -p app/api/distribution/publish-core \
  && cp app/api/distribution/publish/route.ts app/api/distribution/publish-core/route.ts
 COPY docker-overrides/content-agents/distribution-publish-unanimous-route.ts /workspace/app/api/distribution/publish/route.ts
 
+RUN mkdir -p app/api/cron/campaign-execute
+COPY docker-overrides/cron/campaign-execute-idempotent-route.ts /workspace/app/api/cron/campaign-execute/route.ts
 RUN printf "%s\n" \
- "export { GET, POST } from '@/app/api/campaign/execute/route'" \
- "export const runtime = 'nodejs'" \
- "export const maxDuration = 300" \
- > app/api/cron/campaign-execute/route.ts \
- && printf "%s\n" \
  "export { GET, POST } from '@/app/api/orchestrate/route'" \
  "export const runtime = 'nodejs'" \
  "export const maxDuration = 300" \
