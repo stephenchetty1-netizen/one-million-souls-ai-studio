@@ -14,6 +14,10 @@ COPY content-agents /workspace/content-agents
 COPY docker-overrides/content-agents/status-route.ts /workspace/app/api/content-agents/status/route.ts
 COPY docker-overrides/content-agents/queue-route.ts /workspace/app/api/content-agents/queue/route.ts
 COPY docker-overrides/content-agents/plan-route.ts /workspace/app/api/content-agents/plan/route.ts
+RUN mkdir -p app/api/system-agents/status app/api/system-agents/plan
+COPY system-agents /workspace/system-agents
+COPY docker-overrides/system-agents/status-route.ts /workspace/app/api/system-agents/status/route.ts
+COPY docker-overrides/system-agents/plan-route.ts /workspace/app/api/system-agents/plan/route.ts
 RUN mkdir -p app/api/publish-core \
  && cp app/api/publish/route.ts app/api/publish-core/route.ts
 COPY docker-overrides/content-agents/publish-unanimous-route.ts /workspace/app/api/publish/route.ts
