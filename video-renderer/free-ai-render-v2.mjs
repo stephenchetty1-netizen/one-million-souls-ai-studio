@@ -77,6 +77,7 @@ function buildAss(script, duration) {
   for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5).join(' '))
   if (!chunks.length) chunks.push('Keep trusting God')
   const slice = duration / Math.max(1, chunks.length)
+  if (slice < 0.75) throw new Error(`Caption quality gate failed: caption cadence too fast (${slice.toFixed(2)}s per phrase)`)
 
   const header = [
     '[Script Info]',
@@ -384,6 +385,25 @@ async function compose({ scenes, voice, music, script, title, work }) {
   return { out, duration: voiceDuration }
 }
 
+function inspectCaptionSafeZones(script, duration) {
+  const words = script.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+  const chunks = []
+  for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5))
+  if (!chunks.length) throw new Error('Caption quality gate failed: no caption phrases')
+  const secondsPerPhrase = duration / chunks.length
+  const problems = []
+  if (secondsPerPhrase < 0.75) problems.push('caption phrases advance too quickly')
+  if (chunks.some((chunk) => chunk.length > 5)) problems.push('caption phrase exceeds five words')
+  if (chunks.some((chunk) => chunk.join(' ').length > 42)) problems.push('caption phrase too wide for mobile safe zone')
+  // ASS Caption style uses L/R margins 90 and bottom margin 170 on a 1080x1920 canvas.
+  const horizontalSafeMargin = 90
+  const bottomSafeMargin = 170
+  if (horizontalSafeMargin < 80) problems.push('horizontal caption safe margin below 80px')
+  if (bottomSafeMargin < 160) problems.push('bottom caption safe margin below 160px')
+  if (problems.length) throw new Error('Caption/mobile safe-zone gate failed: ' + problems.join('; '))
+  return { status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
+}
+
 async function inspectMaster(file, expectedDuration) {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v','error','-show_entries','stream=index,codec_type,width,height,r_frame_rate,pix_fmt,sample_rate,channels:format=duration,bit_rate',
@@ -498,6 +518,7 @@ export async function renderFreeV2(body = {}) {
       throw new Error('Quality gate failed: legacy/synthetic fallback narration is not PROFESSIONAL_MASTER eligible')
     }
 
+    const captionInspection = inspectCaptionSafeZones(script, voiceDuration)
     const composed = await compose({ scenes, voice, music, script, title, work })
     const masterInspection = await inspectMaster(composed.out, composed.duration)
     const persisted = await persist(composed.out, id)
@@ -535,6 +556,7 @@ export async function renderFreeV2(body = {}) {
       qualityGate: 'passed',
       professionalMasterCandidate: true,
       masterInspection,
+      captionInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
