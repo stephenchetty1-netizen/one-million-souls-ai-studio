@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "One Million Souls Rights Ledger",
+  "type": "object",
+  "required": [
+    "assetId",
+    "source",
+    "sourceUrl",
+    "assetType",
+    "rightsStatus",
+    "checkedAt"
+  ],
+  "properties": {
+    "assetId": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "sourceUrl": {
+      "type": "string"
+    },
+    "assetType": {
+      "enum": [
+        "video",
+        "image",
+        "music",
+        "sound-effect",
+        "lyrics",
+        "recording"
+      ]
+    },
+    "creator": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "licenseName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "licenseUrl": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commercialUseAllowed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "modificationAllowed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "attributionRequired": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "attributionText": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "publicDomain": {
+      "type": "boolean",
+      "default": false
+    },
+    "thirdPartyRightsNotes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rightsStatus": {
+      "enum": [
+        "PASS",
+        "REVIEW",
+        "BLOCK"
+      ]
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "checkedBy": {
+      "type": "string"
+    }
+  }
+}
