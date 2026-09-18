@@ -25,6 +25,8 @@ const s3 = storageReady ? new S3Client({
 }) : null
 const STOCK_CACHE_PREFIX = 'stock-source-cache/v1'
 
+const QUARANTINED_STOCK_IDS = new Set(['sunrise-yoga'])
+
 export const STOCK_VIDEO_LIBRARY = Object.freeze([
   {
     id:'dragon-boat-sunrise',
@@ -184,7 +186,10 @@ async function ensureCached(item) {
 }
 
 export async function createRightsClearedStockScene(index, work, seconds = 5, seed = 0) {
-  const item = STOCK_VIDEO_LIBRARY[(Math.abs(seed) + index * 5) % STOCK_VIDEO_LIBRARY.length]
+  const productionLibrary = STOCK_VIDEO_LIBRARY.filter((item) => !QUARANTINED_STOCK_IDS.has(item.id))
+  if (!productionLibrary.length) throw new Error('No non-quarantined rights-cleared stock media available')
+  const item = productionLibrary[(Math.abs(seed) + index * 5) % productionLibrary.length]
+  if (QUARANTINED_STOCK_IDS.has(item.id)) throw new Error(`Quarantined stock media selected: ${item.id}`)
   const input = await ensureCached(item)
   const output = path.join(work, `stock-scene-${index + 1}.mp4`)
 
