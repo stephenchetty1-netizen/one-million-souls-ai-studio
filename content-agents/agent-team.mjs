@@ -7,10 +7,12 @@ export const AGENTS = Object.freeze([
   { id:'script-writer', role:'Write original Shorts and long-form scripts from approved briefs.', output:'scriptPackage' },
   { id:'asset-scout', role:'Find licensed realistic moving footage first; images only when necessary.', output:'assetPlan' },
   { id:'music-director', role:'Select or generate legally usable music and sound design.', output:'audioPlan' },
-  { id:'visual-director', role:'Create shot list, captions, typography, color, motion, and thumbnail direction.', output:'visualPlan' },
+  { id:'visual-director', role:'Create shot list, captions, typography, color, motion, transitions, and overall modern visual language.', output:'visualPlan' },
+  { id:'thumbnail-director', role:'Create clean, high-contrast, mobile-first thumbnails/covers with one clear focal point, minimal text, and truthful curiosity.', output:'thumbnailPackage' },
+  { id:'content-director', role:'Review every concept and script for accuracy, modern relevance, motivation, clarity, emotional pull, pacing, and originality without sensationalism.', output:'contentReview' },
   { id:'shorts-editor', role:'Build 9:16 short-form edit plan optimized for hook and retention.', output:'shortEdit' },
   { id:'longform-producer', role:'Build 16:9 long-form structure plus B-roll and Shorts cutdowns.', output:'longEdit' },
-  { id:'lyric-producer', role:'Build lyric video only from original/user-owned/verified public-domain material.', output:'lyricEdit' },
+  { id:'lyric-producer', role:'Build lyric video only from original/user-owned/verified public-domain material and produce phrase-level lyric timing derived from the actual vocal track.', output:'lyricEdit' },
   { id:'qa', role:'Run rights, theology, factual, media, caption, audio, visual, originality, and platform checks.', output:'qaReport' },
   { id:'publisher', role:'Publish only when every required gate passes.', output:'publishResult' },
   { id:'analytics-learner', role:'Read performance and generate lessons for the next content cycle.', output:'learningReport' },
@@ -24,6 +26,9 @@ export const REQUIRED_GATES = Object.freeze([
   'captionSync',
   'audioMix',
   'visualQuality',
+  'thumbnailQuality',
+  'contentQuality',
+  'lyricSync',
   'originality',
 ])
 
@@ -48,7 +53,7 @@ export function createRunPlan(input={}) {
   const topic = String(input.topic || '').trim()
   if (!topic) throw new Error('topic is required')
 
-  const base = ['trend-scout','theology-guard','script-writer','asset-scout','rights-scout','music-director','visual-director']
+  const base = ['trend-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout','music-director','visual-director','thumbnail-director']
   const editor = mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer'
 
   return {
@@ -85,14 +90,14 @@ export function contentSpec(mode='SHORT') {
   mode = normalizeMode(mode)
   if (mode === 'SHORT') return {
     aspect:'9:16', targetSeconds:[15,45], hookWindowSeconds:1.0,
-    assetPreference:'moving-video-first', captionWordsPerBeat:[2,5],
+    assetPreference:'moving-video-first', captionWordsPerBeat:[2,5], thumbnailTextWords:[0,4], thumbnailVariants:2,
   }
   if (mode === 'LONG') return {
     aspect:'16:9', targetMinutes:[4,12], hookWindowSeconds:12,
-    assetPreference:'moving-video-first', chapters:true, shortsCutdowns:true,
+    assetPreference:'moving-video-first', chapters:true, shortsCutdowns:true, thumbnailTextWords:[2,5], thumbnailVariants:3,
   }
   return {
     aspect:'9:16-or-16:9', rightsRule:'original-user-owned-or-verified-public-domain-only',
-    phraseLevelLyricSync:true, movingBackgroundVideoPreferred:true,
+    phraseLevelLyricSync:true, lyricTimingSource:'actual-vocal-track', lyricSyncToleranceMs:80, movingBackgroundVideoPreferred:true, thumbnailVariants:2,
   }
 }
