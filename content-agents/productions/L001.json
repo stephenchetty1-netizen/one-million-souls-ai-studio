@@ -1,0 +1,67 @@
+{
+  "id": "L001",
+  "mode": "LONG",
+  "status": "DRAFT_READY_ASSET_SELECTION_PENDING",
+  "title": "What the Bible Really Says About Anxiety",
+  "targetMinutes": 8,
+  "scripture": [
+    "Philippians 4:6-7",
+    "1 Peter 5:7",
+    "Matthew 6:25-34"
+  ],
+  "openingHook": "Anxiety can make tomorrow feel like it is already happening today. Scripture does not ask us to pretend that pressure is unreal. It shows us where to carry it.",
+  "chapters": [
+    {
+      "title": "1. Anxiety is not defeated by pretending",
+      "script": "There are moments when your thoughts move faster than your heart can keep up. You replay conversations, imagine worst-case outcomes, and try to solve problems that have not even happened yet. The Bible does not tell us to fake a smile and deny that pressure. Instead, it repeatedly directs anxious hearts toward God. Christian peace is not denial. It is learning where to place the weight."
+    },
+    {
+      "title": "2. Philippians 4:6-7 — bring it to God",
+      "script": "Paul's instruction in Philippians 4 points believers toward prayer, petition, and thanksgiving. The movement is important: rather than letting anxiety become the only voice in the room, we deliberately bring our requests before God. The promise in the passage is not that every circumstance will instantly become easy. It is that God's peace guards hearts and minds in Christ Jesus. Peace is rooted in God's presence, not in our ability to control every outcome."
+    },
+    {
+      "title": "3. 1 Peter 5:7 — you were never meant to carry it alone",
+      "script": "First Peter tells believers to cast their cares on God because He cares for them. Casting is active. It means naming the burden and handing it over again when you keep picking it back up. You may need to do that more than once in a day. Prayer is not a performance; it is an honest transfer of weight."
+    },
+    {
+      "title": "4. Jesus and tomorrow",
+      "script": "In Matthew 6, Jesus teaches His followers not to let tomorrow's troubles consume today's faithfulness. That does not mean planning is wrong. It means worry is a poor master. You can prepare responsibly while refusing to live inside imagined disasters. Ask: what is the faithful step God has placed in front of me today?"
+    },
+    {
+      "title": "5. A practical prayer rhythm",
+      "script": "Try this simple rhythm. First, name the worry honestly. Second, ask God for what you need. Third, thank Him for what is already true about His character. Fourth, choose one faithful action you can take today. Then release the part you cannot control. Repeat the rhythm whenever the worry returns."
+    },
+    {
+      "title": "6. Guided prayer",
+      "script": "Father, You know every thought that is racing through our minds. Give us wisdom for what we can act on and grace to release what we cannot control. Guard our hearts and minds in Christ. Teach us to bring our needs to You with honesty and thanksgiving. Help us walk faithfully through today without trying to carry every possible tomorrow. In Jesus' name, amen."
+    }
+  ],
+  "visualPlan": [
+    "realistic talking-head or narrator-led opening, if available",
+    "moving B-roll of commuting, work, night-time worry, phone notifications",
+    "moving Bible close-ups with hands turning pages",
+    "prayer footage with natural, non-staged emotion",
+    "calm outdoor walking footage and sunrise sequences",
+    "simple on-screen Scripture references rather than walls of text"
+  ],
+  "rightsGuard": {
+    "status": "PENDING_ASSET_SELECTION",
+    "preferredSources": [
+      "Pexels",
+      "Pixabay",
+      "Mixkit Free License items",
+      "YouTube Audio Library for YouTube"
+    ],
+    "blocked": [
+      "random YouTube/TikTok reposts",
+      "modern worship recordings without permission",
+      "assets with unclear license"
+    ]
+  },
+  "cutdowns": [
+    "S001",
+    "S005",
+    "S008"
+  ],
+  "publishingAllowed": false
+}
