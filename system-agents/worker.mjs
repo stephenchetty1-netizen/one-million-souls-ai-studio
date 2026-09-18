@@ -23,7 +23,19 @@ async function cycle(){
  evidence.systemAgents=await call('/api/system-agents/status')
  evidence.contentAgents=await call('/api/content-agents/status')
  if(!provider) throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
- evidence.plan=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
+ const planText=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
+ evidence.plan=planText
+ const parsed=JSON.parse(planText)
+ const plan=parsed?.plan
+ if(!plan?.publishingLocked || plan?.requiredApprovals!==50) throw new Error('AUTONOMY_PLAN_FAIL_CLOSED_POLICY_INVALID')
+ // Do not synthesize agent approvals. Production remains locked until a real immutable
+ // master and measured QA evidence are available for version-bound evaluation.
+ evidence.releaseState={
+   publishingLocked:true,
+   requiredApprovals:plan.requiredApprovals,
+   nextAction:plan.nextAction,
+   reason:'AWAITING_REAL_MASTER_AND_MEASURED_EVIDENCE'
+ }
  return evidence
 }
 await waitReady()
