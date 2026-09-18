@@ -2,7 +2,9 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const V59_BASE_URL = (process.env.V59_BASE_URL || '').replace(/\/$/, '')
 const CRON_SECRET = process.env.CRON_SECRET || ''
 const TARGET_PATH = process.env.SCHEDULER_TARGET_PATH || '/api/cron/campaign-execute'
-const SCHEDULER_ENABLED = process.env.SCHEDULER_ENABLED === 'true'
+// The standalone scheduler service is authoritative. Embedded scheduling is disabled by default
+// and requires an explicit break-glass opt-in to prevent duplicate slot execution.
+const SCHEDULER_ENABLED = process.env.ALLOW_EMBEDDED_SCHEDULER === 'true' && process.env.SCHEDULER_ENABLED === 'true'
 const SLOT_CONFIG = process.env.PUBLISH_SLOTS || '08:00,15:30,20:30'
 const SLOTS = new Set(SLOT_CONFIG.split(',').map(slot => slot.trim()).filter(slot => /^([01]\d|2[0-3]):[0-5]\d$/.test(slot)))
 const lastTriggered = new Map()
@@ -49,6 +51,6 @@ async function tick() {
   await trigger(key)
 }
 
-console.log('EMBEDDED_SCHEDULER', JSON.stringify({ enabled: SCHEDULER_ENABLED, timezone: TIMEZONE, slots: [...SLOTS], configured: Boolean(V59_BASE_URL && CRON_SECRET), mode: 'guarded-live' }))
+console.log('EMBEDDED_SCHEDULER', JSON.stringify({ enabled: SCHEDULER_ENABLED, timezone: TIMEZONE, slots: [...SLOTS], configured: Boolean(V59_BASE_URL && CRON_SECRET), mode: SCHEDULER_ENABLED ? 'break-glass-enabled' : 'standalone-scheduler-authoritative' }))
 setInterval(() => tick().catch(error => console.error('SCHEDULER_TICK_ERROR', error)), 10_000)
 tick().catch(error => console.error('SCHEDULER_INITIAL_ERROR', error))
