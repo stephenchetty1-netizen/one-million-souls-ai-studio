@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-18",
+  "status": "STAGED_NOT_PUBLISHING",
+  "channelSignals": {
+    "tiktok": {
+      "observedWindow": "2026-09-11 to 2026-09-18",
+      "strongestObservedPattern": "shorter prayer/faith encouragement with a direct emotional hook",
+      "exampleMetrics": [
+        {
+          "topic": "Believe You Have Received",
+          "durationSeconds": 35,
+          "views": 194,
+          "likes": 28,
+          "avgWatchSeconds": 8
+        },
+        {
+          "topic": "Be Still and Know",
+          "durationSeconds": 60,
+          "views": 141,
+          "likes": 26,
+          "avgWatchSeconds": 7
+        },
+        {
+          "topic": "Pray Without Ceasing",
+          "durationSeconds": 58,
+          "views": 121,
+          "likes": 16,
+          "avgWatchSeconds": 8
+        }
+      ]
+    }
+  },
+  "shorts": [
+    {
+      "id": "S001",
+      "priority": 1,
+      "title": "Before You Scroll, Pray This for Peace",
+      "scripture": "Philippians 4:6-7",
+      "targetSeconds": 28,
+      "hook": "Before you scroll, give God the next 20 seconds.",
+      "format": "realistic video montage + natural voice + 2-5 word captions",
+      "visualSearch": [
+        "person awake at night window prayer",
+        "hands praying by bed realistic",
+        "sunrise calm ocean cinematic"
+      ],
+      "rightsRule": "licensed moving video only; no random social reposts",
+      "cta": "Comment AMEN if you are giving this worry to God."
+    },
+    {
+      "id": "S002",
+      "priority": 1,
+      "title": "Stop Carrying Tomorrow Today",
+      "scripture": "Matthew 6:34",
+      "targetSeconds": 24,
+      "hook": "You are carrying a day God has not asked you to live yet.",
+      "format": "story-driven motivational short",
+      "visualSearch": [
+        "stressed person commuting cinematic",
+        "quiet Bible morning coffee",
+        "sunrise walking path"
+      ],
+      "cta": "Save this for the next anxious morning."
+    },
+    {
+      "id": "S003",
+      "priority": 1,
+      "title": "When God Feels Silent",
+      "scripture": "Psalm 27:14",
+      "targetSeconds": 32,
+      "hook": "Silence does not mean God has left you.",
+      "format": "emotional narrative + realistic human B-roll",
+      "visualSearch": [
+        "person waiting alone church pew",
+        "rain window reflective person",
+        "sunrise church exterior"
+      ],
+      "cta": "Keep waiting. Keep trusting."
+    },
+    {
+      "id": "S004",
+      "priority": 1,
+      "title": "Believe, But Trust His Will",
+      "scripture": "Mark 11:24",
+      "targetSeconds": 30,
+      "hook": "Faith is not forcing God to follow your plan.",
+      "format": "misconception correction",
+      "visualSearch": [
+        "prayer hands Bible closeup",
+        "person praying church natural light",
+        "hopeful sunrise mountain"
+      ],
+      "theologyNote": "Avoid prosperity-gospel framing; emphasize trust in God's wisdom and will.",
+      "cta": "Pray boldly. Trust completely."
+    },
+    {
+      "id": "S005",
+      "priority": 2,
+      "title": "What the Bible Says About Anxiety",
+      "scripture": "1 Peter 5:7",
+      "targetSeconds": 35,
+      "hook": "The Bible does not tell you to pretend anxiety is not real.",
+      "format": "question-then-answer search short",
+      "visualSearch": [
+        "anxious person realistic home",
+        "open Bible closeup",
+        "walking outside breathing calm"
+      ],
+      "cta": "Cast it on Him one worry at a time."
+    },
+    {
+      "id": "S006",
+      "priority": 2,
+      "title": "God Is Not Finished With You",
+      "scripture": "Philippians 1:6",
+      "targetSeconds": 27,
+      "hook": "Your worst chapter is not the last page.",
+      "format": "cinematic motivation",
+      "visualSearch": [
+        "person walking from darkness to sunrise",
+        "construction restoration metaphor cinematic",
+        "open Bible dawn"
+      ],
+      "cta": "Comment STILL WORKING."
+    },
+    {
+      "id": "S007",
+      "priority": 2,
+      "title": "Pray Before You Panic",
+      "scripture": "1 Thessalonians 5:17",
+      "targetSeconds": 22,
+      "hook": "Before you react, pray.",
+      "format": "fast hook + short prayer",
+      "visualSearch": [
+        "phone bad news reaction realistic",
+        "pause close eyes prayer",
+        "calm sunrise city"
+      ],
+      "cta": "Make prayer your first response."
+    },
+    {
+      "id": "S008",
+      "priority": 2,
+      "title": "Jesus Gives a Different Kind of Peace",
+      "scripture": "John 14:27",
+      "targetSeconds": 31,
+      "hook": "The world offers distraction. Jesus offers peace.",
+      "format": "contrast-driven short",
+      "visualSearch": [
+        "busy city crowd stress",
+        "quiet prayer room",
+        "sunrise peaceful field"
+      ],
+      "cta": "Receive His peace today."
+    },
+    {
+      "id": "S009",
+      "priority": 3,
+      "title": "Why Did Jesus Sleep Through the Storm?",
+      "scripture": "Mark 4:35-41",
+      "targetSeconds": 45,
+      "hook": "The storm was real. So was Jesus' peace.",
+      "format": "Bible story in under a minute",
+      "visualSearch": [
+        "stormy sea cinematic public domain style",
+        "boat waves cinematic",
+        "calm sea sunrise"
+      ],
+      "cta": "Who is in your boat matters more than the storm."
+    },
+    {
+      "id": "S010",
+      "priority": 3,
+      "title": "You Are Fearfully and Wonderfully Made",
+      "scripture": "Psalm 139:14",
+      "targetSeconds": 25,
+      "hook": "Your value did not begin with someone's opinion of you.",
+      "format": "identity encouragement",
+      "visualSearch": [
+        "diverse people natural portrait video",
+        "person mirror thoughtful",
+        "sunrise silhouette"
+      ],
+      "cta": "Your Creator gave you value before the world gave you a label."
+    }
+  ],
+  "longForm": [
+    {
+      "id": "L001",
+      "priority": 1,
+      "title": "What the Bible Really Says About Anxiety",
+      "targetMinutes": 8,
+      "structure": [
+        "cold open",
+        "what anxiety feels like",
+        "Philippians 4:6-7 context",
+        "1 Peter 5:7",
+        "practical prayer routine",
+        "guided closing prayer"
+      ],
+      "cutdowns": [
+        "S001",
+        "S005",
+        "S008"
+      ]
+    },
+    {
+      "id": "L002",
+      "priority": 1,
+      "title": "When God Feels Silent: What to Do in the Waiting Season",
+      "targetMinutes": 7,
+      "structure": [
+        "story hook",
+        "biblical waiting examples",
+        "Psalm 27:14",
+        "what waiting is not",
+        "three faithful actions",
+        "prayer"
+      ],
+      "cutdowns": [
+        "S003",
+        "S006"
+      ]
+    },
+    {
+      "id": "L003",
+      "priority": 2,
+      "title": "Faith Without Manipulating God: Understanding Mark 11:24",
+      "targetMinutes": 9,
+      "structure": [
+        "why the verse is misunderstood",
+        "context",
+        "faith vs presumption",
+        "God's will",
+        "how to pray boldly and humbly",
+        "closing prayer"
+      ],
+      "cutdowns": [
+        "S004"
+      ]
+    },
+    {
+      "id": "L004",
+      "priority": 2,
+      "title": "7 Short Prayers for Difficult Days",
+      "targetMinutes": 10,
+      "structure": [
+        "intro",
+        "peace",
+        "fear",
+        "guidance",
+        "forgiveness",
+        "strength",
+        "family",
+        "purpose",
+        "closing blessing"
+      ],
+      "cutdowns": [
+        "S001",
+        "S007"
+      ]
+    }
+  ],
+  "lyricVideos": [
+    {
+      "id": "M001",
+      "priority": 1,
+      "title": "Still Working",
+      "type": "ORIGINAL",
+      "theme": "God continues His work in us through waiting seasons",
+      "scriptureInspiration": [
+        "Philippians 1:6"
+      ],
+      "targetMinutes": 3.2,
+      "musicDirection": "cinematic worship-pop, piano, warm pads, restrained drums, original melody",
+      "lyricRule": "original lyrics only",
+      "visualDirection": "realistic cinematic journey from night to sunrise; moving video throughout"
+    },
+    {
+      "id": "M002",
+      "priority": 1,
+      "title": "Peace in the Storm",
+      "type": "ORIGINAL",
+      "theme": "Jesus' presence in fear and uncertainty",
+      "scriptureInspiration": [
+        "Mark 4:35-41",
+        "John 14:27"
+      ],
+      "targetMinutes": 3.5,
+      "musicDirection": "ambient worship ballad, piano, strings, soft percussion, original melody",
+      "lyricRule": "original lyrics only",
+      "visualDirection": "storm, prayer, calm sea, sunrise; no copyrighted worship footage"
+    },
+    {
+      "id": "M003",
+      "priority": 2,
+      "title": "Amazing Grace — Original Visual Arrangement",
+      "type": "PUBLIC_DOMAIN_CANDIDATE_REQUIRES_RIGHTS_CHECK",
+      "theme": "grace and redemption",
+      "targetMinutes": 3,
+      "musicDirection": "new original instrumental arrangement only",
+      "lyricRule": "Rights Scout must verify public-domain status of text/tune for target distribution before production.",
+      "visualDirection": "historical/nature/church footage from rights-cleared sources"
+    }
+  ]
+}
