@@ -7,6 +7,8 @@ const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
 const HEIGHT = Number(process.env.RENDER_HEIGHT || 1920)
 const FPS = Number(process.env.RENDER_FPS || 30)
+const STOCK_CACHE_DIR = process.env.STOCK_CACHE_DIR || '/tmp/one-million-souls-stock-cache'
+const downloadLocks = new Map()
 
 export const STOCK_VIDEO_LIBRARY = Object.freeze([
   {
@@ -53,25 +55,76 @@ export const STOCK_VIDEO_LIBRARY = Object.freeze([
   },
 ])
 
-async function download(url, target) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 120000)
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function downloadWithRetry(url, target) {
+  let lastError
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 120000)
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        redirect:'follow',
+        headers: {
+          'user-agent':'OneMillionSoulsV59/1.0 (rights-cleared media fetch)',
+          'accept':'video/webm,video/mp4,application/octet-stream;q=0.9,*/*;q=0.1',
+        },
+      })
+      if (!response.ok) {
+        const retryable = response.status === 429 || response.status >= 500
+        if (!retryable) throw new Error(`stock download failed ${response.status}`)
+        throw new Error(`stock download retryable ${response.status}`)
+      }
+      const bytes = Buffer.from(await response.arrayBuffer())
+      if (bytes.length < 10000) throw new Error('stock download returned invalid media')
+      const temp = `${target}.part-${process.pid}-${Date.now()}`
+      await fs.writeFile(temp, bytes)
+      await fs.rename(temp, target)
+      return
+    } catch (error) {
+      lastError = error
+      if (attempt < 4) await sleep(2500 * attempt)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  throw lastError || new Error('stock download failed')
+}
+
+async function ensureCached(item) {
+  await fs.mkdir(STOCK_CACHE_DIR, { recursive:true })
+  const ext = item.url.toLowerCase().includes('.mp4') ? '.mp4' : '.webm'
+  const cached = path.join(STOCK_CACHE_DIR, `${item.id}${ext}`)
   try {
-    const response = await fetch(url, { signal: controller.signal, redirect:'follow' })
-    if (!response.ok) throw new Error(`stock download failed ${response.status}`)
-    const bytes = Buffer.from(await response.arrayBuffer())
-    if (bytes.length < 10000) throw new Error('stock download returned invalid media')
-    await fs.writeFile(target, bytes)
+    const stat = await fs.stat(cached)
+    if (stat.size >= 10000) return cached
+  } catch {}
+
+  if (downloadLocks.has(item.id)) {
+    await downloadLocks.get(item.id)
+    return cached
+  }
+
+  const task = (async () => {
+    await sleep(900)
+    await downloadWithRetry(item.url, cached)
+  })()
+  downloadLocks.set(item.id, task)
+  try {
+    await task
+    return cached
   } finally {
-    clearTimeout(timer)
+    downloadLocks.delete(item.id)
   }
 }
 
 export async function createRightsClearedStockScene(index, work, seconds = 5, seed = 0) {
   const item = STOCK_VIDEO_LIBRARY[(Math.abs(seed) + index * 5) % STOCK_VIDEO_LIBRARY.length]
-  const input = path.join(work, `stock-${index + 1}.webm`)
+  const input = await ensureCached(item)
   const output = path.join(work, `stock-scene-${index + 1}.mp4`)
-  await download(item.url, input)
 
   await execFileAsync('ffmpeg', [
     '-y',
