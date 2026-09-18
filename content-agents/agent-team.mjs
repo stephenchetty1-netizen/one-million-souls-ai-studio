@@ -144,6 +144,7 @@ export const REQUIRED_GATES = Object.freeze([
   'contentQuality',
   'lyricSync',
   'originality',
+  'professionalExecution',
 ])
 
 export const SOURCE_PRIORITY = Object.freeze([
