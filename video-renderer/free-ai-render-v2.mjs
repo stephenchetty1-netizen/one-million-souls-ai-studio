@@ -623,6 +623,7 @@ export async function renderFreeV2(body = {}) {
       captionInspection,
       audioInspection,
       visualVarietyInspection,
+      sceneMotionInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
       designSystem: 'v4-lato-gold-ass-captions',
