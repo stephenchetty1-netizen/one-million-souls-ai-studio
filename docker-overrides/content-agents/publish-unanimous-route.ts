@@ -23,7 +23,7 @@ async function requiredAgents() {
 
 const REQUIRED_GATES = [
   'rightsStatus','theologyStatus','factualStatus','mediaIntegrity','captionSync',
-  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality','professionalExecution'
+  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality','professionalExecution','technicalMaster','creativeMaster'
 ]
 
 function canonicalize(value: any): any {
@@ -54,6 +54,10 @@ async function verify(body: any) {
   const problems: string[] = []
   const times: Record<string, number> = {}
 
+  if (!/^[a-f0-9]{64}$/i.test(String(body?.masterHash || ''))) problems.push('valid immutable masterHash is required')
+  if (envelope.masterHash !== body?.masterHash) problems.push('approvalEnvelope.masterHash does not match the exact immutable master')
+  if (envelope.certification !== 'PROFESSIONAL_MASTER_CERTIFIED') problems.push('PROFESSIONAL_MASTER_CERTIFIED certification is required')
+  if (envelope.masterReady !== true) problems.push('MASTER_READY must be true before publication')
   if (envelope.contentHash !== hash) {
     problems.push('approvalEnvelope.contentHash does not match the exact publish payload')
   }
@@ -66,6 +70,7 @@ async function verify(body: any) {
     }
     if (vote.decision !== 'APPROVE') problems.push(`${agentId} decision is not APPROVE`)
     if (vote.contentHash !== hash) problems.push(`${agentId} approval is stale or for a different version`)
+    if (vote.masterHash !== body?.masterHash) problems.push(`${agentId} approval is stale or for a different masterHash`)
     const time = Date.parse(vote.approvedAt || '')
     if (!Number.isFinite(time)) problems.push(`${agentId} approval has invalid approvedAt`)
     else times[agentId] = time
