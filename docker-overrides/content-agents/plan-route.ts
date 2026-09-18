@@ -35,8 +35,8 @@ export async function POST(req: Request) {
       mode,
       item,
       agents: [
-        'trend-scout','theology-guard','script-writer','asset-scout','rights-scout',
-        'music-director','visual-director',
+        'trend-scout','theology-guard','script-writer','content-director','asset-scout','rights-scout',
+        'music-director','visual-director','thumbnail-director',
         mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer',
         'qa','publisher','analytics-learner'
       ],
@@ -48,6 +48,9 @@ export async function POST(req: Request) {
         captionSync:'PENDING',
         audioMix:'PENDING',
         visualQuality:'PENDING',
+        thumbnailQuality:'PENDING',
+        contentQuality:'PENDING',
+        lyricSync: mode === 'LYRIC' ? 'PENDING' : 'PASS',
         originality:'PENDING',
       },
       publishingLocked: true,
