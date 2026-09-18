@@ -1,7 +1,18 @@
+import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
+
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
 const provider=Boolean(process.env.OPENAI_API_KEY||process.env.ANTHROPIC_API_KEY||process.env.GEMINI_API_KEY)
+
+if (process.argv.includes('--with-app')) {
+  console.log('V59_AUTONOMY_SUPERVISOR '+JSON.stringify({mode:'24X7',failClosed:true,worker:'enabled',entrypoint:'npm-start'}))
+  const app=spawn(process.execPath,['node_modules/next/dist/bin/next','start'],{stdio:'inherit',env:process.env})
+  app.on('error',e=>{ console.error('APP_SPAWN_ERROR',e.message); process.exit(1) })
+  app.on('exit',code=>process.exit(code??1))
+  for (const sig of ['SIGTERM','SIGINT']) process.on(sig,()=>app.kill(sig))
+}
+
 async function call(path,method='GET',body){
  const r=await fetch(base+path,{method,headers:{authorization:'Bearer '+secret,'content-type':'application/json'},body:body?JSON.stringify(body):undefined})
  const text=await r.text(); if(!r.ok) throw new Error(path+':'+r.status+':'+text.slice(0,300)); return text
@@ -11,9 +22,7 @@ async function cycle(){
  const evidence={at:new Date().toISOString(),providerConnected:provider}
  evidence.systemAgents=await call('/api/system-agents/status')
  evidence.contentAgents=await call('/api/content-agents/status')
- // Fail closed: creative/R&D/approval autonomy cannot be claimed without a real reasoning provider.
  if(!provider) throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
- // Generate a real plan; approvals remain locked until evaluators submit evidence.
  evidence.plan=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
  return evidence
 }
