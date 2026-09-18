@@ -65,8 +65,9 @@ COPY --from=build /workspace ./
 RUN printf "%s\n" \
 "import { spawn } from 'node:child_process'" \
 "const child=spawn('npm',['start'],{stdio:'inherit',env:process.env})" \
+"spawn('node',['system-agents/worker.mjs'],{stdio:'inherit',env:process.env})" \
 "child.on('exit',(code)=>process.exit(code??1))" \
-"console.log('V59_AUTONOMY_SUPERVISOR',{mode:'24X7',failClosed:true})" \
+"console.log('V59_AUTONOMY_SUPERVISOR',{mode:'24X7',failClosed:true,worker:'enabled'})" \
 > /app/v59-supervisor.mjs
 EXPOSE 3000
 CMD ["node", "v59-supervisor.mjs"]
