@@ -38,11 +38,15 @@ export async function POST(req: Request) {
         'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
         'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
         'format-innovation-lab','thumbnail-researcher','metadata-strategist','content-portfolio-planner',
+        'concept-architect','story-arc-writer','devotional-punchup-editor','visual-concept-designer',
+        'broll-sequence-designer','voice-performance-director','caption-design-editor','platform-packaging-producer',
         'theology-guard','script-writer','content-director','asset-scout','rights-scout',
         'music-director','visual-director','thumbnail-director','executive-producer',
         'storyboard-producer','media-producer','motion-editor','sound-designer','media-librarian','production-scheduler',
+        'scripture-context-auditor','factual-verification-auditor','visual-realism-auditor','frame-quality-inspector',
+        'audio-mastering-auditor','mobile-safe-zone-inspector','export-encoding-inspector','master-integrity-auditor',
         mode === 'SHORT' ? 'shorts-editor' : mode === 'LONG' ? 'longform-producer' : 'lyric-producer',
-        'qa','repurposing-editor','publisher','analytics-learner'
+        'qa','repurposing-editor','analytics-learner','publisher'
       ],
       gates: {
         rightsStatus:'PENDING',
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
       },
       releaseStandard: 'PROFESSIONAL_MASTER',
       approvalPolicy: 'UNANIMOUS_VERSION_BOUND_APPROVAL',
-      requiredApprovals: 34,
+      requiredApprovals: 50,
       approvalMatrix: Object.fromEntries([
         'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
         'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
@@ -68,8 +72,12 @@ export async function POST(req: Request) {
         'executive-producer','storyboard-producer','media-producer','motion-editor','sound-designer',
         'repurposing-editor','media-librarian','production-scheduler','rights-scout','theology-guard',
         'script-writer','asset-scout','music-director','visual-director','thumbnail-director',
-        'content-director','shorts-editor','longform-producer','lyric-producer','qa','publisher',
-        'analytics-learner'
+        'content-director','shorts-editor','longform-producer','lyric-producer',
+        'concept-architect','story-arc-writer','devotional-punchup-editor','visual-concept-designer',
+        'broll-sequence-designer','voice-performance-director','caption-design-editor','platform-packaging-producer',
+        'scripture-context-auditor','factual-verification-auditor','visual-realism-auditor','frame-quality-inspector',
+        'audio-mastering-auditor','mobile-safe-zone-inspector','export-encoding-inspector','master-integrity-auditor',
+        'qa','analytics-learner','publisher'
       ].map((agentId) => [agentId, {
         decision:'PENDING',
         contentHash:'',
