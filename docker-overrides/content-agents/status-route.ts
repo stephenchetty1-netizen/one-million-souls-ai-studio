@@ -39,6 +39,10 @@ export async function GET() {
       },
       rightsSources: sources.sources?.map((s:any) => ({ id:s.id, type:s.type, priority:s.priority })) || [],
       qualityPolicy: 'FAIL_CLOSED',
+      unanimousApprovalRequired: true,
+      requiredTeamApprovals: 34,
+      publisherMustApproveLast: true,
+      approvalsVersionBound: true,
       hardGates: ['thumbnailQuality','contentQuality','lyricSync'],
       cadence: {
         research: rd.researchCadence,
