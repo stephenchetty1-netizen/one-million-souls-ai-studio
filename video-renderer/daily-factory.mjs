@@ -8,6 +8,7 @@ const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
 const PIPELINE_VERSION = 'v59-professional-master-certified-v5'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
+const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
 const s3 = storageReady ? new S3Client({
   endpoint: process.env.ENDPOINT,
@@ -37,7 +38,8 @@ function localDate(date = new Date()) {
   return { date:`${m.year}-${m.month}-${m.day}`, time:`${m.hour}:${m.minute}` }
 }
 
-function tomorrowDate() { return localDate(new Date(Date.now()+24*60*60*1000)).date }
+function futureDate(days=1) { return localDate(new Date(Date.now()+days*24*60*60*1000)).date }
+function tomorrowDate() { return futureDate(1) }
 function hashDate(s) { return [...s].reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7) }
 function manifestKey(date) { return `manifests/${date}.json` }
 function buildingManifestKey(date) { return `manifests/${date}.building.json` }
@@ -75,12 +77,6 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.renderer === 'one-million-souls-zero-credit-v3' &&
     entry?.renderQualityGate === 'PASS' &&
     entry?.professionalMasterCandidate === true &&
-      entry?.masterReady === true &&
-      entry?.technicalMaster === 'PASS' &&
-      entry?.creativeMaster === 'PASS' &&
-    entry?.masterReady === true &&
-    entry?.technicalMaster === 'PASS' &&
-    entry?.creativeMaster === 'PASS' &&
     entry?.masterInspection?.passed === true &&
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
@@ -274,11 +270,12 @@ async function tick() {
   const now = localDate()
   const target = tomorrowDate()
   if (Date.now() < nextFactoryAttemptAt) return
-  if (lastFactoryDate === target) return
+  const runKey = `${now.date}:${ADVANCE_DAYS}`
+  if (lastFactoryDate === runKey) return
   if (now.time === '23:30' || lastFactoryDate === '') {
-    lastFactoryDate = target
+    lastFactoryDate = runKey
     try {
-      await generateFor(target)
+      for (let day=1; day<=ADVANCE_DAYS; day++) await generateFor(futureDate(day))
       nextFactoryAttemptAt = 0
     } catch (e) {
       lastFactoryDate=''
@@ -289,6 +286,6 @@ async function tick() {
   }
 }
 
-console.log('DAILY_FACTORY', JSON.stringify({enabled,storageReady,timezone:TIMEZONE,bankSize:BANK.length}))
+console.log('DAILY_FACTORY', JSON.stringify({enabled,storageReady,timezone:TIMEZONE,bankSize:BANK.length,advanceDays:ADVANCE_DAYS,releaseModel:'PRODUCE_AHEAD_THEN_CERTIFY'}))
 setTimeout(()=>tick(),3000)
 setInterval(()=>tick(),30_000)
