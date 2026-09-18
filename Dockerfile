@@ -17,6 +17,9 @@ COPY docker-overrides/content-agents/plan-route.ts /workspace/app/api/content-ag
 RUN mkdir -p app/api/publish-core \
  && cp app/api/publish/route.ts app/api/publish-core/route.ts
 COPY docker-overrides/content-agents/publish-unanimous-route.ts /workspace/app/api/publish/route.ts
+RUN mkdir -p app/api/distribution/publish-core \
+ && cp app/api/distribution/publish/route.ts app/api/distribution/publish-core/route.ts
+COPY docker-overrides/content-agents/distribution-publish-unanimous-route.ts /workspace/app/api/distribution/publish/route.ts
 
 RUN printf "%s\n" \
  "export { GET, POST } from '@/app/api/campaign/execute/route'" \
