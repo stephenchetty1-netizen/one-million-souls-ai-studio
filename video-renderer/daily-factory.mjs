@@ -152,13 +152,25 @@ async function generateFor(date) {
 }
 
 let lastFactoryDate = ''
+let nextFactoryAttemptAt = 0
+const FACTORY_RETRY_MS = Number(process.env.DAILY_FACTORY_RETRY_MS || 15 * 60 * 1000)
+
 async function tick() {
   const now = localDate()
   const target = tomorrowDate()
+  if (Date.now() < nextFactoryAttemptAt) return
   if (lastFactoryDate === target) return
   if (now.time === '23:30' || lastFactoryDate === '') {
     lastFactoryDate = target
-    try { await generateFor(target) } catch (e) { lastFactoryDate=''; console.error('DAILY_FACTORY_ERROR', e instanceof Error ? e.message : String(e)) }
+    try {
+      await generateFor(target)
+      nextFactoryAttemptAt = 0
+    } catch (e) {
+      lastFactoryDate=''
+      nextFactoryAttemptAt = Date.now() + FACTORY_RETRY_MS
+      console.error('DAILY_FACTORY_ERROR', e instanceof Error ? e.message : String(e))
+      console.error('DAILY_FACTORY_BACKOFF', JSON.stringify({ retryAfterMs: FACTORY_RETRY_MS, retryAt: new Date(nextFactoryAttemptAt).toISOString() }))
+    }
   }
 }
 
