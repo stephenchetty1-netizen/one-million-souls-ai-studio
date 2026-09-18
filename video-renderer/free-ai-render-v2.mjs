@@ -468,14 +468,14 @@ async function inspectMaster(file, expectedDuration) {
 
   const freezeDir = path.join(path.dirname(file), 'frame-audit')
   await fs.mkdir(freezeDir, { recursive: true })
-  await execFileAsync('ffmpeg', [
-    '-y','-i',file,'-vf','fps=1/2,scale=270:480,blackdetect=d=0.35:pix_th=0.08,freezedetect=n=-50dB:d=1.5',
+  const frameAudit = await execFileAsync('ffmpeg', [
+    '-y','-i',file,'-vf','scale=270:480,blackdetect=d=0.35:pix_th=0.08,freezedetect=n=-50dB:d=1.5',
     '-an','-f','null','-'
-  ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 }).catch((error) => {
-    const stderr = String(error?.stderr || '')
-    if (/black_start|freeze_start/.test(stderr)) throw new Error('Master integrity failed: black/frozen-frame defect detected')
-    throw error
-  })
+  ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+  const frameAuditLog = String(frameAudit?.stderr || '')
+  if (/black_start|freeze_start/.test(frameAuditLog)) {
+    throw new Error('Master integrity failed: black/frozen-frame defect detected')
+  }
   return { status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
 }
 
