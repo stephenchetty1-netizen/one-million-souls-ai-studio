@@ -20,7 +20,7 @@ async function call(path,method='GET',body){
 async function waitReady(){for(let i=0;i<60;i++){try{await call('/api/system-agents/autonomy-status');return}catch{} await sleep(2000)}throw new Error('APP_NOT_READY')}
 async function cycle(){
  const evidence={at:new Date().toISOString(),providerConnected:provider}
- evidence.systemAgents=await call('/api/system-agents/status')
+ evidence.systemAgents=await call('/api/system-agents/autonomy-status')
  evidence.contentAgents=await call('/api/content-agents/status')
  if(!provider) throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
  const planText=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
