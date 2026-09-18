@@ -68,7 +68,7 @@ async function download(url, target) {
 }
 
 export async function createRightsClearedStockScene(index, work, seconds = 5, seed = 0) {
-  const item = STOCK_VIDEO_LIBRARY[(Math.abs(seed) + index * 3) % STOCK_VIDEO_LIBRARY.length]
+  const item = STOCK_VIDEO_LIBRARY[(Math.abs(seed) + index * 5) % STOCK_VIDEO_LIBRARY.length]
   const input = path.join(work, `stock-${index + 1}.webm`)
   const output = path.join(work, `stock-scene-${index + 1}.mp4`)
   await download(item.url, input)
