@@ -1,15 +1,28 @@
 import { NextResponse } from 'next/server'
 import crypto from 'node:crypto'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { POST as corePOST } from '@/app/api/distribution/publish-core/route'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const REQUIRED_AGENTS = ["trend-scout","million-view-scout","channel-strategist","competitor-mapper","search-intent-analyst","audience-insight-researcher","retention-scientist","hook-lab","format-innovation-lab","thumbnail-researcher","metadata-strategist","content-portfolio-planner","executive-producer","storyboard-producer","media-producer","motion-editor","sound-designer","repurposing-editor","media-librarian","production-scheduler","rights-scout","theology-guard","script-writer","asset-scout","music-director","visual-director","thumbnail-director","content-director","shorts-editor","longform-producer","lyric-producer","qa","publisher","analytics-learner"]
+async function requiredAgents() {
+  const raw = await fs.readFile(path.join(process.cwd(), 'content-agents', 'approval-policy.json'), 'utf8')
+  const policy = JSON.parse(raw)
+  const agents = Array.isArray(policy.requiredAgents) ? policy.requiredAgents.map(String) : []
+  if (agents.length !== Number(policy.requiredApprovals || agents.length) || agents.length < 1) {
+    throw new Error('Invalid approval policy configuration')
+  }
+  if (agents[agents.length - 1] !== 'publisher') {
+    throw new Error('Approval policy requires publisher to be last')
+  }
+  return agents
+}
 const REQUIRED_GATES = [
   'rightsStatus','theologyStatus','factualStatus','mediaIntegrity','captionSync',
-  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality'
+  'audioMix','visualQuality','thumbnailQuality','contentQuality','lyricSync','originality','professionalExecution'
 ]
 
 function canonicalize(value:any):any {
@@ -31,7 +44,8 @@ function payloadHash(body:any) {
     .digest('hex')
 }
 
-function verify(body:any) {
+async function verify(body:any) {
+  const REQUIRED_AGENTS = await requiredAgents()
   const envelope = body?.approvalEnvelope || {}
   const approvals = envelope.approvals || {}
   const hash = payloadHash(body)
@@ -67,7 +81,7 @@ export async function POST(req:Request) {
   try { body = await req.clone().json() }
   catch { return NextResponse.json({ok:false,error:'Invalid JSON body'},{status:400}) }
 
-  const check = verify(body)
+  const check = await verify(body)
   if (!check.ok) {
     return NextResponse.json({
       ok:false,blocked:true,reason:'UNANIMOUS_TEAM_APPROVAL_REQUIRED',approvalCheck:check
