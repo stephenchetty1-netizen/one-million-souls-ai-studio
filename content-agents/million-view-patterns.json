@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-18",
+  "scopeNote": "Publicly indexed million-view Christian content on TikTok/YouTube. This is not a complete dump of either platform; private/unindexed content is unavailable.",
+  "originalityRule": "Extract format, hook, pacing, emotional structure, search intent and visual language. Do not copy scripts, footage, thumbnails, melodies or edits shot-for-shot.",
+  "examples": [
+    {
+      "platform": "YouTube",
+      "creator": "The AI Bible",
+      "title": "What if The Bible had a movie trailer...?",
+      "views": 2120857,
+      "format": "cinematic Bible trailer",
+      "pattern": [
+        "epic opening",
+        "visual spectacle",
+        "Bible-story familiarity",
+        "movie-trailer pacing",
+        "high-concept novelty"
+      ],
+      "source": "https://www.youtube.com/watch?v=zzDZeNhmqeg"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "The AI Bible",
+      "title": "Biblically Accurate Angels",
+      "views": 34400000,
+      "format": "cinematic biblical visualisation",
+      "pattern": [
+        "instant curiosity",
+        "striking visual subject",
+        "Scripture-linked concept",
+        "shareable spectacle"
+      ],
+      "source": "https://urlebird.com/video/biblically-accurate-angels-ezekiel-1-and-10-7315860464506768683/"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "@mogalane123",
+      "title": "Schoolboy passionately praying with classmates",
+      "views": 1800000,
+      "format": "authentic prayer moment",
+      "pattern": [
+        "real emotion",
+        "human authenticity",
+        "faith in action",
+        "no overproduction",
+        "strong social proof"
+      ],
+      "source": "https://briefly.co.za/people/233405-boys-prayer-classmates-teachers-tiktok-video-moves-sa/"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "Keano Cruz",
+      "title": "Boy praying for sick sister",
+      "views": 4000000,
+      "format": "authentic prayer/testimony-style moment",
+      "pattern": [
+        "family stakes",
+        "emotional immediacy",
+        "visible faith",
+        "real human moment"
+      ],
+      "source": "https://www.christianlearning.com/spirit-filled-little-boy-tongues/"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "Estefi Bermudez",
+      "title": "Direct-to-viewer prayer",
+      "views": 4000000,
+      "likes": 840000,
+      "format": "camera-facing personal prayer",
+      "pattern": [
+        "direct address",
+        "intimate tone",
+        "immediate emotional relevance",
+        "ambient music",
+        "viewer inclusion"
+      ],
+      "source": "https://www.vice.com/en/article/evangelical-tiktokers-are-winning-the-war-for-hearts-and-minds/"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "Father Matt",
+      "title": "What I'd wear / liturgical robes",
+      "views": 3700000,
+      "format": "trend adaptation",
+      "pattern": [
+        "borrowed trend format",
+        "faith-specific twist",
+        "humour",
+        "visual changes",
+        "Gen-Z-native presentation"
+      ],
+      "source": "https://www.beliefnet.com/columnists/inspirationreport/2020/11/can-tiktok-help-drive-gen-z-to-faith.html"
+    },
+    {
+      "platform": "TikTok",
+      "creator": "Nala Ray",
+      "title": "Baptism testimony",
+      "views": 4000000,
+      "format": "personal transformation",
+      "pattern": [
+        "before/after story",
+        "identity change",
+        "debate-driving comments",
+        "high emotional stakes",
+        "authentic testimony"
+      ],
+      "source": "https://www.foxnews.com/media/pastors-child-turned-onlyfans-model-moves-away-sin-salvation-wanna-go"
+    },
+    {
+      "platform": "YouTube",
+      "creator": "Grace For Purpose",
+      "title": "Begin Your Day With This Prayer!",
+      "views": 18200000,
+      "format": "utility prayer",
+      "pattern": [
+        "clear use-case",
+        "evergreen need",
+        "repeat listening",
+        "morning ritual",
+        "searchable title"
+      ],
+      "source": "https://asknaveen.com/channel/%40graceforpurpose"
+    },
+    {
+      "platform": "YouTube",
+      "creator": "Grace For Purpose",
+      "title": "Best Prayers To Fall Asleep",
+      "views": 17200000,
+      "format": "sleep prayer",
+      "pattern": [
+        "high-intent utility",
+        "long watch time",
+        "repeat use",
+        "calm pacing",
+        "search demand"
+      ],
+      "source": "https://asknaveen.com/channel/%40graceforpurpose"
+    },
+    {
+      "platform": "YouTube",
+      "creator": "Grace For Purpose",
+      "title": "Special Breakthrough Prayers",
+      "views": 4800000,
+      "format": "long-form prayer",
+      "pattern": [
+        "specific emotional need",
+        "long listening session",
+        "clear promise of prayer focus",
+        "repeat use"
+      ],
+      "source": "https://asknaveen.com/channel/%40graceforpurpose"
+    },
+    {
+      "platform": "YouTube Shorts",
+      "creator": "Bible BFF",
+      "title": "If you struggle reading the Bible, listen to this",
+      "views": 1000000,
+      "format": "search-driven problem/solution short",
+      "pattern": [
+        "specific pain point",
+        "search intent",
+        "direct help",
+        "high retention",
+        "simple hook"
+      ],
+      "notes": "Reported 1M+ views in 3 weeks, 87% discovered through YouTube search, 93.5% average percentage viewed.",
+      "source": "https://marisoldeleonai.com/"
+    },
+    {
+      "platform": "YouTube/TikTok",
+      "creator": "Nathaniel Bassey",
+      "title": "Hallelujah Challenge",
+      "views": 1500000,
+      "format": "long-form live worship/prayer",
+      "pattern": [
+        "community participation",
+        "live ritual",
+        "music+prayer",
+        "repeat sessions",
+        "audience belonging"
+      ],
+      "notes": "Reported average around 1.5M views per session in 2025 coverage.",
+      "source": "https://www.premiumtimesng.com/entertainment/naija-fashion/832092-hallelujah-challenge-why-i-wont-monetise-my-youtube-channel-nathaniel-bassey.html"
+    },
+    {
+      "platform": "YouTube",
+      "creator": "Lawrence Oyor",
+      "title": "I Have Escaped - live performance",
+      "views": 1000000,
+      "format": "live worship music",
+      "pattern": [
+        "raw worship atmosphere",
+        "crowd participation",
+        "strong repeated lyrical phrase",
+        "live emotional intensity"
+      ],
+      "source": "https://www.gmusicplus.com/i-have-escaped-lawrence-oyor-ignites-revival-with-new-song/"
+    }
+  ],
+  "winningPatterns": [
+    {
+      "id": "P01",
+      "name": "Direct-to-viewer prayer",
+      "whyItWorks": "The viewer is immediately included rather than watching from a distance.",
+      "buildRules": [
+        "address one specific pain point",
+        "start prayer in first 2 seconds",
+        "keep language simple",
+        "use authentic moving footage or presenter video",
+        "end with a meaningful response CTA"
+      ]
+    },
+    {
+      "id": "P02",
+      "name": "Cinematic Bible spectacle",
+      "whyItWorks": "Familiar Scripture is presented with novelty and strong visual curiosity.",
+      "buildRules": [
+        "open with the most visually striking moment",
+        "verify Scripture context",
+        "use original cinematic treatment",
+        "avoid generic poster visuals",
+        "make each shot feel like a film"
+      ]
+    },
+    {
+      "id": "P03",
+      "name": "Search-intent Christian help",
+      "whyItWorks": "It answers a specific question people are already searching.",
+      "buildRules": [
+        "title as a problem/question",
+        "deliver useful answer immediately",
+        "support with Scripture",
+        "avoid filler",
+        "create Shorts plus long-form companion"
+      ]
+    },
+    {
+      "id": "P04",
+      "name": "Authentic faith in action",
+      "whyItWorks": "Real human emotion and unpolished sincerity create trust.",
+      "buildRules": [
+        "prefer real moving footage",
+        "keep edits restrained",
+        "do not fake testimonies",
+        "let emotional moment breathe",
+        "use captions only where needed"
+      ]
+    },
+    {
+      "id": "P05",
+      "name": "Transformation/testimony",
+      "whyItWorks": "Clear before/after tension creates natural story momentum.",
+      "buildRules": [
+        "state the old struggle",
+        "show turning point",
+        "ground hope in Christ",
+        "avoid fabricated outcomes",
+        "use authentic first-person material only when permission exists"
+      ]
+    },
+    {
+      "id": "P06",
+      "name": "Daily utility prayer",
+      "whyItWorks": "Morning, sleep, anxiety and protection videos solve recurring viewer needs.",
+      "buildRules": [
+        "name time/use-case in title",
+        "build repeat-listening structure",
+        "calm visual language",
+        "long-form companion",
+        "playlist strategy"
+      ]
+    },
+    {
+      "id": "P07",
+      "name": "Faith + native trend format",
+      "whyItWorks": "Familiar platform mechanics lower friction while the Christian angle adds novelty.",
+      "buildRules": [
+        "use trend structure, not copyrighted expression",
+        "Christian twist appears immediately",
+        "keep it culturally current",
+        "avoid forced or cringe trend adoption"
+      ]
+    },
+    {
+      "id": "P08",
+      "name": "Live worship/community",
+      "whyItWorks": "Participation and collective emotion create belonging and long watch sessions.",
+      "buildRules": [
+        "live/realtime feel",
+        "clear repeated theme",
+        "community participation",
+        "chapters/cutdowns for Shorts",
+        "rights-safe original music or properly licensed worship"
+      ]
+    }
+  ]
+}
