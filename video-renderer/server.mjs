@@ -268,6 +268,8 @@ const server = http.createServer(async (req, res) => {
       service: 'one-million-souls-video-renderer',
       ffmpeg: true,
       offlineTts: true,
+      legacyRendererEnabled: false,
+      productionRenderer: '/render-v2',
       v2RendererReady: true,
       persistentStorage: storageReady,
       renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
@@ -296,17 +298,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && (url.pathname === '/render' || url.pathname === '/')) {
     if (!authorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' })
-    try {
-      const body = await readJson(req)
-      const result = await renderVideo(body)
-      return sendJson(res, 200, result)
-    } catch (error) {
-      console.error(error)
-      return sendJson(res, 500, {
-        ok: false,
-        error: error instanceof Error ? error.message : 'Render failed',
-      })
-    }
+    return sendJson(res, 410, {
+      ok: false,
+      blocked: true,
+      error: 'LEGACY_RENDERER_DISABLED',
+      message: 'V59 production rendering must use /render-v2 and pass the PROFESSIONAL_MASTER pipeline. Legacy static/offline rendering cannot produce publishable media.',
+      requiredEndpoint: '/render-v2',
+    })
   }
 
   return sendJson(res, 404, { ok: false, error: 'Not found' })
