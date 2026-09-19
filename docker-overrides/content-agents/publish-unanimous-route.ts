@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { POST as corePOST } from '@/app/api/publish-core/route'
+import { POST as corePOST } from '@/v59-core/publish-core'
 import { durableRedis } from '@/content-agents/durable-redis.mjs'
 
 export const runtime = 'nodejs'

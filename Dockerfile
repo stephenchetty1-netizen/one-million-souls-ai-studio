@@ -17,11 +17,10 @@ COPY docker-overrides/content-agents/queue-route.ts /workspace/app/api/content-a
 COPY docker-overrides/content-agents/plan-route.ts /workspace/app/api/content-agents/plan/route.ts
 COPY docker-overrides/content-agents/approval-record-route.ts /workspace/app/api/content-agents/approval-record/route.ts
 COPY docker-overrides/content-agents/approval-execute-route.ts /workspace/app/api/content-agents/approval-execute/route.ts
-RUN mkdir -p app/api/publish-core \
- && cp app/api/publish/route.ts app/api/publish-core/route.ts
+RUN mkdir -p v59-core \
+ && cp app/api/publish/route.ts v59-core/publish-core.ts \
+ && cp app/api/distribution/publish/route.ts v59-core/distribution-publish-core.ts
 COPY docker-overrides/content-agents/publish-unanimous-route.ts /workspace/app/api/publish/route.ts
-RUN mkdir -p app/api/distribution/publish-core \
- && cp app/api/distribution/publish/route.ts app/api/distribution/publish-core/route.ts
 COPY docker-overrides/content-agents/distribution-publish-unanimous-route.ts /workspace/app/api/distribution/publish/route.ts
 
 RUN mkdir -p app/api/cron/campaign-execute
