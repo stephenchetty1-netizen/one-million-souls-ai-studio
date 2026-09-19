@@ -28,6 +28,13 @@ const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
 const reviewBackoffUntil=new Map()
+const REJECTED_BE_STILL_MASTER='1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e'
+function rejectedVisualMaster(entry){
+  if(String(entry?.title||'').trim().toUpperCase()!=='BE STILL')return false
+  return String(entry?.masterHash||'').toLowerCase()===REJECTED_BE_STILL_MASTER||
+    (entry?.rightsClearedStockScenes||[]).some(scene=>scene?.stockId==='sunrise-storm-portrait')||
+    (entry?.visualStoryboardInspection?.beats||[]).some(beat=>beat?.stockId==='sunrise-storm-portrait')
+}
 const CERTIFICATE_REQUIRED_GATES=Object.freeze([
   'rightsStatus','theologyStatus','factualStatus','mediaIntegrity','captionSync','audioMix',
   'visualQuality','thumbnailQuality','contentQuality','lyricSync','originality',
@@ -51,6 +58,9 @@ async function releaseReadinessSummary(){
     if(entries.length!==3){summary.invalid++;issue({date,reason:'EXPECTED_THREE_SLOTS',count:entries.length})}
     for(const entry of entries){
       summary.total++
+      if(rejectedVisualMaster(entry)){
+        summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'INDEPENDENT_CREATIVE_REJECTION_NEW_MASTER_REQUIRED',masterHash:entry?.masterHash});continue
+      }
       const identityOk=validHash(entry?.contentHash)&&validHash(entry?.masterHash)&&entry?.releasePayload?.masterHash===entry?.masterHash
       if(entry?.releaseStatus==='PRODUCTION_RETRY'||entry?.renderQualityGate!=='PASS'){
         summary.productionRetry++;issue({date,slot:entry?.slot,title:entry?.title,reason:'PRODUCTION_RETRY_OR_RENDER_BLOCK'});continue
@@ -471,6 +481,10 @@ async function candidateEntries(){
         continue
       }
       for(const entry of manifest?.entries||[]){
+        if(rejectedVisualMaster(entry)){
+          console.error('MASTER_CERTIFICATION_VISUAL_REJECTION',JSON.stringify({date,slot:entry?.slot,title:entry?.title,masterHash:entry?.masterHash}))
+          continue
+        }
         if(entry?.visualStoryboardInspection?.passed!==true||
            entry?.visualStoryboardInspection?.version!=='v59-visual-coherence-v1'||
            Number(entry?.captionInspection?.bottomSafeMargin||0)<360)continue
@@ -495,6 +509,7 @@ export async function runCertificationCycle(){
   if(!zeroCreditOnly&&!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
   const candidates=await candidateEntries()
   for(const entry of candidates){
+    if(rejectedVisualMaster(entry))continue
     let state
     try{state=await approvalState(entry)}catch(error){
       console.warn('MASTER_CERTIFICATION_APPROVAL_STATE_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error)}))
