@@ -9,6 +9,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
+import { renderChristianMusicVideoDraft } from './christian-music-video.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -323,6 +324,21 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && url.pathname === '/christian-music-video-draft') {
+    if (!authorized(req)) return sendJson(res,401,{ok:false,error:'Unauthorized'})
+    try{
+      const result=await renderChristianMusicVideoDraft()
+      return sendJson(res,200,{ok:true,mediaUrl:result.mediaUrl,
+        masterHash:result.masterHash,contactSheetUrl:result.contactSheetUrl,
+        suggestedCaption:result.suggestedCaption,
+        editorialStatus:result.editorialStatus,publishingAllowed:false})
+    }catch(error){
+      const code=String(error?.message||'CHRISTIAN_MUSIC_VIDEO_RENDER_FAILED')
+      console.error('CHRISTIAN_MUSIC_VIDEO_DRAFT_FAILED',JSON.stringify({error:code,publishingLocked:true}))
+      return sendJson(res,502,{ok:false,error:code,publishingAllowed:false})
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/pexels-stage') {
     if (!authorized(req)) return sendJson(res, 401, {ok:false,error:'Unauthorized'})
     try {
@@ -409,4 +425,14 @@ server.listen(PORT, '0.0.0.0', () => {
         publishingLocked:true
       })))
   }
+  if(process.env.CHRISTIAN_MUSIC_VIDEO_DRAFT_ON_BOOT==='true'){
+    console.log('CHRISTIAN_MUSIC_VIDEO_BOOT_START',JSON.stringify({
+      title:'Amazing Grace',publishingAllowed:false,creditsUsed:0
+    }))
+    void renderChristianMusicVideoDraft()
+      .catch(error=>console.error('CHRISTIAN_MUSIC_VIDEO_BOOT_FAILED',JSON.stringify({
+        error:String(error?.message||error),publishingAllowed:false
+      })))
+  }
+
 })

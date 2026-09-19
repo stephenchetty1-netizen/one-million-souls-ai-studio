@@ -29,9 +29,11 @@ COPY pexels-source-import.mjs ./
 COPY pexels-source-import.test.mjs ./
 COPY pexels-review-scenes.mjs ./
 COPY pexels-review-scenes.test.mjs ./
+COPY christian-music-video.mjs ./
+COPY christian-music-video.test.mjs ./
 RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs \
- && node --check server.mjs && node --check pexels-source-import.mjs && node --check pexels-review-scenes.mjs \
- && node --test visual-storyboard.test.mjs pexels-source-import.test.mjs pexels-review-scenes.test.mjs
+ && node --check server.mjs && node --check pexels-source-import.mjs && node --check pexels-review-scenes.mjs && node --check christian-music-video.mjs \
+ && node --test visual-storyboard.test.mjs pexels-source-import.test.mjs pexels-review-scenes.test.mjs christian-music-video.test.mjs
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
 
