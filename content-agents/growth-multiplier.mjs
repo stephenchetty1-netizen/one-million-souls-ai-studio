@@ -1,9 +1,27 @@
 import { rememberGrowthDecisions, loadGrowthMultiplierState } from './growth-multiplier-memory.mjs'
 import { stageGrowthCandidates } from './growth-candidate-queue.mjs'
 
-function num(v){const n=Number(v);return Number.isFinite(n)?n:0}
+function metric(value){
+  if(value===undefined||value===null||value==='')return null
+  const n=Number(value)
+  return Number.isFinite(n)&&n>=0?n:null
+}
+function firstMetric(...values){
+  for(const value of values){
+    const n=metric(value)
+    if(n!==null)return n
+  }
+  return null
+}
+function positive(...values){
+  for(const value of values){
+    const n=metric(value)
+    if(n!==null&&n>0)return n
+  }
+  return null
+}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
-function ratio(n,d){return d>0?n/d:0}
+function ratio(n,d){return Number.isFinite(n)&&Number.isFinite(d)&&d>0?n/d:null}
 function text(v){return typeof v==='string'?v.trim():''}
 
 function zeroCreditGuard(){
@@ -11,70 +29,93 @@ function zeroCreditGuard(){
   if(process.env.GROWTH_MULTIPLIER_ALLOW_PAID_AI==='true')throw new Error('ZERO_CREDIT_POLICY_VIOLATION:GROWTH_MULTIPLIER_ALLOW_PAID_AI')
 }
 function platformDefaults(platform,baseline={}){
-  if(platform==='youtube'){
-    return {
-      viewsPerPost:num(baseline.viewsPerUpload||baseline.viewsPerPost||250),
-      retentionPct:num(baseline.averagePercentageViewed||40),
-      conversionPct:num(baseline.subscriberConversionPercent||0.2),
-      engagementPct:num(baseline.engagementRatePercent||3),
-    }
-  }
-  return {
-    viewsPerPost:num(baseline.viewsPerVideo||baseline.viewsPerPost||146),
-    retentionPct:num(baseline.watchToDurationPercent||30),
-    conversionPct:num(baseline.netFollowerConversionPerViewPercent||0.3),
-    engagementPct:num(baseline.interactionRatePerViewPercent||8),
-  }
+  const viewsPerPost=positive(baseline.viewsPerUpload,baseline.viewsPerVideo,baseline.viewsPerPost)
+  const retentionPct=positive(baseline.averagePercentageViewed,baseline.watchToDurationPercent)
+  const conversionPct=positive(baseline.subscriberConversionPercent,baseline.netFollowerConversionPerViewPercent)
+  const engagementPct=positive(baseline.engagementRatePercent,baseline.interactionRatePerViewPercent)
+  return {viewsPerPost,retentionPct,conversionPct,engagementPct}
+}
+function publicationAgeHours(record){
+  const explicit=metric(record.ageHours??record.hoursSincePublish)
+  if(explicit!==null)return explicit
+  const date=record.publishedAt||record.publishedDate
+  if(!date)return null
+  const ms=Date.parse(String(date))
+  if(!Number.isFinite(ms)||ms>Date.now()+5*60*1000)return null
+  return Math.max(0,(Date.now()-ms)/3600000)
 }
 function normalizedSignals(platform,record,baseline){
   const base=platformDefaults(platform,baseline)
-  const views=num(record.views)
-  const duration=num(record.durationSeconds)
-  const avgWatch=num(record.averageWatchSeconds||record.averageViewDuration)
-  const retention=num(record.averagePercentageViewed)||(duration?ratio(avgWatch,duration)*100:0)
-  const likes=num(record.likes),comments=num(record.comments),shares=num(record.shares)
-  const interactions=num(record.interactions)||(likes+comments+shares)
-  const engagement=views?ratio(interactions,views)*100:0
-  const gained=num(record.subscribersGained||record.followersAcquired||record.followersGained)
-  const lost=num(record.subscribersLost||record.followersLost)
-  const conversion=views?ratio(gained-lost,views)*100:0
+  const views=metric(record.views)
+  const duration=positive(record.durationSeconds)
+  const avgWatch=metric(record.averageWatchSeconds??record.averageViewDuration)
+  const explicitRetention=metric(record.averagePercentageViewed??record.watchToDurationPercent)
+  const retention=explicitRetention!==null?explicitRetention
+    :(duration!==null&&avgWatch!==null?avgWatch/duration*100:null)
+  const interactions=metric(record.interactions)
+  const likes=metric(record.likes),comments=metric(record.comments),shares=metric(record.shares)
+  const engagementCount=interactions!==null?interactions
+    :(likes!==null&&comments!==null&&shares!==null?likes+comments+shares:null)
+  const engagement=views!==null&&views>0&&engagementCount!==null?engagementCount/views*100:null
+  const gained=firstMetric(record.subscribersGained,record.followersAcquired,record.followersGained)
+  const lost=firstMetric(record.subscribersLost,record.followersLost)
+  const conversion=views!==null&&views>0&&gained!==null&&lost!==null?(gained-lost)/views*100:null
+  const viewIndex=ratio(views,base.viewsPerPost)
+  const retentionIndex=ratio(retention,base.retentionPct)
+  const engagementIndex=ratio(engagement,base.engagementPct)
+  const conversionIndex=ratio(conversion,base.conversionPct)
+  const ageHours=publicationAgeHours(record)
+  const comparableSignals=[viewIndex,retentionIndex,engagementIndex,conversionIndex].filter(Number.isFinite).length
   return {
-    views,retention,engagement,conversion,
-    viewIndex:ratio(views,base.viewsPerPost),
-    retentionIndex:base.retentionPct?ratio(retention,base.retentionPct):0,
-    engagementIndex:base.engagementPct?ratio(engagement,base.engagementPct):0,
-    conversionIndex:base.conversionPct?ratio(conversion,base.conversionPct):0,
+    views,retention,engagement,conversion,viewIndex,retentionIndex,
+    engagementIndex,conversionIndex,ageHours,comparableSignals,
     baseline:base,
+    missingSignals:[
+      ...(viewIndex===null?['COMPARABLE_VIEWS']:[]),
+      ...(retentionIndex===null?['COMPARABLE_RETENTION']:[]),
+      ...(engagementIndex===null?['COMPARABLE_ENGAGEMENT']:[]),
+      ...(conversionIndex===null?['COMPARABLE_CONVERSION']:[]),
+      ...(ageHours===null?['PUBLICATION_AGE']:[]),
+    ],
   }
 }
-function enoughData(record,signals){
-  const ageHours=num(record.ageHours||record.hoursSincePublish)
-  return signals.views>=Math.max(50,signals.baseline.viewsPerPost*0.25)||ageHours>=24
+export function classifyGrowthPost(platform,record,baseline){
+  if(!['youtube','tiktok'].includes(platform))throw new Error('UNSUPPORTED_GROWTH_PLATFORM')
+  const s=normalizedSignals(platform,record||{},baseline||{})
+  if(s.views===null||s.viewIndex===null||s.ageHours===null){
+    return {classification:'AWAIT_DATA',score:null,signals:s,reason:'MISSING_MEASURED_REACH_BASELINE_OR_POST_AGE'}
+  }
+  const evidence=[
+    [s.viewIndex,0.35],
+    [s.retentionIndex,0.30],
+    [s.engagementIndex,0.20],
+    [s.conversionIndex,0.15],
+  ].filter(([index])=>Number.isFinite(index))
+  const totalWeight=evidence.reduce((sum,[,weight])=>sum+weight,0)
+  const composite=totalWeight>0?evidence.reduce((sum,[index,weight])=>sum+clamp(index,0,2)*weight,0)/totalWeight:null
+  const score=composite===null?null:Math.round(clamp(composite/2*100,0,100))
+  if(s.ageHours<24 || s.views<Math.max(50,(s.baseline.viewsPerPost||0)*0.25)){
+    return {classification:'AWAIT_DATA',score,signals:s,reason:'POST_TOO_NEW_OR_TOO_LITTLE_MEASURED_REACH'}
+  }
+  if(s.comparableSignals<2){
+    return {classification:'MEASURE',score,signals:s,reason:'ADDITIONAL_MEASURED_VIEWER_SIGNALS_REQUIRED'}
+  }
+  const strongAudience=[s.retentionIndex,s.engagementIndex,s.conversionIndex]
+    .some(x=>x!==null&&x>=1.10)
+  if(s.viewIndex>=1.25&&strongAudience){
+    return {classification:'WINNER',score,signals:s,reason:'MEASURED_REACH_AND_VIEWER_RESPONSE_OUTPERFORM_BASELINE'}
+  }
+  if(s.viewIndex<0.80&&strongAudience){
+    return {classification:'RESCUE',score,signals:s,reason:'MEASURED_VIEWER_RESPONSE_STRONG_BUT_REACH_WEAK'}
+  }
+  if(s.ageHours>=48&&s.viewIndex<0.65
+      &&s.retentionIndex!==null&&s.retentionIndex<0.85
+      &&s.engagementIndex!==null&&s.engagementIndex<0.85){
+    return {classification:'RETIRE',score,signals:s,reason:'MATURE_POST_WITH_MULTIPLE_MEASURED_WEAK_SIGNALS'}
+  }
+  return {classification:'MEASURE',score,signals:s,reason:'CONTINUE_MEASURING_WITH_AVAILABLE_EVIDENCE'}
 }
-function classify(platform,record,baseline){
-  const s=normalizedSignals(platform,record,baseline)
-  if(!enoughData(record,s))return {classification:'AWAIT_DATA',score:0,signals:s,reason:'INSUFFICIENT_MEASURED_DATA'}
-  const composite=
-    Math.min(2,s.viewIndex)*0.35+
-    Math.min(2,s.retentionIndex)*0.30+
-    Math.min(2,s.engagementIndex)*0.20+
-    Math.min(2,s.conversionIndex)*0.15
-  const score=Math.round(clamp(composite/2*100,0,100))
-  const strongRetention=s.retentionIndex>=1.10
-  const strongEngagement=s.engagementIndex>=1.10
-  const strongConversion=s.conversionIndex>=1.10
-  const strongReach=s.viewIndex>=1.25
-  if((strongReach&&(strongRetention||strongEngagement||strongConversion))||composite>=1.30){
-    return {classification:'WINNER',score,signals:s,reason:'OUTPERFORMS_BASELINE_ON_MULTIPLE_SIGNALS'}
-  }
-  if(s.viewIndex<0.80&&(strongRetention||strongEngagement||strongConversion)){
-    return {classification:'RESCUE',score,signals:s,reason:'GOOD_CONTENT_SIGNAL_WITH_WEAK_DISTRIBUTION_OR_PACKAGING'}
-  }
-  if(s.viewIndex<0.65&&s.retentionIndex<0.85&&s.engagementIndex<0.85){
-    return {classification:'RETIRE',score,signals:s,reason:'WEAK_REACH_AND_WEAK_VIEWER_RESPONSE'}
-  }
-  return {classification:'MEASURE',score,signals:s,reason:'MIXED_SIGNAL_CONTINUE_MEASUREMENT'}
-}
+
 function viewerNeed(record){
   return text(record.viewerNeed||record.topic||record.title||record.caption||'the same viewer need')
 }
@@ -141,7 +182,7 @@ export async function runGrowthMultiplier({platform,records=[],baseline={},oppor
   if(!['youtube','tiktok'].includes(platform))throw new Error('UNSUPPORTED_GROWTH_PLATFORM')
   const prior=await loadGrowthMultiplierState()
   const decisions=(Array.isArray(records)?records:[]).slice(0,50).map((record)=>{
-    const c=classify(platform,record,baseline)
+    const c=classifyGrowthPost(platform,record,baseline)
     const core={
       platform,
       postId:text(record.postId||record.videoId||record.id||record.url),
