@@ -25,7 +25,7 @@ const s3 = storageReady ? new S3Client({
 }) : null
 const STOCK_CACHE_PREFIX = 'stock-source-cache/v1'
 
-const QUARANTINED_STOCK_IDS = new Set(['sunrise-yoga'])
+const QUARANTINED_STOCK_IDS = new Set(['sunrise-yoga','flight-over-clouds','sunrise-yoga-broll','sunrise-yoga-no-template'])
 
 export const STOCK_VIDEO_LIBRARY = Object.freeze([
   {
@@ -185,17 +185,25 @@ async function ensureCached(item) {
   }
 }
 
-export async function createRightsClearedStockScene(index, work, seconds = 5, seed = 0) {
-  const productionLibrary = STOCK_VIDEO_LIBRARY.filter((item) => !QUARANTINED_STOCK_IDS.has(item.id))
-  if (!productionLibrary.length) throw new Error('No non-quarantined rights-cleared stock media available')
-  const item = productionLibrary[(Math.abs(seed) + index * 5) % productionLibrary.length]
-  if (QUARANTINED_STOCK_IDS.has(item.id)) throw new Error(`Quarantined stock media selected: ${item.id}`)
+export async function createRightsClearedStockScene(index, work, seconds = 5, seed = 0, selection = null) {
+  // No arbitrary index/seed fallback: a video editor must supply an explicit
+  // Scripture/story-beat stock shot, or production fails closed.
+  if(!selection?.stockId || !selection?.meaning || !selection?.stage)
+    throw new Error('STOCK_SCENE_REQUIRES_CURATED_STORY_BEAT')
+  const item=STOCK_VIDEO_LIBRARY.find((stock)=>stock.id===selection.stockId)
+  if(!item)throw new Error('CURATED_STOCK_ASSET_NOT_FOUND:'+selection.stockId)
+  if(QUARANTINED_STOCK_IDS.has(item.id))
+    throw new Error(`Quarantined stock media selected: ${item.id}`)
+  const startSeconds=Number(selection.startSeconds||0)
+  if(!Number.isFinite(startSeconds)||startSeconds<0||startSeconds>300)
+    throw new Error('INVALID_CURATED_STOCK_TRIM')
   const input = await ensureCached(item)
   const output = path.join(work, `stock-scene-${index + 1}.mp4`)
 
   await execFileAsync('ffmpeg', [
     '-y',
     '-stream_loop','-1',
+    '-ss', String(startSeconds),
     '-i', input,
     '-t', String(seconds),
     '-an',
@@ -217,6 +225,11 @@ export async function createRightsClearedStockScene(index, work, seconds = 5, se
     local: output,
     source:'rights-cleared-stock-video',
     stockId:item.id,
+    startSeconds,
+    beatStage:selection.stage,
+    storyboardVersion:selection.storyboardVersion,
+    visualMeaning:selection.meaning,
+    repriseOf:selection.repriseOf,
     sourceUrl:item.url,
     sourcePage:item.sourcePage,
     license:item.license,
