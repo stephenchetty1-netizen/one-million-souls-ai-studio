@@ -23,6 +23,7 @@ COPY local-kokoro-smoke.mjs ./
 COPY local-media-fallback.mjs ./
 COPY stock-video-library.mjs ./
 COPY stock-music-library.mjs ./
+COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
 
 ENV NODE_ENV=production
