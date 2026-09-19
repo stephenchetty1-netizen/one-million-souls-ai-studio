@@ -5,11 +5,13 @@ on:
     paths:
       - "content-agents/growth-multiplier.mjs"
       - "content-agents/growth-multiplier.test.mjs"
+      - "content-agents/verified-performance-evidence.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   pull_request:
     paths:
       - "content-agents/growth-multiplier.mjs"
       - "content-agents/growth-multiplier.test.mjs"
+      - "content-agents/verified-performance-evidence.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   workflow_dispatch:
 
