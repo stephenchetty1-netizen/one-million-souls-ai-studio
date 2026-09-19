@@ -105,6 +105,7 @@ async function getVideo(url){
  const response=await fetch(validatedPexelsVideoUrl(url),{signal:AbortSignal.timeout(VIDEO_TIMEOUT),
    headers:{Accept:'video/mp4'}})
  if(!response.ok)throw new Error('PEXELS_FORMAT_DOWNLOAD_HTTP_'+response.status)
+ validatedPexelsVideoUrl(response.url)
  const length=Number(response.headers.get('content-length')||0)
  if(length>MAX_BYTES)throw new Error('PEXELS_FORMAT_VIDEO_EXCEEDS_BUDGET')
  const type=String(response.headers.get('content-type')||'').toLowerCase()
