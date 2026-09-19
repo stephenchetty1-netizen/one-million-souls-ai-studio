@@ -11,6 +11,11 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
 
 RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute app/api/content-agents/youtube-growth app/api/content-agents/tiktok-growth app/api/content-agents/autonomous-bots app/api/content-agents/growth-metrics app/api/content-agents/analytics-ingest app/api/content-agents/v60-experiments
 COPY content-agents /workspace/content-agents
+# Validate the owner's TikTok Creator Search Insights evidence during image build.
+RUN node --check content-agents/tiktok-growth-swarm.mjs \
+ && node --check content-agents/tiktok-search-intel.mjs \
+ && node content-agents/tiktok-search-intel.mjs \
+ && node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('content-agents/tiktok-search-candidate-queue.json'));if(d.stats.owner_screenshot_reported_content_gaps<8||d.stats.verified_content_gaps!==0)process.exit(1);"
 COPY docker-overrides/content-agents/status-route.ts /workspace/app/api/content-agents/status/route.ts
 COPY docker-overrides/content-agents/queue-route.ts /workspace/app/api/content-agents/queue/route.ts
 COPY docker-overrides/content-agents/plan-route.ts /workspace/app/api/content-agents/plan/route.ts
