@@ -111,6 +111,7 @@ async function verify(body:any){
 }
 
 export async function POST(req:Request){
+  if(process.env.V59_PUBLISH_ENABLED!=='true')return NextResponse.json({ok:false,blocked:true,reason:'V59_PUBLISH_LOCKED_PENDING_INDEPENDENT_MASTER_REVIEW'},{status:423})
   let body:any
   try{body=await req.clone().json()}catch{return NextResponse.json({ok:false,error:'Invalid JSON body'},{status:400})}
   try{
