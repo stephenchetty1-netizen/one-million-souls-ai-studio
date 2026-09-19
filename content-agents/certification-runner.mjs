@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import crypto from 'node:crypto'
 import { zeroCreditPreflight } from './zero-credit-review.mjs'
+import { reviewDisposition } from './review-disposition.mjs'
 import { durableRedis } from './durable-redis.mjs'
 
 const zeroCreditOnly=process.env.ZERO_CREDIT_ONLY!=='false'
@@ -317,7 +318,7 @@ async function audioReview(entry,audioBytes){
 
 function aggregateEvidence(entry,technical,rights,integrity,visual,audio){
   const captionPass=entry?.captionInspection?.passed===true
-  const safePass=captionPass&&Number(entry?.captionInspection?.horizontalSafeMargin)>=80&&Number(entry?.captionInspection?.bottomSafeMargin)>=150
+  const safePass=captionPass&&Number(entry?.captionInspection?.horizontalSafeMargin)>=120&&Number(entry?.captionInspection?.bottomSafeMargin)>=360
   const exportPass=entry?.masterInspection?.passed===true&&entry?.fullDecodeInspection?.passed===true
   const visualStatuses=[
     visual.creativeMaster,visual.visualQualityInspection,visual.frameQualityInspection,
@@ -551,6 +552,19 @@ export async function runCertificationCycle(){
     const evidence=aggregateEvidence(entry,technical,rights,integrity,visual,audio)
     if(!allEvidencePass(evidence)){
       const failed=Object.entries(evidence).filter(([,v])=>v?.status!=='PASS').map(([k,v])=>({gate:k,status:v?.status,notes:v?.notes}))
+      const disposition=reviewDisposition({zeroCreditOnly,failed})
+      if(disposition.action==='HOLD_EXACT_MASTER_FOR_INDEPENDENT_REVIEW'){
+        console.warn('MASTER_CERTIFICATION_HOLD_FOR_INDEPENDENT_REVIEW',JSON.stringify({
+          contentHash:entry.contentHash,masterHash:entry.masterHash,
+          mediaUrl:entry.mediaUrl,reviewAssets:entry.reviewAssets,
+          reason:disposition.reason,failedGates:failed.map(x=>x.gate),
+          requiresNewReleaseApprovals:true,publishingLocked:true,
+        }))
+        return {ok:false,blocked:true,stage:'INDEPENDENT_MASTER_REVIEW_REQUIRED',
+          contentHash:entry.contentHash,masterHash:entry.masterHash,
+          mediaUrl:entry.mediaUrl,reviewAssets:entry.reviewAssets,
+          releaseAuthority:false,publishingLocked:true,failed}
+      }
       console.error('MASTER_CERTIFICATION_CREATIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed}))
       await recordQaBlock(entry,'PROFESSIONAL_MASTER_PREFLIGHT',failed)
       const contentFailures=contentLevelFailures(failed)
