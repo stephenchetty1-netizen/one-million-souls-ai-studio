@@ -1,0 +1,36 @@
+{
+  "source": "Metricool connected TikTok analytics",
+  "capturedAt": "2026-09-19",
+  "window": {"from": "2026-08-20", "to": "2026-09-19"},
+  "metrics": {
+    "videos": 43,
+    "views": 6296,
+    "likes": 650,
+    "comments": 46,
+    "shares": 19,
+    "interactions": 715,
+    "profileViews": 25,
+    "followersAcquired": 24,
+    "followersLost": 4,
+    "netFollowers": 20,
+    "latestObservedFollowers": 631,
+    "viewsPerVideo": 146.42,
+    "interactionRatePerViewPercent": 11.36,
+    "netFollowerConversionPerViewPercent": 0.318
+  },
+  "recentPostSignal": {
+    "titleTheme": "Matthew 4:4 / Bread Alone",
+    "durationSeconds": 49,
+    "views": 221,
+    "likes": 36,
+    "comments": 5,
+    "shares": 2,
+    "averageWatchSeconds": 17
+  },
+  "audienceTiming": {
+    "timezone": "Africa/Johannesburg",
+    "strongestRecurringHours": [10, 18],
+    "strongMidweekWindows": ["10:00", "12:00", "16:00-18:00"],
+    "note": "Metricool audience-availability values were strongest around 10:00 and 18:00, especially midweek."
+  }
+}
