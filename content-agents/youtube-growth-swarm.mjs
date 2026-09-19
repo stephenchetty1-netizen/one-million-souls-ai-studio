@@ -3,6 +3,7 @@ import path from 'node:path'
 import { loadYoutubeGrowthState, rememberYoutubeGrowthScan } from './youtube-growth-memory.mjs'
 import { recommendChannelAttractions } from './channel-attraction-selector.mjs'
 import { loadVerifiedPerformance } from './verified-performance-evidence.mjs'
+import { planRetentionExperiments } from './v60-retention-experiments.mjs'
 import { runGrowthMultiplier } from './growth-multiplier.mjs'
 
 const API_BASE='https://www.googleapis.com/youtube/v3'
@@ -391,6 +392,7 @@ export async function runYoutubeGrowthScan(input={}){
     },
     opportunities,
     channelAttractions:attractions,
+    v60RetentionExperimentPlan:planRetentionExperiments({platform:'youtube',evidence:verifiedPerformance}),
     verifiedPerformance:{source:verifiedPerformance.source||null,transport:verifiedPerformance.transport,capturedAt:verifiedPerformance.capturedAt,freshness:verifiedPerformance.freshness,postCount:verifiedPerformance.postCount,measuredPostCount:verifiedPerformance.measuredPostCount,measuredRecordsUsed:measuredRecords.length,autonomousUpstreamConfigured:verifiedPerformance.autonomousUpstreamConfigured,warning:verifiedPerformance.warning||verifiedPerformance.persistenceWarning||null},
     growthMultiplier:multiplier,
     retention:retentionActions(metrics),
