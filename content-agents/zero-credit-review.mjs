@@ -45,11 +45,14 @@ export async function zeroCreditPreflight(entry,{technical,rights,integrity}){
   const curated=await curatedContent(entry)
   const stockOnly=Array.isArray(entry?.sceneSources)&&entry.sceneSources.length>=3&&
     entry.sceneSources.every((x)=>x==='rights-cleared-stock-video')
-  const visualMeasured=stockOnly&&entry?.masterInspection?.passed===true&&entry?.fullDecodeInspection?.passed===true&&
+  const storyboardMatched=entry?.visualStoryboardInspection?.passed===true&&
+    entry?.visualStoryboardInspection?.version==='v59-visual-coherence-v1'&&
+    entry?.visualStoryboardInspection?.humanPerceptualReviewRequired===true
+  const visualMeasured=stockOnly&&storyboardMatched&&entry?.masterInspection?.passed===true&&entry?.fullDecodeInspection?.passed===true&&
     entry?.visualVarietyInspection?.passed===true&&Array.isArray(entry?.sceneMotionInspection)&&
     entry.sceneMotionInspection.length>=3&&entry.sceneMotionInspection.every((x)=>x?.passed===true)
   const captionPass=entry?.captionInspection?.passed===true
-  const safePass=captionPass&&Number(entry?.captionInspection?.horizontalSafeMargin)>=80&&Number(entry?.captionInspection?.bottomSafeMargin)>=160
+  const safePass=captionPass&&Number(entry?.captionInspection?.horizontalSafeMargin)>=120&&Number(entry?.captionInspection?.bottomSafeMargin)>=360
   const audioTech=entry?.audioInspection?.passed===true
   const wpm=voiceWpm(entry)
   const voiceProviderOk=/Kokoro/i.test(String(entry?.voiceProvider||''))&&
@@ -89,7 +92,7 @@ export async function zeroCreditPreflight(entry,{technical,rights,integrity}){
     audioInspection:audioTech?pass(`Final mixed master passed renderer loudness/true-peak/LRA analysis: ${JSON.stringify(entry.audioInspection)}`,{objective:entry.audioInspection}):block('Final mixed master technical audio inspection failed.',{objective:entry.audioInspection}),
     voicePerformanceInspection:block('Speaking rate and loudness alone cannot verify naturalness, pronunciation, or emotional delivery; independent exact-master listening is required.',{wordsPerMinute:Number(wpm.toFixed(1)),provider:entry.voiceProvider,technicalProxiesPassed:audioQuality}),
   }
-  return {visual,audio,curated,summary:{visualMeasured,audioQuality,contentQuality,metadataOk,thumbnailOk,safePass,proExecution,wpm}}
+  return {visual,audio,curated,summary:{visualMeasured,storyboardMatched,audioQuality,contentQuality,metadataOk,thumbnailOk,safePass,proExecution,wpm}}
 }
 
 const AGENT_GATES={
