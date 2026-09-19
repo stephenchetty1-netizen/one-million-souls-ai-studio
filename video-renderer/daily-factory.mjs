@@ -175,7 +175,7 @@ export async function generateFor(date) {
     // curated quota-free scenes. Individual non-curated renders still fail closed.
     console.warn('DAILY_FACTORY_ZEROGPU_QUOTA_COOLDOWN', JSON.stringify({
       targetDate:date,retryAt:new Date(zeroGpuCooldownUntil).toISOString(),
-      curatedStockMayProceed:process.env.CURATED_STOCK_QUOTA_BYPASS === 'true',
+      curatedStockMayProceed:process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && process.env.RIGHTS_CLEARED_STOCK_FALLBACK === 'true',
       publishingLocked:true
     }))
   }
@@ -283,7 +283,7 @@ export async function generateFor(date) {
     const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
-      if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && planVisualStory({title:effectiveItem.title,script:effectiveItem.script,scriptureReference:effectiveItem.ref}).stockStoryboardAvailable)) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
+      if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && process.env.RIGHTS_CLEARED_STOCK_FALLBACK === 'true' && planVisualStory({title:effectiveItem.title,script:effectiveItem.script,scriptureReference:effectiveItem.ref}).stockStoryboardAvailable)) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
       video = await render(effectiveItem, variationSeed)
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error)
