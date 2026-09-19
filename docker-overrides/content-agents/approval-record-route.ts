@@ -20,6 +20,7 @@ async function policy() {
 }
 function cleanHash(v:any) { return /^[a-f0-9]{64}$/i.test(String(v||'')) ? String(v).toLowerCase() : '' }
 function key(contentHash:string,masterHash:string,agentId:string) { return `one-million-souls:v59:approval:${contentHash}:${masterHash}:${agentId}` }
+function certificateKey(contentHash:string,masterHash:string) { return `one-million-souls:v59:certificate:${contentHash}:${masterHash}` }
 async function redis(command:any[]) {
   if (!redisUrl || !redisToken) throw new Error('DURABLE_APPROVAL_STORE_NOT_CONFIGURED')
   const r=await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
@@ -71,7 +72,10 @@ export async function GET(req: Request) {
   const p=await policy(); const required:string[]=p.requiredAgents||[]; const approvals:any={}
   try {
     for(const id of required) approvals[id]=await readVote(contentHash,masterHash,id)||{agentId:id,decision:'PENDING',contentHash,masterHash,approvedAt:null,evidence:''}
-    return NextResponse.json({ok:true,publishingLocked:true,durable:true,contentHash,masterHash,approvals})
+    const rawCertificate=await redis(['GET',certificateKey(contentHash,masterHash)])
+    const certificate=rawCertificate?JSON.parse(rawCertificate):null
+    const unanimous=required.every((id)=>approvals[id]?.decision==='APPROVE'&&approvals[id]?.contentHash===contentHash&&approvals[id]?.masterHash===masterHash)
+    return NextResponse.json({ok:true,publishingLocked:!unanimous,durable:true,contentHash,masterHash,approvals,certificate,releaseStatus:certificate?.releaseStatus||'RETURN_TO_PRODUCTION',certification:certificate?.certification||'NOT_CERTIFIED'})
   } catch(error) {
     return NextResponse.json({ok:false,blocked:true,error:error instanceof Error?error.message:'approval store failed'},{status:503})
   }
