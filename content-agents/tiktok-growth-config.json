@@ -72,5 +72,17 @@
       "AWAIT_DATA"
     ],
     "publishingAuthority": false
+  },
+  "retentionExperimentPhase": {
+    "phase": "V60_GROWTH_OPTIMIZATION",
+    "enabled": true,
+    "platform": "tiktok",
+    "planner": "content-agents/v60-retention-experiments.mjs",
+    "policy": "content-agents/v60-growth-optimization-policy.json",
+    "maxProposedExperiments": 3,
+    "requiresFreshMeasuredPostLevelWatchTime": true,
+    "humanTemplateReviewRequired": true,
+    "publishingLocked": true,
+    "paidAI": false
   }
 }
