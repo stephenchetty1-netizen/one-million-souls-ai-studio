@@ -50,12 +50,18 @@ export async function createChristianVideoTimelineScene({store,bucket,source,for
     !Number.isFinite(duration)||duration<profile.secondsPerScene+0.25)
    throw new Error('CHRISTIAN_VIDEO_SOURCE_REAL_DIMENSIONS_OR_LENGTH_FAILED')
  const vf=`scale=${profile.width}:${profile.height}:force_original_aspect_ratio=increase,crop=${profile.width}:${profile.height},fps=${profile.fps},eq=contrast=1.02:saturation=1.02`
+ try{
  await execFileAsync('ffmpeg',['-y','-hide_banner','-loglevel','error',
    '-ss','0.1','-i',original,'-t',String(profile.secondsPerScene),
    '-an','-filter_threads','1','-vf',vf,
    '-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
    '-pix_fmt','yuv420p','-movflags','+faststart',output],
    {timeout:150000,maxBuffer:5*1024*1024})
+ }finally{
+   // Long-form uses 24 distinct source clips: do not retain all originals in
+   // ephemeral Railway disk once each verified scene has been encoded.
+   await fs.rm(original,{force:true}).catch(()=>{})
+ }
  if((await fs.stat(output)).size<100000)
    throw new Error('CHRISTIAN_VIDEO_TIMELINE_SCENE_TOO_SMALL')
  return {local:output,source:'rights-cleared-stock-video',
