@@ -24,8 +24,8 @@ COPY local-media-fallback.mjs ./
 COPY stock-video-library.mjs ./
 COPY visual-storyboard.mjs ./
 COPY visual-storyboard.test.mjs ./
-RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --test visual-storyboard.test.mjs
 COPY stock-music-library.mjs ./
+RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs && node --test visual-storyboard.test.mjs
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
 

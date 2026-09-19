@@ -679,7 +679,11 @@ export async function renderFreeV2(body = {}) {
     const voiceDuration = await mediaDuration(voice.local)
     console.log('FREE_AI_VOICE_READY', JSON.stringify({ id, provider: voice.provider, durationSeconds: Number(voiceDuration.toFixed(2)) }))
 
+    // Attach the rejection handler immediately. Image/video scenes can take
+    // minutes; an early music-source failure must never become an unhandled
+    // promise rejection that crashes the entire daily factory.
     const musicPromise = generateMusic(providers, voiceDuration, work, stockSeed)
+      .then(value => ({ ok: true, value }), error => ({ ok: false, error }))
     const scenes = []
     const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
@@ -702,7 +706,9 @@ export async function renderFreeV2(body = {}) {
         throw error
       }
     }
-    const music = await musicPromise
+    const musicResult = await musicPromise
+    if (!musicResult.ok) throw musicResult.error
+    const music = musicResult.value
     console.log('FREE_AI_MUSIC_READY', JSON.stringify({ id, provider: music.provider || providers.music.name }))
 
     if (ZERO_CREDIT_ONLY && scenes.some((scene) => scene.source === 'google-veo-video')) {
