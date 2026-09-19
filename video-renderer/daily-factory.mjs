@@ -380,10 +380,15 @@ export async function generateFor(date) {
   // Preserve accessible old exact masters in the public review manifest while
   // the building manifest retains PRODUCTION_RETRY for autonomous repair.
   // Never treat preserved outdated masters as approved or release-ready.
-  if(!complete && Array.isArray(existing?.entries)){
+  if(!complete){
+    // Search both persisted records: the public manifest may already have
+    // been partially overwritten, while the building record can retain an
+    // intact exact master. Preserve the complete immutable release payload.
+    const historical=[...(Array.isArray(existing?.entries)?existing.entries:[]),
+      ...(Array.isArray(previousBuilding?.entries)?previousBuilding.entries:[])]
     manifest.entries=entries.map(entry=>{
       if(entry?.releaseStatus!=='PRODUCTION_RETRY')return entry
-      const old=existing.entries.find(prior=>prior?.slot===entry.slot &&
+      const old=historical.find(prior=>prior?.slot===entry.slot &&
         /^[a-f0-9]{64}$/i.test(String(prior?.masterHash||'')) &&
         prior?.mediaUrl && prior?.releasePayload?.masterHash===prior.masterHash)
       return old?{...old,releaseStatus:'TECHNICAL_BLOCK_REGENERATION_PENDING',
