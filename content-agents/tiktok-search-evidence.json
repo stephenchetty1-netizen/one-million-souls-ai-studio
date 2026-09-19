@@ -63,20 +63,46 @@
         "creators_also_posted_displayed": 19000,
         "creators_also_posted_label": "19.0K",
         "viewer_insights": {
-          "majority_age_range": "25-34",
-          "gender": "Not displayed",
+          "majority_age_range": null,
+          "gender": "Male 14%, Female 24%, Others 62%",
           "visible_viewer_needs": [
             "strengthen faith",
             "seek forgiveness",
             "feel spiritually encouraged",
             "simple shareable videos"
-          ]
+          ],
+          "age_percent": {
+            "Others": 33,
+            "25-34": 24,
+            "35+": 24,
+            "18-24": 19,
+            "4-15": 0,
+            "16-17": 0
+          },
+          "gender_percent": {
+            "Male": 14,
+            "Female": 24,
+            "Others": 62
+          },
+          "largest_labeled_age_groups": [
+            "25-34",
+            "35+"
+          ],
+          "largest_labeled_age_groups_percent": 24,
+          "age_other_category_not_defined": true,
+          "gender_other_category_not_defined": true,
+          "age_and_gender_source_id": "owner_uploaded_tiktok_creator_search_insights_prayer_for_faith_viewer_insights_2026-09-19_21-27_SAST",
+          "age_and_gender_captured_at": "2026-09-19T21:27:00+02:00",
+          "audience_summary": "The UI's Others category is the largest age bucket (33%); the two named age buckets 25-34 and 35+ each show 24%; 18-24 shows 19%. No age or gender majority can be inferred from the named groups."
         },
         "limitations": [
           "Screenshot records TikTok UI observations; not an API or automated feed",
           "Related video heart counts are likes, not video views",
           "No inference about South African-only demand from Global selection",
-          "The source screenshot is a dated owner-provided image, not independently verified API metrics"
+          "The source screenshot is a dated owner-provided image, not independently verified API metrics",
+          "Other age and gender buckets are TikTok UI classifications and are not interpretable as a specific age range or gender",
+          "No named gender group forms a majority: Male 14%, Female 24%, Others 62%",
+          "The summary tile '25–34' is not a majority of all topic viewers given the full viewer insights breakdown"
         ]
       }
     },
