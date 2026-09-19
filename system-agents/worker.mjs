@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
@@ -28,13 +29,19 @@ async function cycle(){
  const parsed=JSON.parse(planText)
  const plan=parsed?.plan
  if(!plan?.publishingLocked || plan?.requiredApprovals!==50) throw new Error('AUTONOMY_PLAN_FAIL_CLOSED_POLICY_INVALID')
- // Do not synthesize agent approvals. Production remains locked until a real immutable
- // master and measured QA evidence are available for version-bound evaluation.
+ // Certification is allowed only from a real immutable renderer master plus measured,
+ // multimodal QA evidence. The runner processes at most one pending master per cycle.
+ const certification=await runCertificationCycle()
+ evidence.certification=certification
  evidence.releaseState={
-   publishingLocked:true,
+   publishingLocked:certification?.execution?.certification!=='PROFESSIONAL_MASTER_CERTIFIED',
    requiredApprovals:plan.requiredApprovals,
-   nextAction:plan.nextAction,
-   reason:'AWAITING_REAL_MASTER_AND_MEASURED_EVIDENCE'
+   nextAction:certification?.execution?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+     ? 'AWAIT_SCHEDULED_POST_TIME'
+     : plan.nextAction,
+   reason:certification?.execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED'
+     ? 'EXACT_MASTER_CERTIFIED_AND_QUEUED'
+     : (certification?.reason||certification?.stage||'NO_CERTIFIED_MASTER_THIS_CYCLE')
  }
  return evidence
 }
