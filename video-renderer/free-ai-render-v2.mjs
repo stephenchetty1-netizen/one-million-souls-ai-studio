@@ -495,6 +495,23 @@ async function inspectMaster(file, expectedDuration) {
   return { passed:true, status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
 }
 
+async function inspectFullDecode(file, expectedDuration) {
+  const startedAt = Date.now()
+  await execFileAsync('ffmpeg', [
+    '-v','error','-i',file,
+    '-map','0:v:0','-map','0:a:0?',
+    '-f','null','-'
+  ], { timeout: 180_000, maxBuffer: 4 * 1024 * 1024 })
+  return {
+    passed:true,
+    status:'PASS',
+    method:'ffmpeg end-to-end decode of final immutable master',
+    expectedDurationSeconds:Number(expectedDuration.toFixed(2)),
+    decodedFromFirstToLast:true,
+    elapsedMs:Date.now()-startedAt,
+  }
+}
+
 async function persistReviewImage(file, id, label) {
   if (!s3) throw new Error('Persistent storage is required for review assets')
   const key = `review-v2/${new Date().toISOString().slice(0, 10)}/${id}-${label}.jpg`
@@ -638,6 +655,7 @@ export async function renderFreeV2(body = {}) {
     const composed = await compose({ scenes, voice, music, script, title, work })
     const masterInspection = await inspectMaster(composed.out, composed.duration)
     const audioInspection = await inspectAudioMaster(composed.out)
+    const fullDecodeInspection = await inspectFullDecode(composed.out, composed.duration)
     const persisted = await persist(composed.out, id)
     const reviewAssets = await createReviewAssets(composed.out, id, work, composed.duration)
     const mediaUrl = persisted.mediaUrl
@@ -677,6 +695,7 @@ export async function renderFreeV2(body = {}) {
       qualityGate: 'passed',
       professionalMasterCandidate: true,
       masterInspection,
+      fullDecodeInspection,
       captionInspection,
       audioInspection,
       visualVarietyInspection,
