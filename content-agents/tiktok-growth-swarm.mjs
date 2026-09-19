@@ -209,19 +209,33 @@ export async function runTikTokGrowthScan(input={}){
   zeroCreditGuard()
   growthIntegrityGuard(input)
   const verifiedPerformance=await loadVerifiedPerformance('tiktok')
-  const [state,base,recent,patterns,trends]=await Promise.all([
+  const [state,base,recent,patterns,trends,searchEvidence]=await Promise.all([
     loadTikTokGrowthState(),
     readJson('tiktok-growth-baseline.json',{metrics:{},audienceTiming:{}}),
     readJson('tiktok-recent-performance.json',{posts:[]}),
     readJson('million-view-patterns.json',{examples:[]}),
     readJson('trend-evidence.json',{externalTrendSignals:[]}),
+    readJson('tiktok-search-evidence.json',{creator_search_insights:[],web_intel:[]}),
   ])
   const measuredRecords=['FRESH','AGING'].includes(verifiedPerformance.freshness.status)
     ? (verifiedPerformance.records||[]).filter(x=>Number.isFinite(x.views))
     : []
   const posts=measuredRecords.length?measuredRecords:(Array.isArray(recent.posts)?recent.posts:[])
   const recentCaptions=Array.isArray(input.recentCaptions)?input.recentCaptions.filter(Boolean).slice(0,50):posts.map(x=>x.topic)
-  const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS).map(clean).filter(Boolean).slice(0,8)
+  const csi=(Array.isArray(searchEvidence.creator_search_insights)?searchEvidence.creator_search_insights:[])
+    .filter(x=>x&&typeof x.query==='string'&&clean(x.query))
+    .map(x=>({
+      query:clean(x.query),source:'creator_search_insights',
+      contentGapReported:x.content_gap===true,
+      evidenceReference:typeof x.evidence_url==='string'&&/^https:\/\/(?:www\.)?tiktok\.com\//i.test(x.evidence_url)?x.evidence_url:null,
+      evidenceId:typeof x.evidence_id==='string'?x.evidence_id.slice(0,100):null,
+    }))
+  const webSearch=(Array.isArray(searchEvidence.web_intel)?searchEvidence.web_intel:[])
+    .filter(x=>x&&typeof x.query==='string'&&clean(x.query))
+    .map(x=>({query:clean(x.query),source:'web_research',contentGapReported:false}))
+  const submittedTopics=[...csi,...webSearch].map(x=>x.query)
+  const rawTopics=Array.isArray(input.topics)&&input.topics.length?input.topics:[...submittedTopics,...DEFAULT_TOPICS]
+  const topics=[...new Map(rawTopics.map(clean).filter(Boolean).map(x=>[x.toLowerCase(),x])).values()].slice(0,8)
   const metrics={...(base.metrics||{}),...(input.metrics||{})}
   const opportunities=topics.map((topic)=>{
     const evidence=cachedPublicEvidence(topic,patterns,trends)
@@ -232,6 +246,10 @@ export async function runTikTokGrowthScan(input={}){
       opportunityScore:score,
       decision:score>=65?'DEVELOP':score>=50?'RESEARCH_MORE':'HOLD',
       evidenceMode:'ZERO_CREDIT_CACHED_PUBLIC_EVIDENCE_PLUS_OWNED_ANALYTICS',
+      searchIntentEvidence:[...csi,...webSearch].filter(x=>x.query.toLowerCase()===topic.toLowerCase()),
+      contentGapStatus:csi.some(x=>x.query.toLowerCase()===topic.toLowerCase()&&x.contentGapReported&&(x.evidenceReference||x.evidenceId))
+        ? 'REPORTED_WITH_TIKTOK_STUDIO_REFERENCE_NOT_INDEPENDENTLY_VERIFIED'
+        : 'UNVERIFIED',
       publicExamples:evidence.examples,
       trendSignals:evidence.trendSignals,
       closestOwnedExample:ownMatch?{
@@ -256,6 +274,14 @@ export async function runTikTokGrowthScan(input={}){
     scannedAt:new Date().toISOString(),
     bots:TIKTOK_GROWTH_BOTS,
     researchMode:'OWNED_METRICS_PLUS_CACHED_PUBLIC_EVIDENCE',
+    searchIntelligence:{
+      directTikTokStudioSession:false,
+      verifiedContentGaps:0,
+      studioContentGapReportsWithReferences:csi.filter(x=>x.contentGapReported&&(x.evidenceReference||x.evidenceId)).length,
+      creatorSearchInsightsEntries:csi.length,
+      publicSearchTopics:webSearch.length,
+      provenance:'Source file evidence only; Metricool does not grant Creator Search Insights access',
+    },
     promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
     benchmark:benchmark(metrics,base),
     postingWindows:{
