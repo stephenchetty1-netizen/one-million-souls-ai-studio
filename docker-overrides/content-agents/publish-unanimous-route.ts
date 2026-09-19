@@ -87,6 +87,7 @@ async function verify(body:any){
   const certificate=await readJson(certificateKey(contentHash,masterHash))
   if(!certificate)problems.push('durable professional-master certificate missing')
   else{
+    if(certificate.reviewStandardVersion!=='v59-independent-exact-master-v2')problems.push('legacy certificate lacks independently verified exact-master review');
     if(certificate.contentHash!==contentHash||certificate.masterHash!==masterHash)problems.push('certificate identity mismatch')
     if(certificate.certification!=='PROFESSIONAL_MASTER_CERTIFIED')problems.push('PROFESSIONAL_MASTER_CERTIFIED required')
     if(certificate.masterReady!==true)problems.push('MASTER_READY certificate required')
