@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v15'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v16'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -104,16 +104,16 @@ function manifestIsCurrent(manifest, date, slots) {
   )
 }
 
-async function render(item) {
+async function render(item, variationSeed=0) {
   const headers = {'content-type':'application/json'}
   if (SECRET) headers.authorization = `Bearer ${SECRET}`
   const timeoutMs = Math.max(120000, Number(process.env.DAILY_FACTORY_RENDER_TIMEOUT_MS || 600000))
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(new Error('render watchdog timeout')), timeoutMs)
-  console.log('DAILY_FACTORY_RENDER_START', JSON.stringify({title:item.title,timeoutMs}))
+  console.log('DAILY_FACTORY_RENDER_START', JSON.stringify({title:item.title,timeoutMs,variationSeed}))
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/render-v2`, {
-      method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script}),signal:controller.signal
+      method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script,variationSeed}),signal:controller.signal
     })
     const data = await r.json().catch(()=>({}))
     if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
@@ -133,7 +133,7 @@ async function render(item) {
   }
 }
 
-async function generateFor(date) {
+export async function generateFor(date) {
   if (!enabled || !s3) return
   const key = manifestKey(date)
   const buildingKey = buildingManifestKey(date)
@@ -197,16 +197,21 @@ async function generateFor(date) {
       continue
     }
 
+    const priorRetry = reusableEntries.find((entry) =>
+      entry?.slot === slotTimes[i] && entry?.title === item.title &&
+      entry?.releaseStatus === 'PRODUCTION_RETRY'
+    )
+    const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
-      video = await render(item)
+      video = await render(item, variationSeed)
     } catch (error) {
       const failedEntry = {
         slot:slotTimes[i], title:item.title, scriptureReference:item.ref, caption:item.caption,
         publishingLocked:true, releaseStatus:'PRODUCTION_RETRY', renderQualityGate:'BLOCK',
         failureReason:error instanceof Error ? error.message : String(error),
         scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
-        retryEligible:true, failedAt:new Date().toISOString()
+        retryEligible:true, retryAttempt:variationSeed + 1, failedAt:new Date().toISOString()
       }
       entries.push(failedEntry)
       const partial = {ok:false,partial:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
@@ -251,6 +256,7 @@ async function generateFor(date) {
       scriptureReference:item.ref,
       caption:item.caption,
       releasePayload,
+      variationSeed,
       mediaUrl:video.mediaUrl,
       width:video.width,
       height:video.height,
@@ -327,6 +333,39 @@ async function generateFor(date) {
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   console.log(complete ? 'DAILY_FACTORY_SUCCESS' : 'DAILY_FACTORY_PARTIAL_FAILURE', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
+}
+
+async function writeJsonObject(key,value){
+  if(!s3)throw new Error('Persistent storage unavailable')
+  await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:JSON.stringify(value,null,2),ContentType:'application/json',CacheControl:'no-store'}))
+}
+
+export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='CERTIFICATION_BLOCK'}={}){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))throw new Error('VALID_RETRY_DATE_REQUIRED')
+  const slots=configuredSlots()
+  if(!slots.includes(String(slot||'')))throw new Error('VALID_RETRY_SLOT_REQUIRED')
+  if(!/^[a-f0-9]{64}$/i.test(String(expectedMasterHash||'')))throw new Error('VALID_EXPECTED_MASTER_HASH_REQUIRED')
+  const current=await readJsonObject(manifestKey(date))
+  const building=await readJsonObject(buildingManifestKey(date))
+  const source=(building?.pipelineVersion===PIPELINE_VERSION&&building?.targetDate===date)?building:current
+  const entries=Array.isArray(source?.entries)?source.entries:[]
+  const target=entries.find((e)=>e?.slot===slot&&String(e?.masterHash||'').toLowerCase()===String(expectedMasterHash).toLowerCase())
+  if(!target)throw new Error('EXACT_RETRY_MASTER_NOT_FOUND')
+  const retryAttempt=Math.max(1,Number(target?.variationSeed||0)+1,Number(target?.retryAttempt||0))
+  const retryEntry={
+    slot,targetDate:date,title:target.title,script:target.script,scriptureReference:target.scriptureReference,caption:target.caption,
+    publishingLocked:true,releaseStatus:'PRODUCTION_RETRY',renderQualityGate:'BLOCK',retryEligible:true,retryAttempt,
+    failureReason:String(reason||'CERTIFICATION_BLOCK').slice(0,4000),scheduledPublishAt:target.scheduledPublishAt,failedAt:new Date().toISOString()
+  }
+  const retryEntries=entries.map((e)=>e?.slot===slot?retryEntry:e)
+  const retryManifest={...(source||{}),ok:false,partial:true,pipelineVersion:PIPELINE_VERSION,targetDate:date,generatedAt:new Date().toISOString(),publishingLocked:true,entries:retryEntries}
+  await writeJsonObject(buildingManifestKey(date),retryManifest)
+  await writeJsonObject(manifestKey(date),retryManifest)
+  lastFactoryDate=''
+  nextFactoryAttemptAt=0
+  setTimeout(()=>generateFor(date).catch((error)=>console.error('DAILY_FACTORY_RETRY_ERROR',error instanceof Error?error.message:String(error))),25)
+  console.warn('DAILY_FACTORY_RETRY_REQUESTED',JSON.stringify({date,slot,expectedMasterHash,retryAttempt,reason:String(reason||'').slice(0,500)}))
+  return {ok:true,date,slot,expectedMasterHash,retryAttempt,publishingLocked:true}
 }
 
 let lastFactoryDate = ''
