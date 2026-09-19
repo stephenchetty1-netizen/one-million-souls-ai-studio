@@ -15,7 +15,8 @@
       "format-innovation-lab",
       "thumbnail-researcher",
       "metadata-strategist",
-      "content-portfolio-planner"
+      "content-portfolio-planner",
+      "channel-attraction-director"
     ],
     "mediaStudio": [
       "executive-producer",
@@ -81,5 +82,11 @@
     "Every factual claim must be verified before production.",
     "Do not chase trends that conflict with channel identity or theological integrity.",
     "Prefer realistic moving video and strong human storytelling over static poster-style content."
-  ]
+  ],
+  "attractionRotation": {
+    "featuredDrawCards": 4,
+    "rotationPool": 7,
+    "fatigueReviewDays": 14,
+    "rule": "Use draw-card franchises to create recognizable return reasons, but promote or retire them from measured platform evidence."
+  }
 }
