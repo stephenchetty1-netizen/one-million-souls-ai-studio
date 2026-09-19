@@ -238,6 +238,14 @@ async function renderVideo(body) {
   }
 }
 
+async function readStoredJson(key) {
+  if (!s3) throw new Error('Persistent storage unavailable')
+  const result = await s3.send(new GetObjectCommand({ Bucket: process.env.BUCKET, Key: key }))
+  const text = await result.Body?.transformToString()
+  if (!text) throw new Error('Stored JSON empty')
+  return JSON.parse(text)
+}
+
 async function serveMedia(req, res, key) {
   try {
     if (s3) {
@@ -274,6 +282,19 @@ const server = http.createServer(async (req, res) => {
       persistentStorage: storageReady,
       renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
     })
+  }
+
+  if (req.method === 'GET' && url.pathname === '/factory-manifest') {
+    if (!authorized(req)) return sendJson(res, 401, { ok:false, error:'Unauthorized' })
+    const date = url.searchParams.get('date') || 'latest'
+    if (date !== 'latest' && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { ok:false, error:'date must be YYYY-MM-DD or latest' })
+    try {
+      const key = date === 'latest' ? 'manifests/latest.json' : `manifests/${date}.json`
+      const manifest = await readStoredJson(key)
+      return sendJson(res, 200, manifest)
+    } catch (error) {
+      return sendJson(res, 404, { ok:false, error:error instanceof Error ? error.message : 'Manifest not found' })
+    }
   }
 
   if (req.method === 'GET' && url.pathname.startsWith('/media/')) {
