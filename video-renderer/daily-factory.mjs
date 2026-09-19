@@ -440,7 +440,10 @@ export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='
   const building=await readJsonObject(buildingManifestKey(date))
   const source=(building?.pipelineVersion===PIPELINE_VERSION&&building?.targetDate===date)?building:current
   const entries=Array.isArray(source?.entries)?source.entries:[]
-  const target=entries.find((e)=>e?.slot===slot&&String(e?.masterHash||'').toLowerCase()===String(expectedMasterHash).toLowerCase())
+  // A prior retry may have replaced the exact master in the building record.
+  // Resolve the requested immutable hash against both records, never a title.
+  const target=[...entries,...(Array.isArray(current?.entries)?current.entries:[])]
+    .find((e)=>e?.slot===slot&&String(e?.masterHash||'').toLowerCase()===String(expectedMasterHash).toLowerCase())
   if(!target)throw new Error('EXACT_RETRY_MASTER_NOT_FOUND')
   const retryAttempt=Math.max(1,Number(target?.variationSeed||0)+1,Number(target?.retryAttempt||0))
   const cleanReplacement = replacement && typeof replacement === 'object' ? {
@@ -459,7 +462,11 @@ export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='
   const retryEntries=entries.map((e)=>e?.slot===slot?retryEntry:e)
   const retryManifest={...(source||{}),ok:false,partial:true,pipelineVersion:PIPELINE_VERSION,targetDate:date,generatedAt:new Date().toISOString(),publishingLocked:true,entries:retryEntries}
   await writeJsonObject(buildingManifestKey(date),retryManifest)
-  await writeJsonObject(manifestKey(date),retryManifest)
+  // Never overwrite the public exact-master archive with a retry placeholder.
+  // Public manifests are replaced only after complete, validated regeneration.
+  console.warn('DAILY_FACTORY_RETRY_PUBLIC_MANIFEST_PRESERVED',JSON.stringify({
+    date,slot,expectedMasterHash,publishingLocked:true
+  }))
   lastFactoryDate=''
   nextFactoryAttemptAt=0
   setTimeout(()=>generateFor(date).catch((error)=>console.error('DAILY_FACTORY_RETRY_ERROR',error instanceof Error?error.message:String(error))),25)
