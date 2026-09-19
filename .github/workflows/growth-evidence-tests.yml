@@ -8,6 +8,10 @@ on:
       - "content-agents/v60-retention-experiments.mjs"
       - "content-agents/v60-retention-experiments.test.mjs"
       - "content-agents/verified-performance-evidence.mjs"
+      - "system-agents/release-readiness.mjs"
+      - "system-agents/release-readiness.test.mjs"
+      - "system-agents/worker.mjs"
+      - "content-agents/certification-runner.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   pull_request:
     paths:
@@ -16,6 +20,10 @@ on:
       - "content-agents/v60-retention-experiments.mjs"
       - "content-agents/v60-retention-experiments.test.mjs"
       - "content-agents/verified-performance-evidence.mjs"
+      - "system-agents/release-readiness.mjs"
+      - "system-agents/release-readiness.test.mjs"
+      - "system-agents/worker.mjs"
+      - "content-agents/certification-runner.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   workflow_dispatch:
 
@@ -32,4 +40,9 @@ jobs:
         with:
           node-version: "22"
       - name: Test fail-closed growth classifier
-        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
+        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs system-agents/release-readiness.test.mjs
+      - name: Check runtime and certification syntax
+        run: |
+          node --check content-agents/certification-runner.mjs
+          node --check system-agents/worker.mjs
+          node --check system-agents/release-readiness.mjs
