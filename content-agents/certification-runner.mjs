@@ -278,6 +278,17 @@ async function approvalState(entry){
   const url=`${v59Base}/api/content-agents/approval-record?contentHash=${encodeURIComponent(entry.contentHash)}&masterHash=${encodeURIComponent(entry.masterHash)}`
   return fetchJson(url,cronSecret)
 }
+async function recordQaBlock(entry,stage,details){
+  const evidence=`BLOCK - ${stage}: ${typeof details==='string'?details:JSON.stringify(details)}`.slice(0,12000)
+  try{
+    return await postJson(`${v59Base}/api/content-agents/approval-record`,{
+      agentId:'qa',decision:'BLOCK',contentHash:entry.contentHash,masterHash:entry.masterHash,evidence
+    },cronSecret)
+  }catch(error){
+    console.error('MASTER_CERTIFICATION_QA_BLOCK_PERSIST_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error)}))
+    return null
+  }
+}
 function hasPriorTerminalVotes(state){
   const vals=Object.values(state?.approvals||{})
   return vals.some((v)=>['REVISE','BLOCK'].includes(String(v?.decision||'').toUpperCase()))
@@ -336,20 +347,29 @@ export async function runCertificationCycle(){
     const rights=rightsEvidence(entry)
     const integrity=await verifyIntegrity(entry)
     if([technical.status,rights.status,integrity.status].some((x)=>x!=='PASS')){
-      console.error('MASTER_CERTIFICATION_OBJECTIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,technical:technical.status,rights:rights.status,integrity:integrity.status}))
+      const block={technical:technical.status,rights:rights.status,integrity:integrity.status,technicalNotes:technical.notes,rightsNotes:rights.notes,integrityNotes:integrity.notes}
+      console.error('MASTER_CERTIFICATION_OBJECTIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,...block}))
+      await recordQaBlock(entry,'OBJECTIVE_PREFLIGHT',block)
       return {ok:false,blocked:true,stage:'OBJECTIVE_PREFLIGHT',contentHash:entry.contentHash,masterHash:entry.masterHash}
     }
 
-    const [visual,audio]=await Promise.all([
-      visualReview(entry,technical,rights),
-      audioReview(entry,integrity.audioBytes),
-    ])
+    let visual,audio
+    try{
+      ;[visual,audio]=await Promise.all([
+        visualReview(entry,technical,rights),
+        audioReview(entry,integrity.audioBytes),
+      ])
+    }catch(error){
+      const message=error instanceof Error?error.message:String(error)
+      console.error('MASTER_CERTIFICATION_REVIEW_EXECUTION_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}))
+      await recordQaBlock(entry,'MULTIMODAL_REVIEW_EXECUTION_FAILED',message)
+      return {ok:false,blocked:true,stage:'MULTIMODAL_REVIEW',contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}
+    }
     const evidence=aggregateEvidence(entry,technical,rights,integrity,visual,audio)
     if(!allEvidencePass(evidence)){
-      console.error('MASTER_CERTIFICATION_CREATIVE_BLOCK',JSON.stringify({
-        contentHash:entry.contentHash,masterHash:entry.masterHash,
-        failed:Object.entries(evidence).filter(([,v])=>v?.status!=='PASS').map(([k,v])=>({gate:k,status:v?.status,notes:v?.notes}))
-      }))
+      const failed=Object.entries(evidence).filter(([,v])=>v?.status!=='PASS').map(([k,v])=>({gate:k,status:v?.status,notes:v?.notes}))
+      console.error('MASTER_CERTIFICATION_CREATIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed}))
+      await recordQaBlock(entry,'PROFESSIONAL_MASTER_PREFLIGHT',failed)
       return {ok:false,blocked:true,stage:'PROFESSIONAL_MASTER_PREFLIGHT',contentHash:entry.contentHash,masterHash:entry.masterHash,evidence}
     }
 
