@@ -93,6 +93,26 @@ async function checkedWork(file,kind,minDuration,profile=null){
   }
   return duration
 }
+// A distinct four-minute arrangement, not a false claim that the recording is
+// four minutes long. The 3:09 hymn becomes a 4:00 edit with a gentle reprise.
+export function planChristianMusicAudio(format,musicDuration){
+ const profile=requireChristianVideoFormat(format)
+ if(format==='YOUTUBE_LONG'){
+   const lead=186,repriseStart=20,repriseSeconds=57,crossfade=3
+   const arrangedSeconds=lead+repriseSeconds-crossfade
+   if(!(musicDuration>=lead+0.3&&musicDuration>=repriseStart+repriseSeconds+0.3)
+     ||arrangedSeconds!==profile.durationSeconds)
+     throw new Error('CHRISTIAN_LONG_HYMN_SOURCE_OR_ARRANGEMENT_INVALID')
+   return {format,arrangedSeconds,originalSeconds:musicDuration,
+     leadSeconds:lead,repriseStart,repriseSeconds,crossfadeSeconds:crossfade,
+     creditsNote:'Four-minute adaptation: the original recording is edited into a lead section and one credited musical reprise with a three-second crossfade.'}
+ }
+ if(!(musicDuration>=MUSIC_START_SECONDS+profile.durationSeconds+0.5))
+   throw new Error('CHRISTIAN_SHORT_HYMN_SOURCE_TOO_SHORT')
+ return {format,arrangedSeconds:profile.durationSeconds,
+   originalSeconds:musicDuration,sourceStartSeconds:MUSIC_START_SECONDS,
+   creditsNote:'Short-form excerpt with fades and synchronisation.'}
+}
 export const musicVideoContract=Object.freeze({
   title:TITLE,collection:COLLECTION,sourceTitle:MUSIC.title,
   musicSourcePage:MUSIC.sourcePage,musicLicense:MUSIC.license,
@@ -150,8 +170,10 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const audio=path.join(work,'amazing-grace-2011.mp3')
       const music=await cachedMusic(s3)
       await fs.writeFile(audio,music)
-      const musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
-      requireChristianVideoSources(format,staged,musicDuration-MUSIC_START_SECONDS)
+      const musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',
+        format==='YOUTUBE_LONG'?186.3:profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
+      const audioPlan=planChristianMusicAudio(format,musicDuration)
+      requireChristianVideoSources(format,staged,audioPlan.arrangedSeconds+1)
       const collection=format==='SHORT_59'?'BE_STILL_PEXELS_V1':'YOUTUBE_WORSHIP_LANDSCAPE_V1'
       const eligible=staged.filter(source=>{
         try{verifyChristianVideoSceneMetadata(source,format,collection);return true}
@@ -167,6 +189,9 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
           formatId:format,collection,index:i,work
         })
         scenes.push(scene)
+        console.log('CHRISTIAN_VIDEO_TIMELINE_SCENE_READY',JSON.stringify({
+          format,index:i+1,total:selected.length,stockId:scene.stockId,publishingAllowed:false
+        }))
       }
       const listFile=path.join(work,'concat.txt')
       await fs.writeFile(listFile,scenes.map(s=>"file '"+s.local.replace(/'/g,"'\\''")+"'").join('\n')+'\n')
@@ -189,6 +214,10 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const referenceEnd=Number((profile.durationSeconds*0.83).toFixed(3))
       const titleEnd=Number(Math.min(7,profile.durationSeconds*0.13).toFixed(3))
       const audioFadeStart=Number((profile.durationSeconds-1.25).toFixed(3))
+      const sourceOffset=format==='YOUTUBE_LONG'?0:MUSIC_START_SECONDS
+      const filterAudio=format==='YOUTUBE_LONG'
+        ?`[1:a]asplit=2[am][ar];[am]atrim=start=0:duration=186,asetpts=PTS-STARTPTS[lead];[ar]atrim=start=20:duration=57,asetpts=PTS-STARTPTS[reprise];[lead][reprise]acrossfade=d=3:c1=tri:c2=tri,atrim=duration=240,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=238.75:d=1.25,loudnorm=I=-14:LRA=9:TP=-1.5[a]`
+        :`[1:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=${audioFadeStart}:d=1.25,loudnorm=I=-14:LRA=9:TP=-1.5[a]`
       const vf=[
         `drawtext=fontfile=${font}:textfile=${title}:fontsize=${titleFont}:fontcolor=white:borderw=3:bordercolor=black@0.7:x=(w-text_w)/2:y=${titleY}:enable='between(t\\,0\\,${titleEnd})'`,
         `drawtext=fontfile=${font}:textfile=${ref}:fontsize=${refFont}:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=${referenceY}:enable='between(t\\,${referenceStart}\\,${referenceEnd})'`,
@@ -197,8 +226,8 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       try{await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
         '-filter_complex_threads','1',
         '-f','concat','-safe','0','-i',listFile,
-        '-ss',String(MUSIC_START_SECONDS),'-i',audio,'-t',String(profile.durationSeconds),
-        '-filter_complex',`[0:v]${vf}[v];[1:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=${audioFadeStart}:d=1.25,loudnorm=I=-14:LRA=9:TP=-1.5[a]`,
+        '-ss',String(sourceOffset),'-i',audio,'-t',String(profile.durationSeconds),
+        '-filter_complex',`[0:v]${vf}[v];${filterAudio}`,
         '-map','[v]','-map','[a]','-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
         '-pix_fmt','yuv420p','-r',String(profile.fps),'-c:a','aac','-b:a','192k','-ac','2',
         '-movflags','+faststart','-shortest',video],
@@ -226,7 +255,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const sheet=await fs.readFile(contact)
       if(sheet.length<10000)throw new Error('MUSIC_VIDEO_CONTACT_SHEET_INVALID')
       const contactKey=`${PREFIX}/${format}/${id}-contact.jpg`
-      const attribution=[MUSIC.officialCredit,
+      const attribution=[MUSIC.officialCredit,audioPlan.creditsNote,
         'Music source: '+MUSIC.sourcePage,
         'Music licence: '+MUSIC.licenseUrl,
         'Footage: Tima Miroshnichenko via Pexels, https://www.pexels.com/; edited and colour-adjusted.',
@@ -236,7 +265,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         contentType:'Christian instrumental worship reel',
         mediaUrl:`${publicBase()}/media/${key}`,masterHash:hash(buffer),
         contactSheetUrl:`${publicBase()}/media/${contactKey}`,contactSheetHash:hash(sheet),
-        musicSourceHash:hash(music),music:MUSIC,
+        musicSourceHash:hash(music),music:MUSIC,audioArrangement:audioPlan,
         sourceScenes:scenes.map(s=>({stockId:s.stockId,sourcePage:s.sourcePage,
           sourceVideoHash:s.sourceVideoHash,license:s.license,contributor:s.pexelsContributor})),
         suggestedCaption:'Amazing Grace | Be still and remember the grace of Jesus. John 1:16. #AmazingGrace #Jesus #ChristianMusic #Worship #OneMillionSouls\n\n'+attribution,
@@ -257,7 +286,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         CacheControl:'private, no-store'}))
       console.log('CHRISTIAN_MUSIC_VIDEO_DRAFT_RESULT',JSON.stringify({
         id,profileId:format,mediaUrl:asset.mediaUrl,masterHash:asset.masterHash,contactSheetUrl:asset.contactSheetUrl,
-        durationSeconds:duration,targetSeconds:profile.durationSeconds,musicTitle:MUSIC.title,musicLicense:MUSIC.license,
+        durationSeconds:duration,targetSeconds:profile.durationSeconds,musicTitle:MUSIC.title,musicLicense:MUSIC.license,sourceMusicSeconds:musicDuration,arrangement:audioPlan.creditsNote,
         sourceFootage:asset.sourceScenes.map(s=>({id:s.stockId,license:s.license})),
         editorialStatus:asset.editorialStatus,publishingAllowed:false,
       }))
