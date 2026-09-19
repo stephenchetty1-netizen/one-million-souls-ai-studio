@@ -7,6 +7,7 @@ import {promisify} from 'node:util'
 import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
 import {createChristianVideoTimelineScene,verifyChristianVideoSceneMetadata} from './christian-video-timeline.mjs'
 import {CHRISTIAN_VIDEO_FORMATS,requireChristianVideoFormat,inspectChristianVideoSources,requireChristianVideoSources} from './christian-video-formats.mjs'
+import {christianVisualSourceReviewed,christianVisualReviewReadiness} from './christian-visual-editorial-gate.mjs'
 
 const run=promisify(execFile)
 const COLLECTION='BE_STILL_PEXELS_V1'
@@ -124,12 +125,17 @@ export async function inspectChristianVideoFormatReadiness(formatId='SHORT_59'){
   if(!storageReady())throw new Error('CHRISTIAN_MUSIC_VIDEO_PRIVATE_STORAGE_REQUIRED')
   const assets=await readPexelsSourceInventory(store(),format)
   const visualReadiness=inspectChristianVideoSources(formatId,assets,Infinity)
+  const editorial=christianVisualReviewReadiness(assets)
+  const approved=editorial.reviewedClips>=format.minimumDistinctClips
   return {formatId,format,sourceClipsStaged:assets.length,
     distinctPortraitOrLandscapeClips:visualReadiness.eligibleDistinctClips,
+    christianVisualReviewedClips:editorial.reviewedClips,
     requiredDistinctClips:format.minimumDistinctClips,
-    // Music file duration gets checked separately before any actual rendering.
-    visualSourcesReady:visualReadiness.blockers.length===0,
-    blockers:visualReadiness.blockers,
+    technicalSourcesReady:visualReadiness.blockers.length===0,
+    visualSourcesReady:visualReadiness.blockers.length===0&&approved,
+    blockers:[...visualReadiness.blockers,...(approved?[]:[
+      'HUMAN_CHRISTIAN_SCENE_REVIEW_REQUIRED_'+editorial.reviewedClips+'_OF_'+format.minimumDistinctClips
+    ])],
     musicDurationChecked:false,publishingAllowed:false,independentEditorialReviewRequired:true}
 }
 let activeDraft=null
@@ -172,6 +178,15 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const selected=eligible.slice(0,profile.minimumDistinctClips)
       if(new Set(selected.map(x=>x.id)).size!==profile.minimumDistinctClips)
         throw new Error('CHRISTIAN_VIDEO_DUPLICATE_OR_MISSING_TIMELINE_SOURCE')
+      const unreviewed=selected.filter(source=>!christianVisualSourceReviewed(source))
+      if(unreviewed.length){
+        console.warn('CHRISTIAN_MUSIC_VIDEO_VISUAL_CONTENT_REJECTED',JSON.stringify({
+          format,pendingSourceIds:unreviewed.map(source=>source.id),
+          reason:'Prayer posture and book search keywords are insufficient to prove Christian imagery',
+          publishingAllowed:false
+        }))
+        throw new Error('CHRISTIAN_VIDEO_HUMAN_CHRISTIAN_VISUAL_REVIEW_REQUIRED')
+      }
       const scenes=[]
       for(let i=0;i<selected.length;i++){
         const scene=await createChristianVideoTimelineScene({

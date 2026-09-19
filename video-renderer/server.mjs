@@ -5,13 +5,14 @@ import os from 'node:os'
 import crypto from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
 import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
+import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -389,6 +390,9 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && url.pathname.startsWith('/media/')) {
     const key = url.pathname.slice('/media/'.length).split('/').map(decodeURIComponent).join('/')
+    // Withdraw rejected devotional footage immediately, even if old public links remain.
+    if(worshipMediaRevoked(key))
+      return sendJson(res,410,{ok:false,error:'REJECTED_CHRISTIAN_EDITORIAL_FOOTAGE',publishingAllowed:false})
     // Imported source clips are private inputs, not stock files for redistributing.
     if(key==='internal'||key.startsWith('internal/'))
       return sendJson(res,403,{ok:false,error:'PRIVATE_SOURCE_MEDIA_ACCESS_BLOCKED'})
@@ -426,6 +430,20 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`One Million Souls video renderer listening on ${PORT}`)
+  // Remove the rejected public previews and contact sheets. Keep private
+  // provenance records so the rejected exact master is not certified later.
+  if(s3){
+    void Promise.all(REVOKED_WORSHIP_MEDIA_KEYS.map(async key=>{
+      try{
+        await s3.send(new DeleteObjectCommand({Bucket:process.env.BUCKET,Key:key}))
+        console.log('CHRISTIAN_EDIT_REVOKED_PUBLIC_ASSET',JSON.stringify({key,publishingAllowed:false}))
+      }catch(error){
+        console.error('CHRISTIAN_EDIT_REVOKED_PUBLIC_ASSET_DELETE_FAILED',JSON.stringify({
+          key,reason:String(error?.name||'delete failed'),publishingAllowed:false
+        }))
+      }
+    }))
+  }
   // Trigger a single authenticated-provider import on explicit operator opt-in.
   // S3 per-source cache is durable, so a restart does not duplicate downloads.
   // Source clips are NOT made public or promoted to approved video masters.
