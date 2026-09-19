@@ -1,5 +1,11 @@
 import crypto from 'node:crypto'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
+import os from 'node:os'
+import {execFile} from 'node:child_process'
+import {promisify} from 'node:util'
 import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
+const execFileAsync=promisify(execFile)
 import {PEXELS_COLLECTIONS,validatePexelsMetadata,validatedPexelsVideoUrl} from './pexels-source-import.mjs'
 import {CHRISTIAN_VIDEO_FORMATS,requireChristianVideoFormat,inspectChristianVideoSources} from './christian-video-formats.mjs'
 
@@ -70,6 +76,35 @@ export function searchSlots(format){
    })))
 }
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex')
+export function validateMeasuredPexelsVideo({streams,format:container},formatId){
+ const {profile}=requireFormatPlan(formatId)
+ const video=streams?.find(x=>x.codec_type==='video')
+ const width=Number(video?.width),height=Number(video?.height)
+ const durationSeconds=Number(container?.duration)
+ const portrait=profile.orientation==='portrait'
+ if(!Number.isFinite(width)||!Number.isFinite(height)||
+    width<profile.width||height<profile.height||
+    (portrait?height<=width:width<=height)||
+    !Number.isFinite(durationSeconds)||
+    durationSeconds<profile.secondsPerScene+0.35)
+   throw new Error('PEXELS_MP4_MEASURED_PROFILE_MISMATCH: '+
+     JSON.stringify({formatId,measuredWidth:width,measuredHeight:height,
+       measuredDurationSeconds:durationSeconds,
+       requiredWidth:profile.width,requiredHeight:profile.height,
+       requiredDurationSeconds:profile.secondsPerScene+0.35}))
+ return {width,height,durationSeconds}
+}
+async function probeRealPexelsVideo(bytes,formatId){
+ const file=path.join(os.tmpdir(),'oms-pexels-probe-'+crypto.randomUUID()+'.mp4')
+ try{
+  await fs.writeFile(file,bytes)
+  const {stdout}=await execFileAsync('ffprobe',['-v','error','-show_entries',
+    'format=duration:stream=codec_type,width,height','-of','json',file],
+    {timeout:35000,maxBuffer:2*1024*1024})
+  return validateMeasuredPexelsVideo(JSON.parse(stdout),formatId)
+ }finally{await fs.rm(file,{force:true}).catch(()=>{})}
+}
+
 function s3(){
  if(!process.env.ENDPOINT||!process.env.BUCKET||!process.env.REGION||
    !process.env.ACCESS_KEY_ID||!process.env.SECRET_ACCESS_KEY)
@@ -131,11 +166,35 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
  const manifestKey=`${ROOT}/${plan.collection}/manifest.json`
  const old=await readJson(store,manifestKey)
  const existing=Array.isArray(old?.assets)?old.assets:[]
- const assets=[...existing]
- const used=new Set(assets.map(x=>Number(x?.id)).filter(Number.isInteger))
+ const assets=[]
+ const used=new Set(existing.map(x=>Number(x?.id)).filter(Number.isInteger))
+ const invalidSources=[]
+ // Check real media, not merely the Pexels API duration and resolution.
+ for(const source of existing){
+   try{
+     const object=await store.send(new GetObjectCommand({
+       Bucket:process.env.BUCKET,Key:source.sourceObjectKey}))
+     if(Number(object.ContentLength||0)>MAX_BYTES)
+       throw new Error('PEXELS_CACHED_VIDEO_TOO_LARGE')
+     const bytes=Buffer.from(await object.Body.transformToByteArray())
+     if(bytes.length<100000||bytes.length>MAX_BYTES||hash(bytes)!==source.videoSha256)
+       throw new Error('PEXELS_CACHED_VIDEO_HASH_OR_SIZE_INVALID')
+     const measured=await probeRealPexelsVideo(bytes,format)
+     assets.push({...source,...measured})
+   }catch(error){
+     invalidSources.push({id:source?.id,sourceSlot:source?.sourceSlot||null,
+       reason:String(error?.message||error).slice(0,380)})
+     console.warn('PEXELS_CACHED_SOURCE_QUARANTINED',JSON.stringify({
+       format,id:source?.id,sourceSlot:source?.sourceSlot||null,
+       reason:String(error?.message||error).slice(0,380),
+       publishingAllowed:false
+     }))
+   }
+ }
  if(format==='SHORT_59'){
    for(const id of plan.base){
-     if(!used.has(id))throw new Error('PEXELS_BASE_SHOT_MISSING_'+id)
+     if(!assets.some(x=>Number(x?.id)===id))
+       throw new Error('PEXELS_BASE_SHOT_INVALID_OR_MISSING_'+id)
    }
  }
  const failures=[]
@@ -160,6 +219,7 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
        }catch{continue}
        try{
          const b=await getVideo(file.verifiedUrl)
+         const measured=await probeRealPexelsVideo(b,format)
          const sourceObjectKey=`${ROOT}/${plan.collection}/${id}-${file.id}.mp4`
          const metadataKey=`${ROOT}/${plan.collection}/${id}.json`
          const metadata={
@@ -169,8 +229,8 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
            pexelsLink:'https://www.pexels.com/',license:'Pexels License',
            licenseUrl:'https://www.pexels.com/legal-pages/license/',
            copyrightAndReleases:'SUBJECT_TO_INDEPENDENT_RIGHTS_AND_MODEL_REVIEW',
-           width:Number(file.width),height:Number(file.height),
-           fps:Number(file.fps||0),durationSeconds:Number(candidate.duration||0),
+           width:measured.width,height:measured.height,
+           fps:Number(file.fps||0),durationSeconds:measured.durationSeconds,
            videoSha256:hash(b),videoBytes:b.length,sourceObjectKey,
            sourceIsPrivate:true,reviewStatus:'AWAITING_SOURCE_VISUAL_REVIEW',
            editorialContinuity:'NOT_YET_VERIFIED',
@@ -210,7 +270,7 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
    pexelsLink:'https://www.pexels.com/',license:'Pexels License',
    sourceClips:assets.length,status:'AWAITING_SOURCE_VISUAL_REVIEW',
    sourceBankReady:result.readyForDraftRender,blockers:result.blockers,
-   failures,publishingLocked:true,noPaidGenerationCredits:true,
+   failures,invalidSources,publishingLocked:true,noPaidGenerationCredits:true,
    assets,generatedAt:new Date().toISOString()
  }
  await store.send(new PutObjectCommand({Bucket:process.env.BUCKET,
@@ -219,11 +279,11 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
  console.log('PEXELS_FORMAT_STAGE_RESULT',JSON.stringify({
    format,collection:plan.collection,sourceClips:assets.length,
    required:profile.minimumDistinctClips,staged,ready:result.readyForDraftRender,
-   blockers:result.blockers,failures,publishingAllowed:false
+   blockers:result.blockers,failures,invalidSources,publishingAllowed:false
  }))
  return {ok:result.readyForDraftRender,format,collection:plan.collection,
    sourceClips:assets.length,required:profile.minimumDistinctClips,
-   staged,blockers:result.blockers,failures,publishingAllowed:false}
+   staged,blockers:result.blockers,failures,invalidSources,publishingAllowed:false}
  })()
  try{return await active}finally{active=null}
 }
