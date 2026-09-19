@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {CHRISTIAN_PEXELS_STORY,requireFormatPlan,
-  selectPexelsRendition,searchSlots} from './pexels-format-library.mjs'
+  selectPexelsRendition,searchSlots,validateMeasuredPexelsVideo} from './pexels-format-library.mjs'
 const videoFiles=(items)=>({video_files:items.map((x,i)=>({
   id:100+i,file_type:'video/mp4',quality:'hd',
   width:x[0],height:x[1],fps:30,
@@ -45,4 +45,24 @@ test('unsupported media hosts cannot become Pexels source media',()=>{
 })
 test('search slot formatting fails closed for uncurated content format',()=>{
  assert.throws(()=>searchSlots('LEGACY_18'),/NOT_SUPPORTED/)
+})
+
+test('actual portrait video must have native dimensions and enough playable time',()=>{
+ const mp4={streams:[{codec_type:'video',width:1080,height:1920}],
+   format:{duration:'8.5'}}
+ assert.deepEqual(validateMeasuredPexelsVideo(mp4,'SHORT_59'),
+   {width:1080,height:1920,durationSeconds:8.5})
+ assert.throws(()=>validateMeasuredPexelsVideo({...mp4,format:{duration:'6.7'}},'SHORT_59'),
+   /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
+ assert.throws(()=>validateMeasuredPexelsVideo({...mp4,streams:[{codec_type:'video',width:1920,height:1080}]},'SHORT_59'),
+   /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
+})
+test('landscape MP4 real probe must meet 1920x1080 and 10.35 playable seconds',()=>{
+ const full={streams:[{codec_type:'video',width:1920,height:1080}],
+   format:{duration:'11'}}
+ assert.equal(validateMeasuredPexelsVideo(full,'YOUTUBE_LONG').durationSeconds,11)
+ assert.throws(()=>validateMeasuredPexelsVideo({...full,format:{duration:'10.2'}},'YOUTUBE_LONG'),
+   /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
+ assert.throws(()=>validateMeasuredPexelsVideo({...full,streams:[{codec_type:'video',width:1280,height:720}]},'YOUTUBE_LONG'),
+   /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
 })
