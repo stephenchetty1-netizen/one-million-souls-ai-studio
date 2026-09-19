@@ -384,8 +384,27 @@ server.listen(PORT, '0.0.0.0', () => {
       collection:'BE_STILL_PEXELS_V1',publishingLocked:true
     }))
     void stagePexelsCollection('BE_STILL_PEXELS_V1')
-      .then(result=>console.log('PEXELS_BOOT_STAGE_RESULT',JSON.stringify(result)))
-      .catch(error=>console.error('PEXELS_BOOT_STAGE_FAILED',JSON.stringify({
+      .then(async result=>{
+        console.log('PEXELS_BOOT_STAGE_RESULT',JSON.stringify(result))
+        if(process.env.PEXELS_REVIEW_DRAFT_ON_BOOT!=='true')return
+        console.log('PEXELS_REVIEW_DRAFT_START',JSON.stringify({
+          collection:'BE_STILL_PEXELS_V1',publishingLocked:true
+        }))
+        const preview=await renderFreeV2({
+          title:'BE STILL',script:'Not every battle is won by doing more. Psalm 46:10 calls us to be still and know that God is God. Make space today to stop the noise, pray, listen, and remember who is truly in control. Stillness is not giving up. It is choosing to trust God instead of letting panic lead you.',
+          scriptureReference:'Psalm 46:10',variationSeed:0,
+          pexelsReviewCollection:'BE_STILL_PEXELS_V1',
+        })
+        console.log('PEXELS_REVIEW_DRAFT_RESULT',JSON.stringify({
+          collection:'BE_STILL_PEXELS_V1',mediaUrl:preview.mediaUrl,
+          masterHash:preview.masterHash,reviewAssets:preview.reviewAssets,
+          durationSeconds:preview.durationSeconds,qualityGate:preview.qualityGate,
+          professionalMasterCandidate:preview.professionalMasterCandidate,
+          visualProductionStatus:preview.visualProductionStatus,
+          publishingAllowed:false,publishingLocked:true
+        }))
+      })
+      .catch(error=>console.error('PEXELS_BOOT_STAGE_OR_DRAFT_FAILED',JSON.stringify({
         error:error instanceof Error?error.message:String(error),
         publishingLocked:true
       })))
