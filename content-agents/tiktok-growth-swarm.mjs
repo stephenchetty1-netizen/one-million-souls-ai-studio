@@ -213,7 +213,9 @@ export async function runTikTokGrowthScan(input={}){
     readJson('million-view-patterns.json',{examples:[]}),
     readJson('trend-evidence.json',{externalTrendSignals:[]}),
   ])
-  const posts=Array.isArray(recent.posts)?recent.posts:[]
+  const posts=Array.isArray(input.performanceRecords)&&input.performanceRecords.length
+    ? input.performanceRecords
+    : (Array.isArray(recent.posts)?recent.posts:[])
   const recentCaptions=Array.isArray(input.recentCaptions)?input.recentCaptions.filter(Boolean).slice(0,50):posts.map(x=>x.topic)
   const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS).map(clean).filter(Boolean).slice(0,8)
   const metrics={...(base.metrics||{}),...(input.metrics||{})}
@@ -241,7 +243,7 @@ export async function runTikTokGrowthScan(input={}){
     }
   }).sort((a,b)=>b.opportunityScore-a.opportunityScore)
   const attractions=await recommendChannelAttractions({platform:'tiktok',opportunities,recentTopics:state.recentTopics||[],metrics:benchmark(metrics,base)})
-  const multiplierRecords=Array.isArray(input.performanceRecords)&&input.performanceRecords.length?input.performanceRecords:posts
+  const multiplierRecords=posts
   const multiplier=await runGrowthMultiplier({platform:'tiktok',records:multiplierRecords,baseline:benchmark(metrics,base),opportunities,attractions})
   const result={
     ok:true,
@@ -263,7 +265,7 @@ export async function runTikTokGrowthScan(input={}){
     opportunities,
     channelAttractions:attractions,
     growthMultiplier:multiplier,
-    retention:retentionActions(input.metrics||base?.recentPostSignal||{}),
+    retention:retentionActions(input.metrics?.durationSeconds?input.metrics:(posts[0]||base?.recentPostSignal||{})),
     followerGrowth:followerActions(metrics),
     captionInspection:input.caption?inspectTikTokCaption(input.caption,recentCaptions):null,
   }
