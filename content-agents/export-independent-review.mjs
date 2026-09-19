@@ -11,14 +11,15 @@ if(!base||!secret||!/^\d{4}-\d{2}-\d{2}$/.test(start))throw new Error('Set rende
 const dateAt=n=>{const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 const validHash=x=>/^[a-f0-9]{64}$/i.test(String(x||''))
 const entries=[]
+const blockers=[]
 for(let i=0;i<days;i++){
  const date=dateAt(i)
  const response=await fetch(base+'/factory-manifest?date='+date,{headers:{authorization:'Bearer '+secret},cache:'no-store'})
- if(!response.ok)throw new Error('MANIFEST_'+date+'_HTTP_'+response.status)
+ if(!response.ok){blockers.push({date,reason:'MANIFEST_HTTP_'+response.status});continue}
  const manifest=await response.json()
- if(!Array.isArray(manifest.entries)||manifest.entries.length!==3)throw new Error('MANIFEST_'+date+'_EXPECTED_THREE_SLOTS')
+ if(!Array.isArray(manifest.entries)||manifest.entries.length!==3){blockers.push({date,reason:'EXPECTED_THREE_SLOTS'});continue}
  for(const entry of manifest.entries){
-  if(!validHash(entry.contentHash)||!validHash(entry.masterHash)||entry.releasePayload?.masterHash!==entry.masterHash)throw new Error('INVALID_EXACT_MASTER_'+date+'_'+entry.slot)
+  if(!validHash(entry.contentHash)||!validHash(entry.masterHash)||entry.releasePayload?.masterHash!==entry.masterHash){blockers.push({date,slot:entry.slot,title:entry.title,reason:'EXACT_MASTER_PENDING',renderFailure:String(entry.failureReason||'').slice(0,500)});continue}
   const assets=entry.reviewAssets||{}
   entries.push({
    date,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash,
@@ -32,7 +33,7 @@ for(let i=0;i<days;i++){
   })
  }
 }
-const packet={standard:'v59-independent-exact-master-v2',startDate:start,days,expected:days*3,total:entries.length,approved:0,publishingLocked:true,warning:'This is a review handoff, NOT a certificate. Review the complete exact video and audio before recording a decision.',entries}
+const packet={standard:'v59-independent-exact-master-v2',startDate:start,days,expected:days*3,total:entries.length,missing:days*3-entries.length,blockers,approved:0,publishingLocked:true,warning:'This is a review handoff, NOT a certificate. Review the complete exact video and audio before recording a decision.',entries}
 const json=JSON.stringify(packet,null,2)+'\n'
 const output=String(process.env.REVIEW_PACKET_PATH||'content-agents/independent-review-packet.json')
 await fs.writeFile(output,json)
@@ -77,5 +78,6 @@ const verification={startDate:start,days,expected:entries.length*2,verified:medi
 const verificationKey=redisKey+':media-integrity'
 if(await durableRedis(['SET',verificationKey,JSON.stringify(verification)])!=='OK')throw new Error('MEDIA_INTEGRITY_RESULT_DURABLE_WRITE_FAILED')
 console.log('INDEPENDENT_REVIEW_MEDIA_INTEGRITY_SUMMARY '+JSON.stringify(verification))
-if(failed.length)throw new Error('INDEPENDENT_REVIEW_MEDIA_INTEGRITY_FAILED_'+failed.length)
+if(failed.length)console.error('INDEPENDENT_REVIEW_MEDIA_INTEGRITY_BLOCKED '+JSON.stringify({failed}))
+console.log('INDEPENDENT_REVIEW_PACKET_READINESS '+JSON.stringify({expected:days*3,available:entries.length,blocked:blockers.length,mediaFailed:failed.length,publishingLocked:true}))
 console.log('INDEPENDENT_REVIEW_MEDIA_INDEX '+JSON.stringify(entries.map(e=>({date:e.date,slot:e.slot,title:e.title,masterHash:e.masterHash,videoUrl:e.videoUrl,audioReviewUrl:e.audioReviewUrl,contactSheetUrl:e.contactSheetUrl}))))
