@@ -3,7 +3,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "node system-agents/worker.mjs --with-app",
-    "smoke-test": "node scripts/smoke-test.mjs"
+    "smoke-test": "node scripts/smoke-test.mjs",
+    "tiktok:intel": "node content-agents/tiktok-search-intel.mjs"
   },
   "dependencies": {
     "next": "latest",
