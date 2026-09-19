@@ -28,11 +28,16 @@ const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
 const reviewBackoffUntil=new Map()
-const REJECTED_BE_STILL_MASTER='1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e'
+const REJECTED_BE_STILL_MASTERS=new Set([
+  '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e',
+  'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
+])
 function rejectedVisualMaster(entry){
+  if(REJECTED_BE_STILL_MASTERS.has(String(entry?.masterHash||'').toLowerCase()))return true
+  if(Array.isArray(entry?.sceneSources)&&entry.sceneSources.length>0&&
+     entry.sceneSources.every(source=>source==='rights-cleared-stock-video'))return true
   if(String(entry?.title||'').trim().toUpperCase()!=='BE STILL')return false
-  return String(entry?.masterHash||'').toLowerCase()===REJECTED_BE_STILL_MASTER||
-    (entry?.rightsClearedStockScenes||[]).some(scene=>scene?.stockId==='sunrise-storm-portrait')||
+  return (entry?.rightsClearedStockScenes||[]).some(scene=>scene?.stockId==='sunrise-storm-portrait')||
     (entry?.visualStoryboardInspection?.beats||[]).some(beat=>beat?.stockId==='sunrise-storm-portrait')
 }
 const CERTIFICATE_REQUIRED_GATES=Object.freeze([
