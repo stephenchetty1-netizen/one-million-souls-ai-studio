@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 import { durableRedis } from './durable-redis.mjs'
+import { selectExactMasterForReview } from './review-master-selector.mjs'
 
 const rendererAddress=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
 const base=rendererAddress && !/^https?:\/\//i.test(rendererAddress)?'https://'+rendererAddress:rendererAddress
@@ -15,20 +16,31 @@ const blockers=[]
 for(let i=0;i<days;i++){
  const date=dateAt(i)
  const response=await fetch(base+'/factory-manifest?date='+date,{headers:{authorization:'Bearer '+secret},cache:'no-store'})
- if(!response.ok){blockers.push({date,reason:'MANIFEST_HTTP_'+response.status});continue}
- const manifest=await response.json()
- if(!Array.isArray(manifest.entries)||manifest.entries.length!==3){blockers.push({date,reason:'EXPECTED_THREE_SLOTS'});continue}
+ const publicManifest=response.ok?await response.json():null
  const buildingResponse=await fetch(base+'/factory-manifest?date='+date+'&stage=building',{headers:{authorization:'Bearer '+secret},cache:'no-store'})
  const building=buildingResponse.ok?await buildingResponse.json():null
- const candidates=[...manifest.entries,...(Array.isArray(building?.entries)?building.entries:[])]
- const reviewable=e=>validHash(e?.contentHash)&&validHash(e?.masterHash)&&e?.releasePayload?.masterHash===e.masterHash&&e?.mediaUrl&&e?.reviewAssets?.audioReviewUrl&&validHash(e?.reviewAssets?.audioReviewHash)
- for(const slot of [...new Set(manifest.entries.map(e=>e.slot))]){
-  const entry=candidates.find(e=>e.slot===slot&&reviewable(e))||manifest.entries.find(e=>e.slot===slot)
-  if(!entry){blockers.push({date,slot,reason:'SLOT_MISSING'});continue}
-  if(!validHash(entry.contentHash)||!validHash(entry.masterHash)||entry.releasePayload?.masterHash!==entry.masterHash){blockers.push({date,slot:entry.slot,title:entry.title,reason:'EXACT_MASTER_PENDING',renderFailure:String(entry.failureReason||'').slice(0,500)});continue}
+ const publicEntries=Array.isArray(publicManifest?.entries)?publicManifest.entries:[]
+ const buildingEntries=Array.isArray(building?.entries)?building.entries:[]
+ if(!publicEntries.length&&!buildingEntries.length){
+  blockers.push({date,reason:'BOTH_MANIFESTS_UNAVAILABLE',publicHttp:response.status,buildingHttp:buildingResponse.status})
+  continue
+ }
+ const slots=[...new Set([...publicEntries,...buildingEntries].map(e=>e?.slot).filter(Boolean))]
+ if(slots.length!==3)blockers.push({date,reason:'EXPECTED_THREE_SLOTS',count:slots.length})
+ for(const slot of slots){
+  const publicEntry=publicEntries.find(e=>e?.slot===slot)
+  const buildingEntry=buildingEntries.find(e=>e?.slot===slot)
+  const selected=selectExactMasterForReview({publicEntry,buildingEntry})
+  const entry=selected.entry
+  if(!entry){
+   blockers.push({date,slot,title:buildingEntry?.title||publicEntry?.title||null,reason:selected.reason,
+    renderFailure:String(buildingEntry?.failureReason||publicEntry?.failureReason||'').slice(0,500)})
+   continue
+  }
   const assets=entry.reviewAssets||{}
   entries.push({
    date,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash,
+   reviewSource:selected.source,
    script:entry.releasePayload?.script,scriptureReference:entry.releasePayload?.scriptureReference,
    videoUrl:entry.mediaUrl,thumbnailUrl:entry.thumbnailUrl,
    audioReviewUrl:assets.audioReviewUrl,audioReviewHash:assets.audioReviewHash,firstFrameUrl:assets.firstFrameUrl,
