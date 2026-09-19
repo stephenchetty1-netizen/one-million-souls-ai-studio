@@ -237,7 +237,12 @@ async function generateScene(providers, prompt, index, work, seconds, stockSeed 
     }
   }
 
-  if (stockEnabled && stockPrimary && !authenticatedHf) {
+  // A configured stock-primary renderer must not use numeric-index stock on
+  // uncurated topics. Try original free video; if it fails, no random stock fallback.
+  if (stockEnabled && stockPrimary && !authenticatedHf && !stockSelection?.stockId) {
+    console.warn('CURATED_STOCK_UNAVAILABLE_TRY_FREE_ORIGINAL_VIDEO',JSON.stringify({index}))
+  }
+  if (stockEnabled && stockPrimary && !authenticatedHf && stockSelection?.stockId) {
     const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed, stockSelection)
     console.log('RIGHTS_CLEARED_STOCK_PRIMARY', JSON.stringify({
       index,
