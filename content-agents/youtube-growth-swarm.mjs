@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { loadYoutubeGrowthState, rememberYoutubeGrowthScan } from './youtube-growth-memory.mjs'
 import { recommendChannelAttractions } from './channel-attraction-selector.mjs'
+import { runGrowthMultiplier } from './growth-multiplier.mjs'
 
 const API_BASE='https://www.googleapis.com/youtube/v3'
 
@@ -345,6 +346,7 @@ export async function runYoutubeGrowthScan(input={}){
     })
     .sort((a,b)=>b.opportunityScore-a.opportunityScore)
   const attractions=await recommendChannelAttractions({platform:'youtube',opportunities,recentTopics:state.recentTopics||[],metrics:channelBenchmark(metrics,base)})
+  const multiplier=await runGrowthMultiplier({platform:'youtube',records:Array.isArray(input.performanceRecords)?input.performanceRecords:[],baseline:channelBenchmark(metrics,base),opportunities,attractions})
   const result={
     ok:opportunities.length>0,
     zeroCreditOnly:true,
@@ -364,6 +366,7 @@ export async function runYoutubeGrowthScan(input={}){
     },
     opportunities,
     channelAttractions:attractions,
+    growthMultiplier:multiplier,
     retention:retentionActions(metrics),
     subscriberGrowth:subscriberActions(metrics),
     failures:scans.filter(x=>!x.ok),
