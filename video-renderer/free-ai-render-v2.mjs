@@ -16,6 +16,7 @@ const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
 const HEIGHT = Number(process.env.RENDER_HEIGHT || 1920)
 const FPS = Number(process.env.RENDER_FPS || 30)
+const ZERO_CREDIT_ONLY = process.env.ZERO_CREDIT_ONLY !== 'false'
 
 const storageReady = Boolean(
   process.env.ENDPOINT && process.env.BUCKET && process.env.REGION &&
@@ -205,7 +206,7 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
 
 async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
-  const preferGoogleVeo = googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
+  const preferGoogleVeo = !ZERO_CREDIT_ONLY && googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
   const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
   const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true'
   const authenticatedHf = Boolean(String(process.env.HF_TOKEN || '').trim())
@@ -667,6 +668,9 @@ export async function renderFreeV2(body = {}) {
     const music = await musicPromise
     console.log('FREE_AI_MUSIC_READY', JSON.stringify({ id, provider: music.provider || providers.music.name }))
 
+    if (ZERO_CREDIT_ONLY && scenes.some((scene) => scene.source === 'google-veo-video')) {
+      throw new Error('Zero-credit policy gate failed: paid-credit video provider selected')
+    }
     if (scenes.length < 3 || scenes.some((scene) => !scene?.local)) {
       throw new Error('Quality gate failed: at least three motion scenes are required')
     }
@@ -752,8 +756,9 @@ export async function renderFreeV2(body = {}) {
       narrationPresent: true,
       musicPresent: true,
       motionScenesPresent: true,
-      paidGenerationCreditsUsed: sceneSources.some((source) => source === 'google-veo-video'),
-      googleFlowClassGenerationUsed: sceneSources.some((source) => source === 'google-veo-video'),
+      paidGenerationCreditsUsed: false,
+      zeroCreditOnly: ZERO_CREDIT_ONLY,
+      googleFlowClassGenerationUsed: false,
       persistentStorage: true,
       qualityGate: 'passed',
       professionalMasterCandidate: true,
