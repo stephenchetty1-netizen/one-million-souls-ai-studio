@@ -2,7 +2,8 @@ import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 import { durableRedis } from './durable-redis.mjs'
 
-const base=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
+const rendererAddress=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
+const base=rendererAddress && !/^https?:\/\//i.test(rendererAddress)?'https://'+rendererAddress:rendererAddress
 const secret=String(process.env.VIDEO_RENDER_SECRET||'')
 const start=String(process.env.REVIEW_START_DATE||'')
 const days=Math.min(14,Math.max(1,Number(process.env.REVIEW_DAYS||7)))
