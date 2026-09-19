@@ -397,7 +397,16 @@ export async function generateFor(date) {
     })
   }
   const body = JSON.stringify(manifest,null,2)
-  await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
+  // A partial regeneration must never destroy the last published review
+  // manifest. Keep retry progress in buildingKey until all three masters
+  // pass technical rendering. Review/export sees the previous exact assets.
+  if(complete || !existing){
+    await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
+  }else{
+    console.warn('DAILY_FACTORY_PUBLIC_MANIFEST_PRESERVED',JSON.stringify({
+      targetDate:date,reason:'INCOMPLETE_REGENERATION',retries:entries.filter(e=>e.releaseStatus==='PRODUCTION_RETRY').length,publishingLocked:true
+    }))
+  }
   if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   console.log(complete ? 'DAILY_FACTORY_SUCCESS' : 'DAILY_FACTORY_PARTIAL_FAILURE', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
   return complete
