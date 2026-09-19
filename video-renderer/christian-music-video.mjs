@@ -190,8 +190,8 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const titleEnd=Number(Math.min(7,profile.durationSeconds*0.13).toFixed(3))
       const audioFadeStart=Number((profile.durationSeconds-1.25).toFixed(3))
       const vf=[
-        `drawtext=fontfile=${font}:textfile=${title}:fontsize=${titleFont}:fontcolor=white:borderw=3:bordercolor=black@0.7:x=(w-text_w)/2:y=${titleY}:enable='between(t\\\\,0\\\\,${titleEnd})'`,
-        `drawtext=fontfile=${font}:textfile=${ref}:fontsize=${refFont}:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=${referenceY}:enable='between(t\\\\,${referenceStart}\\\\,${referenceEnd})'`,
+        `drawtext=fontfile=${font}:textfile=${title}:fontsize=${titleFont}:fontcolor=white:borderw=3:bordercolor=black@0.7:x=(w-text_w)/2:y=${titleY}:enable='between(t\\,0\\,${titleEnd})'`,
+        `drawtext=fontfile=${font}:textfile=${ref}:fontsize=${refFont}:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=${referenceY}:enable='between(t\\,${referenceStart}\\,${referenceEnd})'`,
         `drawtext=fontfile=${font}:textfile=${brand}:fontsize=${brandFont}:fontcolor=white:borderw=2:bordercolor=black@0.75:x=(w-text_w)/2:y=${brandY}`,
       ].join(',')
       try{await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
