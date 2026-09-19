@@ -1,0 +1,69 @@
+{
+  "version": "V59-TIKTOK-SEARCH-INTEL-1",
+  "enabled": true,
+  "mode": "evidence_first_zero_credit",
+  "platform": "tiktok",
+  "market": "ZA",
+  "mission": "One Million Souls",
+  "sources": {
+    "creator_search_insights": {
+      "priority": "primary",
+      "content_gap": true,
+      "note": "Only mark content_gap=true when supported by Creator Search Insights evidence supplied to the studio."
+    },
+    "creator_insights": {
+      "priority": "primary",
+      "extract": ["hook_structure","duration","pacing","text_overlay","series_format","comment_questions","search_phrasing"]
+    },
+    "public_web": {
+      "priority": "supporting",
+      "allowed": true,
+      "role": "candidate discovery and validation; never impersonate TikTok-native Content Gap data"
+    },
+    "creative_center": {
+      "priority": "supporting",
+      "role": "trend, related-topic and regional validation"
+    }
+  },
+  "seed_clusters": {
+    "prayer": ["how to pray","prayer before sleep","morning prayer","prayer when anxious","prayer when you feel like giving up","prayer for protection","prayer for breakthrough"],
+    "bible": ["how to read the Bible","Bible study for beginners","where to start reading the Bible","Psalm 23 explained","Isaiah 41:10 explained","Philippians 4:13 meaning","Jeremiah 29:11 meaning"],
+    "relationship_with_god": ["how to hear God's voice","how to get closer to God","when God feels silent","waiting on God's timing","how to trust God","God hasn't forgotten you"],
+    "youth_and_encouragement": ["Christian motivation for young people","Christian encouragement","faith over fear","Bible verses for strength","Bible verses for anxiety"],
+    "salvation": ["how to follow Jesus","what does salvation mean","how to give your life to Jesus"]
+  },
+  "scoring": {
+    "search_intent": 25,
+    "verified_content_gap": 30,
+    "mission_relevance": 20,
+    "regional_relevance": 5,
+    "creator_pattern_evidence": 10,
+    "freshness": 10
+  },
+  "rules": {
+    "prefer_long_tail_queries": true,
+    "one_search_question_per_video": true,
+    "require_original_angle": true,
+    "require_scripture_accuracy": true,
+    "content_gap_claim_requires_tiktok_evidence": true,
+    "do_not_copy_creators": true,
+    "no_paid_ai_required": true,
+    "publishing_gate_unchanged": true,
+    "master_ready_required": true
+  },
+  "pipeline": [
+    "WEB_INTELLIGENCE_SCOUT",
+    "TIKTOK_SEARCH_CANDIDATE_SCOUT",
+    "CREATOR_SEARCH_INSIGHTS",
+    "CONTENT_GAP_SCOUT",
+    "LONG_TAIL_EXPANDER",
+    "RELATED_SEARCH_SCOUT",
+    "CREATOR_PATTERN_SCOUT",
+    "ZA_RELEVANCE_CHECK",
+    "HOOK_RETENTION_ANALYST",
+    "SCRIPTURE_ACCURACY",
+    "SCRIPT_GENERATOR",
+    "MASTER_QA",
+    "APPROVED_ARCHIVE"
+  ]
+}

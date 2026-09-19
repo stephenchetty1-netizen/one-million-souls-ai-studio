@@ -1,0 +1,12 @@
+{
+  "creator_search_insights": [],
+  "creator_insights": [],
+  "web_intel": [
+    {"query":"how to pray","cluster":"prayer","captured_at":"2026-09-19","note":"public-web candidate only; not a verified TikTok Content Gap"},
+    {"query":"Bible study for beginners","cluster":"bible","captured_at":"2026-09-19","note":"public-web candidate only; not a verified TikTok Content Gap"},
+    {"query":"how to hear God's voice","cluster":"relationship_with_god","captured_at":"2026-09-19","note":"public-web candidate only; not a verified TikTok Content Gap"},
+    {"query":"prayer when you feel like giving up","cluster":"prayer","captured_at":"2026-09-19","note":"long-tail candidate"},
+    {"query":"where to start reading the Bible","cluster":"bible","captured_at":"2026-09-19","note":"long-tail candidate"},
+    {"query":"when God feels silent","cluster":"relationship_with_god","captured_at":"2026-09-19","note":"long-tail candidate"}
+  ]
+}
