@@ -1,5 +1,6 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'node:crypto'
+import { planVisualStory } from './visual-storyboard.mjs'
 
 const PORT = Number(process.env.PORT || 3000)
 const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
@@ -237,7 +238,7 @@ export async function generateFor(date) {
     const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
-      if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && effectiveItem.title === 'BE STILL')) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
+      if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && planVisualStory({title:effectiveItem.title,script:effectiveItem.script,scriptureReference:effectiveItem.ref}).stockStoryboardAvailable)) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
       video = await render(effectiveItem, variationSeed)
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error)
