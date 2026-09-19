@@ -36,7 +36,7 @@ async function cycle(){
      console.error('YOUTUBE_GROWTH_SCAN_BLOCKED',JSON.stringify(evidence.youtubeGrowth))
    }
  }
- if(!provider) throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
+ if(!provider&&process.env.ZERO_CREDIT_ONLY!=='true') throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
  const planText=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
  evidence.plan=planText
  const parsed=JSON.parse(planText)
