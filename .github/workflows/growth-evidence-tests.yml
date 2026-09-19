@@ -12,6 +12,13 @@ on:
       - "system-agents/release-readiness.test.mjs"
       - "system-agents/worker.mjs"
       - "content-agents/certification-runner.mjs"
+      - "video-renderer/visual-storyboard.mjs"
+      - "video-renderer/visual-storyboard.test.mjs"
+      - "video-renderer/free-ai-render-v2.mjs"
+      - "video-renderer/stock-video-library.mjs"
+      - "video-renderer/daily-factory.mjs"
+      - "video-renderer/Dockerfile"
+      - "content-agents/zero-credit-review.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   pull_request:
     paths:
@@ -24,6 +31,13 @@ on:
       - "system-agents/release-readiness.test.mjs"
       - "system-agents/worker.mjs"
       - "content-agents/certification-runner.mjs"
+      - "video-renderer/visual-storyboard.mjs"
+      - "video-renderer/visual-storyboard.test.mjs"
+      - "video-renderer/free-ai-render-v2.mjs"
+      - "video-renderer/stock-video-library.mjs"
+      - "video-renderer/daily-factory.mjs"
+      - "video-renderer/Dockerfile"
+      - "content-agents/zero-credit-review.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   workflow_dispatch:
 
@@ -40,9 +54,13 @@ jobs:
         with:
           node-version: "22"
       - name: Test fail-closed growth classifier
-        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs system-agents/release-readiness.test.mjs
+        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs system-agents/release-readiness.test.mjs video-renderer/visual-storyboard.test.mjs
       - name: Check runtime and certification syntax
         run: |
           node --check content-agents/certification-runner.mjs
           node --check system-agents/worker.mjs
           node --check system-agents/release-readiness.mjs
+          node --check video-renderer/free-ai-render-v2.mjs
+          node --check video-renderer/stock-video-library.mjs
+          node --check video-renderer/daily-factory.mjs
+          node --check content-agents/zero-credit-review.mjs
