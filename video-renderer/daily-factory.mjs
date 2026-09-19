@@ -229,7 +229,7 @@ export async function generateFor(date) {
     const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
-      if (Date.now() < zeroGpuCooldownUntil) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
+      if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && effectiveItem.title === 'BE STILL')) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
       video = await render(effectiveItem, variationSeed)
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error)
