@@ -54,9 +54,9 @@ export async function rememberYoutubeGrowthScan(scan,metrics={}){
   })).filter(x=>x.key)
   const snapshot={
     at:now(),
-    views:Number(metrics.views||0),
+    views:Number(metrics.views||metrics.videoViews||0),
     uploads:Number(metrics.uploads||0),
-    subscribers:Number(metrics.subscribers||0),
+    subscribers:Number(metrics.subscribers||metrics.latestObservedSubscribers||0),
     subscribersGained:Number(metrics.subscribersGained||0),
     subscribersLost:Number(metrics.subscribersLost||0),
     watchMinutes:Number(metrics.watchMinutes||0),
