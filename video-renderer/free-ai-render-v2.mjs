@@ -616,9 +616,10 @@ export async function renderFreeV2(body = {}) {
   const script = extractScript(body)
   const providers = getFreeProviders()
   const prompts = scenePrompts(body, title, script)
-  const stockSeed = [...`${title}|${script}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
+  const variationSeed = Math.max(0, Number(body?.variationSeed || 0))
+  const stockSeed = [...`${title}|${script}|variation:${variationSeed}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
 
-  console.log('FREE_AI_V2_START', JSON.stringify({ id, title, sceneCount: prompts.length }))
+  console.log('FREE_AI_V2_START', JSON.stringify({ id, title, sceneCount: prompts.length, variationSeed }))
 
   try {
     const voice = await generateVoice(providers, script, work)
@@ -691,6 +692,7 @@ export async function renderFreeV2(body = {}) {
     const result = {
       ok: true,
       renderer: 'one-million-souls-zero-credit-v3',
+      variationSeed,
       mediaUrl,
       masterHash: persisted.masterHash,
       masterBytes: persisted.bytes,
