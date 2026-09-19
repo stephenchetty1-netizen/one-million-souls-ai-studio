@@ -11,10 +11,13 @@ const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
 // Exact-master independent creative rejection: technical PASS is insufficient.
 const REJECTED_BE_STILL_MASTER = '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e'
 function rejectedVisualMaster(entry) {
-  if (String(entry?.title || '').trim().toUpperCase() !== 'BE STILL') return false
-  return String(entry?.masterHash || '').toLowerCase() === REJECTED_BE_STILL_MASTER ||
-    (entry?.rightsClearedStockScenes || []).some(scene => scene?.stockId === 'sunrise-storm-portrait') ||
-    (entry?.visualStoryboardInspection?.beats || []).some(beat => beat?.stockId === 'sunrise-storm-portrait')
+  const title=String(entry?.title||'').trim().toUpperCase()
+  const stockIds=[...(entry?.rightsClearedStockScenes||[]),...(entry?.visualStoryboardInspection?.beats||[])]
+    .map(scene=>scene?.stockId).filter(Boolean)
+  if(title==='DO NOT CARRY TOMORROW'&&stockIds.includes('domica-cave'))return true
+  if(title!=='BE STILL')return false
+  return String(entry?.masterHash||'').toLowerCase()===REJECTED_BE_STILL_MASTER||
+    stockIds.includes('sunrise-storm-portrait')
 }
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
