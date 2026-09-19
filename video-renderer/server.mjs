@@ -7,6 +7,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
+import { requestFactoryRetry } from './daily-factory.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -294,6 +295,22 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, manifest)
     } catch (error) {
       return sendJson(res, 404, { ok:false, error:error instanceof Error ? error.message : 'Manifest not found' })
+    }
+  }
+
+  if (req.method === 'POST' && url.pathname === '/factory-retry') {
+    if (!authorized(req)) return sendJson(res, 401, { ok:false, error:'Unauthorized' })
+    try {
+      const body = await readJson(req)
+      const result = await requestFactoryRetry({
+        date:body?.date,
+        slot:body?.slot,
+        expectedMasterHash:body?.expectedMasterHash,
+        reason:body?.reason,
+      })
+      return sendJson(res, 202, result)
+    } catch (error) {
+      return sendJson(res, 409, { ok:false, blocked:true, error:error instanceof Error ? error.message : 'Factory retry rejected' })
     }
   }
 
