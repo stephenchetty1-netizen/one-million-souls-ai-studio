@@ -66,14 +66,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 COPY --from=build /workspace ./
-RUN printf "%s\n" \
-"import { spawn } from 'node:child_process'" \
-"console.log('V59_AUTONOMY_SUPERVISOR '+JSON.stringify({mode:'24X7',failClosed:true,worker:'enabled'}))" \
-"const child=spawn('npm',['start'],{stdio:'inherit',env:process.env})" \
-"const worker=spawn('node',['system-agents/worker.mjs'],{stdio:'inherit',env:process.env})" \
-"worker.on('error',(e)=>console.error('AUTONOMY_WORKER_SPAWN_ERROR',e.message))" \
-"worker.on('exit',(code)=>console.error('AUTONOMY_WORKER_EXIT',code))" \
-"child.on('exit',(code)=>process.exit(code??1))" \
- > /app/v59-supervisor.mjs
 EXPOSE 3000
-CMD ["node", "v59-supervisor.mjs"]
+# npm start already runs the single authoritative autonomy worker with --with-app,
+# which spawns Next.js. Do not launch a second worker or duplicate certification votes.
+CMD ["npm", "start"]
