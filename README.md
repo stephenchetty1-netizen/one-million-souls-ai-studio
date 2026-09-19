@@ -271,3 +271,24 @@ The system must not render or publish when discernment returns `REVISE`, `RESEAR
 ### Deployment note
 
 Install dependencies in the deployment environment before running the production build. This workspace intentionally does not vendor `node_modules`.
+
+
+## V59 — Google Flow-class Veo 3.1 Rendering
+
+The V59 video renderer can use Google's Veo 3.1 generation API as its preferred production scene generator. This is the supported programmatic path for bringing Flow-class Veo generation into the automated pipeline while preserving the existing immutable-master and approval gates.
+
+### Renderer environment
+
+- `GEMINI_API_KEY` — required Gemini API key (or `GOOGLE_AI_API_KEY`).
+- `GOOGLE_VEO_ENABLED=true` — enables Google generation when a key exists; set `false` to disable it.
+- `GOOGLE_VEO_PRIMARY=true` — makes Veo the first production visual provider.
+- `GOOGLE_VEO_REQUIRED=false` — when `true`, a Veo failure blocks the render instead of using the approved fallback chain.
+- `GOOGLE_VEO_MODEL=veo-3.1-generate-preview` — default quality model.
+- `GOOGLE_VEO_RESOLUTION=1080p` — supported values: `720p`, `1080p`, `4k`.
+- `GOOGLE_VEO_ASPECT_RATIO=9:16` — vertical social-video default.
+- `GOOGLE_VEO_TIMEOUT_MS=900000` — maximum long-running generation wait.
+- `GOOGLE_VEO_POLL_MS=10000` — operation polling interval.
+
+Generated scenes are marked `google-veo-video` in `sceneSources`. The final V59 assembly intentionally discards provider scene audio and keeps the existing approved narration, music, captions, loudness normalization, QA, immutable hash, 49-agent approval, and Publisher-last release gates authoritative.
+
+A Veo render is therefore only a production candidate; it cannot bypass the professional-master or release-readiness checks.
