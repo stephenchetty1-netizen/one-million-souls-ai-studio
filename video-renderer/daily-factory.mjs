@@ -376,6 +376,20 @@ export async function generateFor(date) {
   }
   const complete = entries.length === slotTimes.length && entries.every(e => e?.renderQualityGate === 'PASS')
   const manifest = {ok:complete,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
+  // Preserve accessible old exact masters in the public review manifest while
+  // the building manifest retains PRODUCTION_RETRY for autonomous repair.
+  // Never treat preserved outdated masters as approved or release-ready.
+  if(!complete && Array.isArray(existing?.entries)){
+    manifest.entries=entries.map(entry=>{
+      if(entry?.releaseStatus!=='PRODUCTION_RETRY')return entry
+      const old=existing.entries.find(prior=>prior?.slot===entry.slot &&
+        /^[a-f0-9]{64}$/i.test(String(prior?.masterHash||'')) &&
+        prior?.mediaUrl && prior?.releasePayload?.masterHash===prior.masterHash)
+      return old?{...old,releaseStatus:'TECHNICAL_BLOCK_REGENERATION_PENDING',
+        publishingLocked:true,renderQualityGate:'BLOCK',retryEligible:true,
+        failureReason:entry.failureReason,failedAt:entry.failedAt}:entry
+    })
+  }
   const body = JSON.stringify(manifest,null,2)
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
