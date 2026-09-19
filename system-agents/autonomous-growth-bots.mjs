@@ -3,6 +3,7 @@ import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs
 import { runTikTokGrowthScan } from '../content-agents/tiktok-growth-swarm.mjs'
 import { loadAnalyticsSnapshot } from '../content-agents/growth-analytics-snapshot.mjs'
 import { loadVerifiedPerformance } from '../content-agents/verified-performance-evidence.mjs'
+import { refreshGrowthProvider } from '../content-agents/growth-provider-refresh.mjs'
 
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
@@ -90,19 +91,22 @@ async function runBot(bot){
     }
     await durableRedis(['SET',key(bot,'state'),JSON.stringify(running)])
     guard()
+    const providerRefresh=await refreshGrowthProvider(bot.platform)
+    if(providerRefresh.updated)console.log('GROWTH_PROVIDER_REFRESHED',JSON.stringify({platform:bot.platform,...providerRefresh}))
+    else if(!providerRefresh.skipped)console.error('GROWTH_PROVIDER_REFRESH_UNAVAILABLE',JSON.stringify({platform:bot.platform,...providerRefresh}))
     const input=snapshot.available?{metrics:snapshot.metrics,performanceRecords:snapshot.records}:{}
     const result=await bot.run(input)
     const summary=safeSummary(bot,result,snapshot)
     const finished=Date.now()
     const state={
-      ...running,...summary,
+      ...running,...summary,providerRefresh,
       updatedAt:when(finished),finishedAt:when(finished),
       lastSuccessAt:summary.status==='BLOCKED'?current?.lastSuccessAt||null:when(finished),
       nextEligibleAt:when(finished+(summary.status==='BLOCKED'?RETRY_MS:period(bot))),
       elapsedMs:finished-start,
     }
     await durableRedis(['SET',key(bot,'state'),JSON.stringify(state)])
-    return {id:bot.id,...summary,nextEligibleAt:state.nextEligibleAt,elapsedMs:state.elapsedMs}
+    return {id:bot.id,...summary,providerRefresh,nextEligibleAt:state.nextEligibleAt,elapsedMs:state.elapsedMs}
   }catch(err){
     const finished=Date.now()
     const state={
