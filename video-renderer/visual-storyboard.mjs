@@ -12,6 +12,11 @@ export const CAPTION_LAYOUT=Object.freeze({
 // not silently pick unrelated assets by numeric index when generation fails.
 // Other titles need a reviewed 3-beat selection or actual coherent AI video.
 const CURATED_STOCK_STORYBOARDS=Object.freeze({
+  'BE STILL':[
+    {stockId:'sunrise-storm-portrait',meaning:'A storm illustrates the pressure to keep striving',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Water settles into a quiet rhythm as the invitation to stillness is heard',startSeconds:0},
+    {stockId:'sunrise-storm-portrait',meaning:'Return to the same sky at dawn as a visual response of trust',startSeconds:9,repriseOf:0},
+  ],
   'DO NOT CARRY TOMORROW':[
     {stockId:'sunrise-storm-portrait',meaning:'Today begins; tomorrow is still unknown',startSeconds:0},
     {stockId:'domica-cave',meaning:'A temporary visual metaphor for feeling overwhelmed by worry',startSeconds:0},
