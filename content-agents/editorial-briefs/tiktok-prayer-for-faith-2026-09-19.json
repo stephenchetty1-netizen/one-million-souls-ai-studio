@@ -13,7 +13,19 @@
     "query": "prayer for faith",
     "displayed_flame_figure": "84.4K",
     "displayed_growth": "+56.9%",
-    "note": "TikTok UI figures are not guaranteed future views. The source is a dated screenshot, not autonomous live TikTok Studio API access."
+    "note": "TikTok UI figures are not guaranteed future views. The source is a dated screenshot, not autonomous live TikTok Studio API access.",
+    "details": {
+      "source_id": "owner_uploaded_tiktok_creator_search_insights_prayer_for_faith_detail_2026-09-19_21-25_SAST",
+      "date_window": "Last 7 days; Sep 13–19, 2026",
+      "geography": "Global",
+      "search_popularity": "84.4K",
+      "growth": "+56.9%",
+      "creators_also_posted": "19.0K",
+      "majority_age": "25–34",
+      "gender": "Not shown",
+      "viewer_need_summary": "Strengthen faith, seek forgiveness, and feel spiritually encouraged through simple shareable videos",
+      "caution": "Global aggregate and self-described viewer insights do not identify South African age distribution or predict future views."
+    }
   },
   "brief": {
     "workingTitle": "A Prayer for Faith When You Feel Afraid",
@@ -62,7 +74,9 @@
         "onScreen": "Mark 9:24 • Save this prayer"
       }
     ],
-    "audio": "Use cleared soundtrack with documented sync/license or no music; intelligible human-quality voice, no clipped peaks."
+    "audio": "Use cleared soundtrack with documented sync/license or no music; intelligible human-quality voice, no clipped peaks.",
+    "targetAudienceEvidence": "TikTok Studio shows ages 25–34 as the majority age band for this global search topic, not necessarily for the channel's own audience.",
+    "creativeFocus": "Simple, personal, faith-strengthening prayer that makes room for imperfect belief; do not promise a breakthrough, shame doubters, or infer precise demographics beyond the global screenshot."
   },
   "qualityGates": [
     "Verify exact KJV verse and context",
@@ -71,5 +85,5 @@
     "Verify subtitle timing and safe zones",
     "Independent exact-file review and standard V59 approvals before publishing"
   ],
-  "nextAction": "Research -> original production draft -> independent technical/editorial review; no scheduling or posting"
+  "nextAction": "Dated source logged; original editorial brief prepared; produce only licensed moving-footage draft and run independent actual-master review before scheduling or publishing."
 }
