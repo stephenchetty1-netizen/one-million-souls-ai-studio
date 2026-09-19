@@ -54,6 +54,11 @@ async function releaseReadinessSummary(){
       if(entry?.releaseStatus==='PRODUCTION_RETRY'||entry?.renderQualityGate!=='PASS'){
         summary.productionRetry++;issue({date,slot:entry?.slot,title:entry?.title,reason:'PRODUCTION_RETRY_OR_RENDER_BLOCK'});continue
       }
+      if(entry?.visualStoryboardInspection?.passed!==true||
+         entry?.visualStoryboardInspection?.version!=='v59-visual-coherence-v1'||
+         Number(entry?.captionInspection?.bottomSafeMargin||0)<360){
+        summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'STORYBOARD_OR_MOBILE_CAPTIONS_REQUIRE_NEW_MASTER'});continue
+      }
       if(!identityOk){
         summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'INVALID_RELEASE_IDENTITY'});continue
       }
@@ -153,8 +158,13 @@ function objectiveTechnical(entry){
   const sceneMotion=Array.isArray(entry?.sceneMotionInspection)&&entry.sceneMotionInspection.length>=3&&entry.sceneMotionInspection.every((x)=>x?.passed===true)
   const exportPass=entry?.masterInspection?.passed===true&&entry?.fullDecodeInspection?.passed===true&&
     Number(entry?.width)>=1080&&Number(entry?.height)>=1920&&Number(entry?.fps)>=30
+  const narrative=entry?.visualStoryboardInspection?.passed===true&&
+    entry?.visualStoryboardInspection?.version==='v59-visual-coherence-v1'&&
+    entry?.visualStoryboardInspection?.humanPerceptualReviewRequired===true&&
+    Number(entry?.captionInspection?.bottomSafeMargin||0)>=360&&
+    Number(entry?.captionInspection?.horizontalSafeMargin||0)>=120
   const pass=exportPass&&entry?.audioInspection?.passed===true&&entry?.captionInspection?.passed===true&&
-    entry?.visualVarietyInspection?.passed===true&&sceneMotion&&entry?.professionalMasterCandidate===true
+    entry?.visualVarietyInspection?.passed===true&&sceneMotion&&narrative&&entry?.professionalMasterCandidate===true
   return {
     status:pass?'PASS':'BLOCK',
     notes:pass
@@ -167,6 +177,7 @@ function objectiveTechnical(entry){
       captionInspection:entry?.captionInspection,
       visualVarietyInspection:entry?.visualVarietyInspection,
       sceneMotionInspection:entry?.sceneMotionInspection,
+      visualStoryboardInspection:entry?.visualStoryboardInspection,
     },
   }
 }
@@ -454,11 +465,14 @@ async function candidateEntries(){
     try{
       const manifest=await fetchJson(`${rendererBase}/factory-manifest?date=${date}`,renderSecret)
       const versionMatch=String(manifest?.pipelineVersion||'').match(/v59-professional-master-certified-v(\d+)$/)
-      if(!versionMatch||Number(versionMatch[1])<17){
+      if(!versionMatch||Number(versionMatch[1])<18){
         console.warn('MASTER_CERTIFICATION_STALE_PIPELINE_SKIP',JSON.stringify({date,pipelineVersion:manifest?.pipelineVersion||'missing'}))
         continue
       }
       for(const entry of manifest?.entries||[]){
+        if(entry?.visualStoryboardInspection?.passed!==true||
+           entry?.visualStoryboardInspection?.version!=='v59-visual-coherence-v1'||
+           Number(entry?.captionInspection?.bottomSafeMargin||0)<360)continue
         if(entry?.renderQualityGate!=='PASS'||!entry?.professionalMasterCandidate||entry?.releaseStatus!=='AWAITING_MASTER_CERTIFICATION')continue
         if(!validHash(entry?.masterHash)||!validHash(entry?.contentHash)||!validHash(entry?.thumbnailHash))continue
         if(!entry?.releasePayload||entry.releasePayload.masterHash!==entry.masterHash)continue
