@@ -1,15 +1,119 @@
 {
-  "source": "Metricool connected TikTok post analytics",
+  "source": "Metricool connected TikTok post analytics (verified account @stephen_chetty)",
   "capturedAt": "2026-09-19",
+  "window": {
+    "from": "2026-09-10",
+    "to": "2026-09-18"
+  },
+  "scope": "Owned account post analytics only; NOT TikTok Studio Creator Search Insights or verified content-gap evidence",
   "posts": [
-    {"date":"2026-09-17","topic":"Isaiah 58:9 — Here I Am","durationSeconds":20,"views":338,"likes":28,"comments":2,"shares":2,"averageWatchSeconds":6,"watchToDurationPercent":30.0},
-    {"date":"2026-09-16","topic":"Psalm 27:8 — Seek My Face","durationSeconds":23,"views":149,"likes":14,"comments":0,"shares":1,"averageWatchSeconds":5,"watchToDurationPercent":21.7},
-    {"date":"2026-09-15","topic":"Romans 12:1 — Living Sacrifice","durationSeconds":43,"views":146,"likes":13,"comments":1,"shares":0,"averageWatchSeconds":6,"watchToDurationPercent":14.0},
-    {"date":"2026-09-14","topic":"Pray Without Ceasing","durationSeconds":58,"views":121,"likes":16,"comments":1,"shares":0,"averageWatchSeconds":8,"watchToDurationPercent":13.8},
-    {"date":"2026-09-13","topic":"Believe You Have Received","durationSeconds":35,"views":198,"likes":28,"comments":0,"shares":0,"averageWatchSeconds":8,"watchToDurationPercent":22.9},
-    {"date":"2026-09-12","topic":"Be Still and Know","durationSeconds":60,"views":143,"likes":26,"comments":1,"shares":0,"averageWatchSeconds":7,"watchToDurationPercent":11.7},
-    {"date":"2026-09-11","topic":"Isaiah 40 — Eagles Wings","durationSeconds":27,"views":122,"likes":23,"comments":1,"shares":1,"averageWatchSeconds":7,"watchToDurationPercent":25.9},
-    {"date":"2026-09-10","topic":"Matthew 4:4 — Bread Alone","durationSeconds":49,"views":221,"likes":36,"comments":5,"shares":2,"averageWatchSeconds":17,"watchToDurationPercent":34.7},
-    {"date":"2026-09-09","topic":"Jeremiah 29:12 — God Heard Your Prayer","durationSeconds":17,"views":140,"likes":29,"comments":0,"shares":1,"averageWatchSeconds":7,"watchToDurationPercent":41.2}
+    {
+      "date": "2026-09-18",
+      "topic": "Ask. Believe. Receive. — Mark 11:24",
+      "postId": "7687002827645930759",
+      "durationSeconds": 29,
+      "views": 360,
+      "likes": 23,
+      "comments": 3,
+      "shares": 1,
+      "averageWatchSeconds": 6,
+      "watchToDurationPercent": 20.7
+    },
+    {
+      "date": "2026-09-17",
+      "topic": "Isaiah 58:9 — Here I Am",
+      "postId": "7686634937579080978",
+      "durationSeconds": 20,
+      "views": 341,
+      "likes": 28,
+      "comments": 2,
+      "shares": 2,
+      "averageWatchSeconds": 6,
+      "watchToDurationPercent": 30
+    },
+    {
+      "date": "2026-09-16",
+      "topic": "Psalm 27:8 — Seek My Face",
+      "postId": "7686261392588016903",
+      "durationSeconds": 23,
+      "views": 149,
+      "likes": 14,
+      "comments": 0,
+      "shares": 1,
+      "averageWatchSeconds": 5,
+      "watchToDurationPercent": 21.7
+    },
+    {
+      "date": "2026-09-15",
+      "topic": "Romans 12:1 — Living Sacrifice",
+      "postId": "7685885904065432850",
+      "durationSeconds": 43,
+      "views": 146,
+      "likes": 13,
+      "comments": 1,
+      "shares": 0,
+      "averageWatchSeconds": 6,
+      "watchToDurationPercent": 14
+    },
+    {
+      "date": "2026-09-14",
+      "topic": "Pray Without Ceasing",
+      "postId": "7685523920270806279",
+      "durationSeconds": 58,
+      "views": 121,
+      "likes": 16,
+      "comments": 1,
+      "shares": 0,
+      "averageWatchSeconds": 8,
+      "watchToDurationPercent": 13.8
+    },
+    {
+      "date": "2026-09-13",
+      "topic": "Believe You Have Received",
+      "postId": "7685145323144154386",
+      "durationSeconds": 35,
+      "views": 198,
+      "likes": 28,
+      "comments": 0,
+      "shares": 0,
+      "averageWatchSeconds": 8,
+      "watchToDurationPercent": 22.9
+    },
+    {
+      "date": "2026-09-12",
+      "topic": "Be Still and Know",
+      "postId": "7684790341001563410",
+      "durationSeconds": 60,
+      "views": 143,
+      "likes": 26,
+      "comments": 1,
+      "shares": 0,
+      "averageWatchSeconds": 7,
+      "watchToDurationPercent": 11.7
+    },
+    {
+      "date": "2026-09-11",
+      "topic": "Isaiah 40 — Eagles Wings",
+      "postId": "7684401667541912840",
+      "durationSeconds": 27,
+      "views": 122,
+      "likes": 23,
+      "comments": 1,
+      "shares": 1,
+      "averageWatchSeconds": 7,
+      "watchToDurationPercent": 25.9
+    },
+    {
+      "date": "2026-09-10",
+      "topic": "Matthew 4:4 — Bread Alone",
+      "postId": "7684058041024630024",
+      "durationSeconds": 49,
+      "views": 222,
+      "likes": 36,
+      "comments": 5,
+      "shares": 2,
+      "averageWatchSeconds": 17,
+      "watchToDurationPercent": 34.7
+    }
   ]
 }
