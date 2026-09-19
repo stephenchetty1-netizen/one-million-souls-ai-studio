@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { durableRedis } from '@/content-agents/durable-redis.mjs'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -15,14 +16,7 @@ function authorized(req:Request){
 }
 async function policy(){return JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','approval-policy.json'),'utf8'))}
 function hash(v:any){return /^[a-f0-9]{64}$/i.test(String(v||''))?String(v).toLowerCase():''}
-const redisUrl=(process.env.UPSTASH_REDIS_REST_URL||process.env.KV_REST_API_URL||'').replace(/\/$/,'')
-const redisToken=process.env.UPSTASH_REDIS_REST_TOKEN||process.env.KV_REST_API_TOKEN||''
-async function redis(command:any[]){
- if(!redisUrl||!redisToken)throw new Error('DURABLE_CERTIFICATE_STORE_NOT_CONFIGURED')
- const r=await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
- if(!r.ok)throw new Error(`CERTIFICATE_STORE_HTTP_${r.status}`)
- const data:any=await r.json(); return data?.result
-}
+const redis=durableRedis
 function certificateKey(contentHash:string,masterHash:string){return `one-million-souls:v59:certificate:${contentHash}:${masterHash}`}
 
 export async function POST(req:Request){
