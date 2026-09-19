@@ -8,6 +8,7 @@ import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
 const execFileAsync=promisify(execFile)
 import {PEXELS_COLLECTIONS,validatePexelsMetadata,validatedPexelsVideoUrl} from './pexels-source-import.mjs'
 import {CHRISTIAN_VIDEO_FORMATS,requireChristianVideoFormat,inspectChristianVideoSources} from './christian-video-formats.mjs'
+import {christianVisualReviewReadiness} from './christian-visual-editorial-gate.mjs'
 
 const ROOT='internal/pexels-source-candidates/v1'
 const MAX_BYTES=95*1024*1024
@@ -265,11 +266,20 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
    }
  }
  const result=inspectChristianVideoSources(format,assets,Infinity)
+ const editorial=christianVisualReviewReadiness(assets)
+ const ready=result.readyForDraftRender&&
+   editorial.reviewedClips>=profile.minimumDistinctClips
+ const blockers=[...result.blockers]
+ if(editorial.reviewedClips<profile.minimumDistinctClips)
+   blockers.push('HUMAN_CHRISTIAN_SCENE_REVIEW_REQUIRED_'+
+     editorial.reviewedClips+'_OF_'+profile.minimumDistinctClips)
  const manifest={
    collection:plan.collection,formatId:format,provider:'Pexels',
    pexelsLink:'https://www.pexels.com/',license:'Pexels License',
    sourceClips:assets.length,status:'AWAITING_SOURCE_VISUAL_REVIEW',
-   sourceBankReady:result.readyForDraftRender,blockers:result.blockers,
+   sourceBankReady:ready,technicalSourceReady:result.readyForDraftRender,
+   christianVisualEditorialReady:editorial.reviewedClips>=profile.minimumDistinctClips,
+   christianVisualReviewedClips:editorial.reviewedClips,blockers,
    failures,invalidSources,publishingLocked:true,noPaidGenerationCredits:true,
    assets,generatedAt:new Date().toISOString()
  }
@@ -278,12 +288,16 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
    ContentType:'application/json',CacheControl:'private, no-store'}))
  console.log('PEXELS_FORMAT_STAGE_RESULT',JSON.stringify({
    format,collection:plan.collection,sourceClips:assets.length,
-   required:profile.minimumDistinctClips,staged,ready:result.readyForDraftRender,
-   blockers:result.blockers,failures,invalidSources,publishingAllowed:false
+   required:profile.minimumDistinctClips,staged,ready,
+   technicalSourceReady:result.readyForDraftRender,
+   christianVisualReviewedClips:editorial.reviewedClips,
+   blockers,failures,invalidSources,publishingAllowed:false
  }))
- return {ok:result.readyForDraftRender,format,collection:plan.collection,
+ return {ok:ready,format,collection:plan.collection,
    sourceClips:assets.length,required:profile.minimumDistinctClips,
-   staged,blockers:result.blockers,failures,invalidSources,publishingAllowed:false}
+   technicalSourceReady:result.readyForDraftRender,
+   christianVisualReviewedClips:editorial.reviewedClips,
+   staged,blockers,failures,invalidSources,publishingAllowed:false}
  })()
  try{return await active}finally{active=null}
 }
