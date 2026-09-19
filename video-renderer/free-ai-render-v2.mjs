@@ -9,6 +9,7 @@ import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 import { createRightsClearedStockScene } from './stock-video-library.mjs'
+import { createRightsClearedStockMusic } from './stock-music-library.mjs'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -320,14 +321,17 @@ async function generateCloudMusic(providers, duration, work) {
   return { url, local, provider: providers.music.name }
 }
 
-async function generateMusic(providers, duration, work) {
+async function generateMusic(providers, duration, work, seed=0) {
   if (process.env.LOCAL_MUSIC_ONLY === 'true') return createLocalAmbientMusic(duration, work)
   try {
-    return await generateCloudMusic(providers, duration, work)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.warn('FREE_AI_MUSIC_FALLBACK', JSON.stringify({ error: message }))
-    return createLocalAmbientMusic(duration, work)
+    return await createRightsClearedStockMusic(duration, work, seed)
+  } catch (stockError) {
+    const stockMessage = stockError instanceof Error ? stockError.message : String(stockError)
+    console.warn('RIGHTS_CLEARED_STOCK_MUSIC_FAILED', JSON.stringify({ error: stockMessage }))
+    if (process.env.ALLOW_GENERATED_MUSIC_FALLBACK === 'true') {
+      return await generateCloudMusic(providers, duration, work)
+    }
+    throw new Error(`Rights-cleared stock music unavailable and generated-music fallback is disabled: ${stockMessage}`)
   }
 }
 
@@ -599,7 +603,7 @@ export async function renderFreeV2(body = {}) {
     const voiceDuration = await mediaDuration(voice.local)
     console.log('FREE_AI_VOICE_READY', JSON.stringify({ id, provider: voice.provider, durationSeconds: Number(voiceDuration.toFixed(2)) }))
 
-    const musicPromise = generateMusic(providers, voiceDuration, work)
+    const musicPromise = generateMusic(providers, voiceDuration, work, stockSeed)
     const scenes = []
     const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
@@ -689,10 +693,10 @@ export async function renderFreeV2(body = {}) {
         license:'UNVERIFIED_FOR_REUSE',
         source:null,
       },
-      musicRights: {
-        model:'Stable Audio Open',
-        license:'Stability AI Community License',
-        source:'https://stability.ai/license',
+      musicRights: music.rights || {
+        model:String(music.provider || 'unknown'),
+        license:'UNVERIFIED',
+        source:music.url || null,
         complianceRequired:true,
       },
       imageProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
