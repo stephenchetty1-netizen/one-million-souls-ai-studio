@@ -220,7 +220,7 @@ async function generateScene(providers, prompt, index, work, seconds, stockSeed 
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
   const preferGoogleVeo = !ZERO_CREDIT_ONLY && googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
   const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
-  const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true'
+  const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true' || (process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && Boolean(stockSelection?.stockId))
   const authenticatedHf = Boolean(String(process.env.HF_TOKEN || '').trim())
 
   if (preferGoogleVeo) {
@@ -242,7 +242,7 @@ async function generateScene(providers, prompt, index, work, seconds, stockSeed 
   if (stockEnabled && stockPrimary && !authenticatedHf && !stockSelection?.stockId) {
     console.warn('CURATED_STOCK_UNAVAILABLE_TRY_FREE_ORIGINAL_VIDEO',JSON.stringify({index}))
   }
-  if (stockEnabled && stockPrimary && !authenticatedHf && stockSelection?.stockId) {
+  if (stockEnabled && stockPrimary && (!authenticatedHf || process.env.CURATED_STOCK_QUOTA_BYPASS === 'true') && stockSelection?.stockId) {
     const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed, stockSelection)
     console.log('RIGHTS_CLEARED_STOCK_PRIMARY', JSON.stringify({
       index,
