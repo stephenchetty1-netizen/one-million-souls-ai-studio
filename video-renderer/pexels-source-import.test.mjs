@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
  PEXELS_COLLECTIONS,validatedPexelsVideoUrl,choosePortraitMp4,
- validatePexelsMetadata,stagePexelsCollection,
+ validatePexelsMetadata,stagePexelsCollection,createPexelsPreviewScene,
 } from './pexels-source-import.mjs'
 const hd=(width,height,fps=30,link='https://videos.pexels.com/video-files/100/100-hd_1080_1920.mp4')=>
  ({id:200,quality:'hd',file_type:'video/mp4',width,height,fps,link})
@@ -45,4 +45,13 @@ test('no API key must fail closed before any network request',async()=>{
  }finally{
   if(prior!==undefined)process.env.PEXELS_API_KEY=prior
  }
+})
+
+test('Pexels proof refuses all uncurated topics and invalid scene positions',async()=>{
+ await assert.rejects(createPexelsPreviewScene({
+  collection:'UNAPPROVED',beatIndex:0,work:'/tmp'
+ }),/PEXELS_PREVIEW_COLLECTION_NOT_ALLOWLISTED/)
+ await assert.rejects(createPexelsPreviewScene({
+  collection:'BE_STILL_PEXELS_V1',beatIndex:4,work:'/tmp'
+ }),/PEXELS_PREVIEW_BEAT_INDEX_INVALID/)
 })
