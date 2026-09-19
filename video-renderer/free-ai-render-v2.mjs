@@ -74,10 +74,26 @@ function highlightCaption(text) {
     (word) => `{\\c${gold}\\b1}${word}{\\rCaption}`)
 }
 
-function buildAss(script, duration) {
+function captionChunks(script) {
   const words = script.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
   const chunks = []
-  for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5).join(' '))
+  let current = []
+  for (const word of words) {
+    const candidate = [...current, word]
+    const text = candidate.join(' ')
+    if (current.length && (candidate.length > 5 || text.length > 42)) {
+      chunks.push(current)
+      current = [word]
+    } else {
+      current = candidate
+    }
+  }
+  if (current.length) chunks.push(current)
+  return chunks
+}
+
+function buildAss(script, duration) {
+  const chunks = captionChunks(script).map((chunk) => chunk.join(' '))
   if (!chunks.length) chunks.push('Keep trusting God')
   const slice = duration / Math.max(1, chunks.length)
   if (slice < 0.75) throw new Error(`Caption quality gate failed: caption cadence too fast (${slice.toFixed(2)}s per phrase)`)
@@ -408,9 +424,7 @@ async function compose({ scenes, voice, music, script, title, work }) {
 }
 
 function inspectCaptionSafeZones(script, duration) {
-  const words = script.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
-  const chunks = []
-  for (let i = 0; i < words.length; i += 5) chunks.push(words.slice(i, i + 5))
+  const chunks = captionChunks(script)
   if (!chunks.length) throw new Error('Caption quality gate failed: no caption phrases')
   const secondsPerPhrase = duration / chunks.length
   const problems = []
