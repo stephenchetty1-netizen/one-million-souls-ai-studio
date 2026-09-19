@@ -269,5 +269,8 @@
     }
   ],
   "unmatchedTitles": [],
-  "note": "This is a manifest reconciliation, not evidence of perceptual video approval or 50 durable votes."
+  "note": "Live readiness summary caps issues at 20, so one of 21 renderer slots is not included here. Do not treat this as a complete renderer manifest, video approval, or 50 durable votes.",
+  "reconciledSlotDetails": 20,
+  "reconciliationComplete": false,
+  "unreconciledSlots": 1
 }
