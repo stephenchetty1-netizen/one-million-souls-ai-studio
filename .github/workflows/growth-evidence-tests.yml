@@ -12,6 +12,8 @@ on:
       - "system-agents/release-readiness.test.mjs"
       - "system-agents/worker.mjs"
       - "content-agents/certification-runner.mjs"
+      - "content-agents/review-disposition.mjs"
+      - "content-agents/review-disposition.test.mjs"
       - "video-renderer/visual-storyboard.mjs"
       - "video-renderer/visual-storyboard.test.mjs"
       - "video-renderer/free-ai-render-v2.mjs"
@@ -31,6 +33,8 @@ on:
       - "system-agents/release-readiness.test.mjs"
       - "system-agents/worker.mjs"
       - "content-agents/certification-runner.mjs"
+      - "content-agents/review-disposition.mjs"
+      - "content-agents/review-disposition.test.mjs"
       - "video-renderer/visual-storyboard.mjs"
       - "video-renderer/visual-storyboard.test.mjs"
       - "video-renderer/free-ai-render-v2.mjs"
@@ -54,7 +58,7 @@ jobs:
         with:
           node-version: "22"
       - name: Test fail-closed growth classifier
-        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs system-agents/release-readiness.test.mjs video-renderer/visual-storyboard.test.mjs
+        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs system-agents/release-readiness.test.mjs video-renderer/visual-storyboard.test.mjs content-agents/review-disposition.test.mjs
       - name: Check runtime and certification syntax
         run: |
           node --check content-agents/certification-runner.mjs
