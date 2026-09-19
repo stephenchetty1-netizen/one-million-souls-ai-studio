@@ -7,6 +7,7 @@ import {promisify} from 'node:util'
 import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
 import {planVisualStory} from './visual-storyboard.mjs'
 import {buildPexelsReviewStoryboard,createPexelsReviewScene} from './pexels-review-scenes.mjs'
+import {CHRISTIAN_VIDEO_FORMATS,requireChristianVideoFormat,inspectChristianVideoSources,requireChristianVideoSources} from './christian-video-formats.mjs'
 
 const run=promisify(execFile)
 const COLLECTION='BE_STILL_PEXELS_V1'
@@ -97,11 +98,43 @@ async function checkedWork(file,kind,minDuration){
 export const musicVideoContract=Object.freeze({
   title:TITLE,collection:COLLECTION,sourceTitle:MUSIC.title,
   musicSourcePage:MUSIC.sourcePage,musicLicense:MUSIC.license,
-  bpmReference:BPM,secondsPerShot:SHOT_SECONDS,durationSeconds:DURATION,
+  formats:CHRISTIAN_VIDEO_FORMATS,
+  shortDurationSeconds:59,longFormDurationSeconds:240,
+  archivedPreviewDurationSeconds:DURATION,
   publishingAllowed:false,independentEditorialReviewRequired:true,
 })
+async function readPexelsSourceInventory(s3,format){
+  const key=format.id==='SHORT_59'
+    ?'internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json'
+    :'internal/pexels-source-candidates/v1/YOUTUBE_WORSHIP_LANDSCAPE_V1/manifest.json'
+  try{
+    const obj=await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key}))
+    const json=JSON.parse(await obj.Body.transformToString())
+    return Array.isArray(json?.assets)?json.assets:[]
+  }catch(error){
+    if(!['NoSuchKey','NotFound'].includes(error?.name||''))
+      console.warn('CHRISTIAN_VIDEO_SOURCE_MANIFEST_UNAVAILABLE',JSON.stringify({
+        format:format.id,reason:error?.name||'read failed'
+      }))
+    return []
+  }
+}
+export async function inspectChristianVideoFormatReadiness(formatId='SHORT_59'){
+  const format=requireChristianVideoFormat(formatId)
+  if(!storageReady())throw new Error('CHRISTIAN_MUSIC_VIDEO_PRIVATE_STORAGE_REQUIRED')
+  const assets=await readPexelsSourceInventory(store(),format)
+  const visualReadiness=inspectChristianVideoSources(formatId,assets,Infinity)
+  return {formatId,format,sourceClipsStaged:assets.length,
+    distinctPortraitOrLandscapeClips:visualReadiness.eligibleDistinctClips,
+    requiredDistinctClips:format.minimumDistinctClips,
+    // Music file duration gets checked separately before any actual rendering.
+    visualSourcesReady:visualReadiness.blockers.length===0,
+    blockers:visualReadiness.blockers,
+    musicDurationChecked:false,publishingAllowed:false,independentEditorialReviewRequired:true}
+}
 let activeDraft=null
-export async function renderChristianMusicVideoDraft(){
+export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
+  const profile=requireChristianVideoFormat(format)
   if(activeDraft)throw new Error('CHRISTIAN_MUSIC_VIDEO_ALREADY_RENDERING')
   if(!storageReady())throw new Error('CHRISTIAN_MUSIC_VIDEO_PRIVATE_STORAGE_REQUIRED')
   activeDraft=(async()=>{
@@ -110,10 +143,21 @@ export async function renderChristianMusicVideoDraft(){
     await fs.mkdir(work,{recursive:true})
     const s3=store()
     try{
+      const staged=await readPexelsSourceInventory(s3,profile)
+      // The old 18-second three-shot preview must never be stretched or looped
+      // to claim a 59-second reel or four-minute landscape YouTube video.
+      const preflight=inspectChristianVideoSources(format,staged,Infinity)
+      if(!preflight.readyForDraftRender)
+        throw new Error('CHRISTIAN_VIDEO_FORMAT_SOURCES_BLOCKED: '+preflight.blockers.join(';'))
       const audio=path.join(work,'amazing-grace-2011.mp3')
       const music=await cachedMusic(s3)
       await fs.writeFile(audio,music)
-      await checkedWork(audio,'CHRISTIAN_MUSIC',35)
+      const musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+0.5)
+      requireChristianVideoSources(format,staged,musicDuration)
+      // The existing editor has a three-shot portrait timeline only. Once the
+      // 59s / 4m native-format source bank is ready it needs the corresponding
+      // non-repeating timeline editor; never silently emit its old 18s cut.
+      throw new Error('CHRISTIAN_VIDEO_'+format+'_CURATED_TIMELINE_NOT_YET_IMPLEMENTED')
       const initial=planVisualStory({title:'BE STILL',script,scriptureReference:'Psalm 46:10'})
       const storyboard=buildPexelsReviewStoryboard(initial,COLLECTION)
       const scenes=[]
