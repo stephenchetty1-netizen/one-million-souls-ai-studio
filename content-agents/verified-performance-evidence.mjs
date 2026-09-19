@@ -79,6 +79,20 @@ async function readBootstrap(){
     return JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','verified-metricool-bootstrap.json'),'utf8')).snapshots||{}
   }catch{return {}}
 }
+export function selectVerifiedSnapshot(items=[]){
+  const available=(Array.isArray(items)?items:[])
+    .filter(s=>s&&Number.isFinite(Date.parse(s.capturedAt)))
+    .sort((a,b)=>Date.parse(b.capturedAt)-Date.parse(a.capturedAt))
+  const newest=available[0]||null
+  // An empty newer report cannot overwrite measured post evidence; retain
+  // the measured report with its ORIGINAL date so stale data stays stale.
+  const selected=available.find(s=>Number(s.measuredPostCount||0)>0)||newest
+  return {
+    selected,
+    latestCaptureAt:newest?.capturedAt||null,
+    latestReportMissingMeasurements:Boolean(newest&&newest!==selected),
+  }
+}
 function freshness(s){
   if(!s)return {status:'UNAVAILABLE',ageHours:null}
   const age=(Date.now()-Date.parse(s.capturedAt))/3600000
@@ -110,12 +124,15 @@ export async function loadVerifiedPerformance(platform){
     warning=warning||String(error?.message||error)
   }
   const available=[seed,live,existing].filter(Boolean)
-  const selected=available.sort((a,b)=>Date.parse(b.capturedAt)-Date.parse(a.capturedAt))[0]||null
+  const selection=selectVerifiedSnapshot(available)
+  const selected=selection.selected
   const result={
     platform,
     transport:selected===live?'DURABLE_VERIFIED_INGEST':selected===existing?'CONNECTED_METRICOOL_SNAPSHOT':selected?'DATED_BOOTSTRAP_FILE':'UNAVAILABLE',
     ...(selected||{capturedAt:null,records:[],channelMetrics:{},postCount:0,measuredPostCount:0,metricsComplete:false}),
     freshness:freshness(selected),
+    latestCaptureAt:selection.latestCaptureAt,
+    latestReportMissingMeasurements:selection.latestReportMissingMeasurements,
     autonomousUpstreamConfigured:platform==='youtube'
       ? Boolean(process.env.YOUTUBE_API_KEY&&process.env.YOUTUBE_CHANNEL_ID)
       : Boolean(process.env.TIKTOK_DISPLAY_ACCESS_TOKEN),
