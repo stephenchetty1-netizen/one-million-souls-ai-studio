@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v5'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v6'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -176,7 +176,23 @@ async function generateFor(date) {
       continue
     }
 
-    const video = await render(item)
+    let video
+    try {
+      video = await render(item)
+    } catch (error) {
+      const failedEntry = {
+        slot:slotTimes[i], title:item.title, scriptureReference:item.ref, caption:item.caption,
+        publishingLocked:true, releaseStatus:'PRODUCTION_RETRY', renderQualityGate:'BLOCK',
+        failureReason:error instanceof Error ? error.message : String(error),
+        scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
+        retryEligible:true, failedAt:new Date().toISOString()
+      }
+      entries.push(failedEntry)
+      const partial = {ok:false,partial:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
+      await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:buildingKey,Body:JSON.stringify(partial,null,2),ContentType:'application/json',CacheControl:'no-store'}))
+      console.error('DAILY_FACTORY_ITEM_QUARANTINED', JSON.stringify({targetDate:date,slot:slotTimes[i],title:item.title,error:failedEntry.failureReason}))
+      continue
+    }
     const contentHash = crypto.createHash('sha256').update(JSON.stringify({
       title:item.title,
       script:item.script,
@@ -255,11 +271,12 @@ async function generateFor(date) {
       masterHash:entry.masterHash,
     }))
   }
-  const manifest = {ok:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
+  const complete = entries.length === slotTimes.length && entries.every(e => e?.renderQualityGate === 'PASS')
+  const manifest = {ok:complete,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
   const body = JSON.stringify(manifest,null,2)
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
-  await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
-  console.log('DAILY_FACTORY_SUCCESS', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
+  if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
+  console.log(complete ? 'DAILY_FACTORY_SUCCESS' : 'DAILY_FACTORY_PARTIAL_FAILURE', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
 }
 
 let lastFactoryDate = ''
