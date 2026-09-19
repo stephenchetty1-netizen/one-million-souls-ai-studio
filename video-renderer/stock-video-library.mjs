@@ -50,6 +50,13 @@ export const STOCK_VIDEO_LIBRARY = Object.freeze([
     rightsNote:'U.S. NOAA federal-government material; public domain as documented by Wikimedia Commons.',
   },
   {
+    id:'pangong-lake-waves',
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Pangong_Tso_Waves.webm',
+    sourcePage:'https://commons.wikimedia.org/wiki/File:Pangong_Tso_Waves.webm',
+    license:'CC0-1.0',
+    rightsNote:'Creator dedicated this 2021 lake-waves video to the public domain under CC0 1.0; Wikimedia Commons source page.',
+  },
+  {
     id:'domica-cave',
     url:'https://upload.wikimedia.org/wikipedia/commons/d/d2/Domica_Cave.webm',
     sourcePage:'https://commons.wikimedia.org/wiki/File:Domica_Cave.webm',
