@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-19",
+  "mode": "ZERO_CREDIT_ONLY",
+  "mission": "Increase legitimate YouTube discovery, views, watch time and subscriber conversion by improving research, packaging, retention and content-market fit without artificial engagement.",
+  "bots": [
+    "yt-search-demand-bot",
+    "yt-trend-radar-bot",
+    "yt-content-gap-bot",
+    "yt-title-packaging-bot",
+    "yt-thumbnail-lab-bot",
+    "yt-retention-bot",
+    "yt-subscriber-conversion-bot",
+    "yt-experiment-manager-bot"
+  ],
+  "cadence": {
+    "researchHours": 6,
+    "maxSearchTopicsPerCycle": 8,
+    "weeklyStrategyReview": true
+  },
+  "inputs": {
+    "publicYouTubeSearch": "YouTube Data API when YOUTUBE_API_KEY is configured",
+    "channelAnalytics": "Optional owner-provided YouTube Analytics metrics",
+    "paidAi": false
+  },
+  "growthSignals": [
+    "search relevance",
+    "title-thumbnail appeal",
+    "home-and-suggested CTR",
+    "first-30-second retention",
+    "average percentage viewed",
+    "top moments and spikes",
+    "views",
+    "subscribers gained/lost",
+    "series continuation"
+  ],
+  "hardRules": [
+    "Never buy, fabricate, automate, incentivize or exchange views, subscribers, likes, comments or watch time.",
+    "Never use sub-for-sub, view-for-view, comment spam or traffic-boosting services.",
+    "Never mass-post repetitive AI content.",
+    "Never copy another creator's protected script, thumbnail, footage, voice or edit.",
+    "Use public competitor examples only to learn topic demand and format patterns.",
+    "Every recommendation must preserve the channel's Christian identity and verified Scripture/factual standards.",
+    "ZERO_CREDIT_ONLY must remain true."
+  ]
+}
