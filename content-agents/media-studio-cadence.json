@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "updatedAt": "2026-09-18",
+  "version": 4,
+  "updatedAt": "2026-09-20",
   "mission": "Maintain a continuous supply of professional review-ready Christian media without automatically publishing unreviewed work.",
   "publishingLocked": true,
   "rollingBacklogDays": 14,
@@ -17,7 +17,7 @@
     "thumbnailVariantsPerLong": 3
   },
   "weeklyTargets": {
-    "shortsReviewReady": 12,
+    "shortsReviewReady": 21,
     "longFormReviewReady": 2,
     "lyricVideosReviewReady": 1,
     "experimentalFormats": 2,
@@ -56,10 +56,10 @@
     "rights-cleared media only"
   ],
   "queuePolicy": {
-    "minimumReviewReadyShorts": 6,
+    "minimumReviewReadyShorts": 42,
     "minimumReviewReadyLongForm": 1,
     "minimumReviewReadyLyricVideos": 1,
-    "actionWhenBelowMinimum": "increase draft production before adding low-priority experiments"
+    "actionWhenBelowMinimum": "prioritize recovery of existing exact approved masters, then produce and certify missing slots for the 14-day archive before lower-priority experiments"
   },
   "qualityOverQuantity": true,
   "releaseRule": "Targets are aspirational. Never lower quality, accuracy, rights, sync, thumbnail, or professional-execution standards to hit output quotas.",
@@ -73,5 +73,20 @@
     "lateChangePolicy": "Any content, media, thumbnail, caption, audio, export, title, description, or metadata change after freeze creates a new hash, invalidates approvals, and requires full re-approval.",
     "missedGatePolicy": "If the exact master is not RELEASE_READY by T-2h, miss/reschedule the slot; never render, repair, substitute media, or bypass QA at posting time.",
     "publisherRule": "Publisher approves last only after the other 49 approvals on the exact frozen hash and all QA gates PASS."
+  },
+  "archivePolicy": {
+    "rollingDays": 14,
+    "slotsPerDay": 3,
+    "requiredApprovedShorts": 42,
+    "platforms": [
+      "TikTok",
+      "YouTube Shorts"
+    ],
+    "researchLookaheadDays": 14,
+    "productionLookaheadDays": 14,
+    "releaseMode": "PREAPPROVED_IMMUTABLE_MASTER_ONLY",
+    "preserveExistingAssets": true,
+    "doNotCountDraftsOrFailedMastersAsReady": true,
+    "weeklyShortsOutputTarget": 21
   }
 }
