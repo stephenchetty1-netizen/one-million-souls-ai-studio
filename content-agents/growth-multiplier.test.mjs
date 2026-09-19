@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { classifyGrowthPost } from './growth-multiplier.mjs'
+import { selectVerifiedSnapshot } from './verified-performance-evidence.mjs'
 
 const tiktok={
   viewsPerVideo:146,
@@ -68,4 +69,27 @@ test('a post with null views never becomes a zero-view failure',()=>{
   },{viewsPerUpload:250})
   assert.equal(out.classification,'AWAIT_DATA')
   assert.equal(out.signals.views,null)
+})
+
+test('newer empty analytics report never overwrites older measured evidence',()=>{
+  const measured={capturedAt:'2026-09-18T09:00:00Z',measuredPostCount:9}
+  const empty={capturedAt:'2026-09-19T10:00:00Z',measuredPostCount:0}
+  const out=selectVerifiedSnapshot([empty,measured])
+  assert.equal(out.selected,measured)
+  assert.equal(out.latestCaptureAt,empty.capturedAt)
+  assert.equal(out.latestReportMissingMeasurements,true)
+})
+test('newer measured evidence replaces older measured evidence',()=>{
+  const old={capturedAt:'2026-09-18T09:00:00Z',measuredPostCount:9}
+  const fresh={capturedAt:'2026-09-19T10:00:00Z',measuredPostCount:8}
+  const out=selectVerifiedSnapshot([old,fresh])
+  assert.equal(out.selected,fresh)
+  assert.equal(out.latestReportMissingMeasurements,false)
+})
+test('empty analytics remain explicitly incomplete when no measured history exists',()=>{
+  const empty={capturedAt:'2026-09-19T10:00:00Z',measuredPostCount:0}
+  const out=selectVerifiedSnapshot([empty])
+  assert.equal(out.selected,empty)
+  assert.equal(out.latestReportMissingMeasurements,false)
+  assert.equal(out.selected.measuredPostCount,0)
 })
