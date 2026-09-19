@@ -68,9 +68,9 @@ const CURATED_STOCK_STORYBOARDS=Object.freeze({
     {stockId:'golden-sunset-january',meaning:'Evening light closes on finishing the day with eyes on Jesus',startSeconds:5},
   ],
   'DO NOT CARRY TOMORROW':[
-    {stockId:'sunrise-storm-portrait',meaning:'Today begins; tomorrow is still unknown',startSeconds:0},
-    {stockId:'domica-cave',meaning:'A temporary visual metaphor for feeling overwhelmed by worry',startSeconds:0},
-    {stockId:'sunrise-storm-portrait',meaning:'Return to morning light: choose todays faithful next step',startSeconds:9,repriseOf:0},
+    {stockId:'shoreline-footprints-waves',meaning:'Waves erase yesterday’s footprints: release worries beyond today',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Steady waves anchor the invitation to give this day faithful attention',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Warm evening light closes on prayer and one faithful next step',startSeconds:5},
   ],
 })
 function words(value){return String(value||'').trim().split(/\s+/).filter(Boolean)}
