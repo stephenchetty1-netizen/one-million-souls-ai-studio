@@ -9,6 +9,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
+import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 
@@ -358,6 +359,20 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && url.pathname === '/christian-format-stage') {
+    if (!authorized(req)) return sendJson(res,401,{ok:false,error:'Unauthorized'})
+    try{
+      const body=await readJson(req)
+      const result=await stageChristianPexelsFormat(body?.format||'SHORT_59')
+      return sendJson(res,result.ok?200:409,result)
+    }catch(error){
+      const message=String(error?.message||error)
+      return sendJson(res,/ALREADY_RUNNING|QUOTA_EXHAUSTED/.test(message)?429:502,{
+        ok:false,error:message,publishingAllowed:false
+      })
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/pexels-stage') {
     if (!authorized(req)) return sendJson(res, 401, {ok:false,error:'Unauthorized'})
     try {
@@ -443,6 +458,39 @@ server.listen(PORT, '0.0.0.0', () => {
         error:error instanceof Error?error.message:String(error),
         publishingLocked:true
       })))
+  }
+  if(process.env.CHRISTIAN_PEXELS_STAGE_ON_BOOT==='true'){
+    console.log('CHRISTIAN_PEXELS_SOURCE_BOOT_START',JSON.stringify({
+      format:'SHORT_59',publishingAllowed:false
+    }))
+    void (async()=>{
+      const shorts=await stageChristianPexelsFormat('SHORT_59')
+      console.log('CHRISTIAN_PEXELS_SHORTS_STAGED',JSON.stringify(shorts))
+      if(shorts.ok&&process.env.CHRISTIAN_PEXELS_RENDER_SHORT_ON_BOOT==='true'){
+        const preview=await renderChristianMusicVideoDraft({format:'SHORT_59'})
+        console.log('CHRISTIAN_PEXELS_59S_DRAFT_RESULT',JSON.stringify({
+          mediaUrl:preview.mediaUrl,masterHash:preview.masterHash,
+          durationSeconds:preview.measured.durationSeconds,
+          sourceClips:preview.measured.sourceClips,
+          contactSheetUrl:preview.contactSheetUrl,publishingAllowed:false
+        }))
+      }
+      if(process.env.CHRISTIAN_PEXELS_STAGE_LONG_ON_BOOT==='true'){
+        const long=await stageChristianPexelsFormat('YOUTUBE_LONG')
+        console.log('CHRISTIAN_PEXELS_YOUTUBE_STAGED',JSON.stringify(long))
+        if(long.ok&&process.env.CHRISTIAN_PEXELS_RENDER_LONG_ON_BOOT==='true'){
+          const preview=await renderChristianMusicVideoDraft({format:'YOUTUBE_LONG'})
+          console.log('CHRISTIAN_PEXELS_YOUTUBE_DRAFT_RESULT',JSON.stringify({
+            mediaUrl:preview.mediaUrl,masterHash:preview.masterHash,
+            durationSeconds:preview.measured.durationSeconds,
+            sourceClips:preview.measured.sourceClips,
+            contactSheetUrl:preview.contactSheetUrl,publishingAllowed:false
+          }))
+        }
+      }
+    })().catch(error=>console.error('CHRISTIAN_PEXELS_FORMAT_BOOT_FAILED',JSON.stringify({
+      error:String(error?.message||error),publishingAllowed:false
+    })))
   }
   if(process.env.CHRISTIAN_MUSIC_VIDEO_DRAFT_ON_BOOT==='true'){
     console.log('CHRISTIAN_MUSIC_VIDEO_BOOT_START',JSON.stringify({
