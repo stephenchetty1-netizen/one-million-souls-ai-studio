@@ -1,7 +1,10 @@
 {
   "source": "Metricool connected TikTok analytics",
   "capturedAt": "2026-09-19",
-  "window": {"from": "2026-08-20", "to": "2026-09-19"},
+  "window": {
+    "from": "2026-08-20",
+    "to": "2026-09-19"
+  },
   "metrics": {
     "videos": 43,
     "views": 6296,
@@ -13,24 +16,33 @@
     "followersAcquired": 24,
     "followersLost": 4,
     "netFollowers": 20,
-    "latestObservedFollowers": 631,
+    "latestObservedFollowers": 633,
     "viewsPerVideo": 146.42,
     "interactionRatePerViewPercent": 11.36,
-    "netFollowerConversionPerViewPercent": 0.318
+    "netFollowerConversionPerViewPercent": 0.318,
+    "latestObservedFollowersAsOf": "2026-09-18"
   },
   "recentPostSignal": {
-    "titleTheme": "Matthew 4:4 / Bread Alone",
-    "durationSeconds": 49,
-    "views": 221,
-    "likes": 36,
-    "comments": 5,
-    "shares": 2,
-    "averageWatchSeconds": 17
+    "titleTheme": "Mark 11:24 / Ask. Believe. Receive.",
+    "durationSeconds": 29,
+    "views": 360,
+    "likes": 23,
+    "comments": 3,
+    "shares": 1,
+    "averageWatchSeconds": 6,
+    "asOf": "2026-09-18"
   },
   "audienceTiming": {
     "timezone": "Africa/Johannesburg",
-    "strongestRecurringHours": [10, 18],
-    "strongMidweekWindows": ["10:00", "12:00", "16:00-18:00"],
-    "note": "Metricool audience-availability values were strongest around 10:00 and 18:00, especially midweek."
+    "strongestRecurringHours": [
+      10,
+      18
+    ],
+    "strongMidweekWindows": [
+      "10:00",
+      "12:00",
+      "16:00-18:00"
+    ],
+    "note": "Metricool audience-availability heatmap retrieved 2026-09-19 for 2026-09-19 to 2026-09-25: 10:00 and 18:00 are strong recurring SAST windows; an availability signal, not guaranteed views."
   }
 }
