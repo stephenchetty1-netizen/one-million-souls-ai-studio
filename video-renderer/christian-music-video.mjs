@@ -163,7 +163,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         sourceDurationSeconds:musicDuration,requiredSeconds:profile.requiredAudioSeconds,
         offsetSeconds:MUSIC_START_SECONDS,editorialReviewRequired:true,publishingAllowed:false
       }))
-      requireChristianVideoSources(format,staged,Math.max(availableAfterOffset,profile.requiredAudioSeconds))
+      requireChristianVideoSources(format,staged,Math.max(availableAfterOffset,profile.requiredAudioSeconds+0.5))
       const collection=format==='SHORT_59'?'BE_STILL_PEXELS_V1':'YOUTUBE_WORSHIP_LANDSCAPE_V1'
       const eligible=staged.filter(source=>{
         try{verifyChristianVideoSceneMetadata(source,format,collection);return true}
