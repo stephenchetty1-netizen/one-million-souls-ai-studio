@@ -9,6 +9,7 @@ import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 import { createRightsClearedStockScene } from './stock-video-library.mjs'
+import { createPexelsPreviewScene, PEXELS_COLLECTIONS } from './pexels-source-import.mjs'
 import { planVisualStory, stockSelectionForBeat, inspectVisualStoryboard, CAPTION_LAYOUT, STORYBOARD_VERSION } from './visual-storyboard.mjs'
 import { createRightsClearedStockMusic } from './stock-music-library.mjs'
 import { createGoogleVeoScene, googleVeoEnabled } from './google-veo-provider.mjs'
@@ -665,10 +666,24 @@ export async function renderFreeV2(body = {}) {
 
   const title = extractTitle(body)
   const script = extractScript(body)
+  const pexelsPreview=body?.pexelsPreview===true
+  if(pexelsPreview && title.trim().toUpperCase()!=='BE STILL')
+    throw new Error('PEXELS_PROOF_ONLY_APPROVED_FOR_BE_STILL')
   const providers = getFreeProviders()
   const scriptureReference=cleanText(body?.scriptureReference||body?.ref||
     script.match(/\b(?:Matthew|Mark|Luke|John|Romans|Psalms?|Isaiah|Jeremiah|Hebrews|Philippians|Lamentations|Corinthians)\s+\d+:\d+(?:-\d+)?\b/i)?.[0]||'')
   const storyboard=planVisualStory({title,script,scriptureReference,visualPrompts:body?.visualPrompts})
+  if(pexelsPreview){
+    // A proof-only visual arc from one Pexels contributor; this does not
+    // alter the production storyboards or turn stock into approved originals.
+    PEXELS_COLLECTIONS.BE_STILL_PEXELS_V1.forEach((source,index)=>{
+      const beat=storyboard.beats[index]
+      beat.stockId='pexels-'+source.id
+      beat.startSeconds=0
+      beat.meaning=source.intent
+      delete beat.repriseOf
+    })
+  }
   const prompts = scenePrompts(storyboard)
   const variationSeed = Math.max(0, Number(body?.variationSeed || 0))
   const stockSeed = [...`${title}|${script}|variation:${variationSeed}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
@@ -690,7 +705,12 @@ export async function renderFreeV2(body = {}) {
     for (let index = 0; index < prompts.length; index += 1) {
       try {
         const selection=storyboard.stockStoryboardAvailable?stockSelectionForBeat(storyboard,index):null
-        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed, selection)
+        const scene = pexelsPreview
+          ? await createPexelsPreviewScene({
+              collection:'BE_STILL_PEXELS_V1',beatIndex:index,
+              work,seconds:sceneSeconds,width:WIDTH,height:HEIGHT,fps:FPS
+            })
+          : await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed, selection)
         scenes.push(scene)
         console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
       } catch (error) {
@@ -814,9 +834,11 @@ export async function renderFreeV2(body = {}) {
       persistentStorage: true,
       qualityGate: 'passed',
       technicalRenderPassed: true,
-      visualProductionStatus:stockOnlyPreview?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
+      pexelsEditorialProof:pexelsPreview,
+      visualProductionStatus:pexelsPreview?'PEXELS_PROOF_REQUIRES_FULL_AUDIOVISUAL_REVIEW':
+        stockOnlyPreview?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
       creativeVisualReviewRequired: true,
-      professionalMasterCandidate: !stockOnlyPreview,
+      professionalMasterCandidate: !stockOnlyPreview&&!pexelsPreview,
       masterInspection,
       fullDecodeInspection,
       captionInspection,
