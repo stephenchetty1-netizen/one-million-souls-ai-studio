@@ -47,15 +47,23 @@ export async function POST(req: Request) {
   if(!['APPROVE','REVISE','BLOCK'].includes(decision)) return NextResponse.json({ok:false,error:'Decision must be APPROVE, REVISE, or BLOCK'},{status:400})
   if(!evidence) return NextResponse.json({ok:false,error:'Evidence/notes required'},{status:400})
   try {
+    let publisherApprovedAt=''
     if(agentId==='publisher'&&decision==='APPROVE') {
       const missing:string[]=[]
+      let latestPrior=0
       for(const id of required.filter((x)=>x!=='publisher')) {
         const vote=await readVote(contentHash,masterHash,id)
         if(!vote||vote.decision!=='APPROVE'||vote.contentHash!==contentHash||vote.masterHash!==masterHash) missing.push(id)
+        else {
+          const t=Date.parse(vote.approvedAt||'')
+          if(!Number.isFinite(t)) missing.push(id)
+          else latestPrior=Math.max(latestPrior,t)
+        }
       }
-      if(missing.length) return NextResponse.json({ok:false,blocked:true,error:'Publisher approval requires all 49 prior approvals',missing},{status:423})
+      if(missing.length) return NextResponse.json({ok:false,blocked:true,error:'Publisher approval requires all 49 prior approvals with valid timestamps',missing:[...new Set(missing)]},{status:423})
+      publisherApprovedAt=new Date(Math.max(Date.now(),latestPrior+1)).toISOString()
     }
-    const record={recordId:crypto.randomUUID(),agentId,decision,contentHash,masterHash,approvedAt:new Date().toISOString(),evidence}
+    const record={recordId:crypto.randomUUID(),agentId,decision,contentHash,masterHash,approvedAt:publisherApprovedAt||new Date().toISOString(),evidence}
     await writeVote(record)
     return NextResponse.json({ok:true,publishingLocked:true,durable:true,record})
   } catch(error) {
