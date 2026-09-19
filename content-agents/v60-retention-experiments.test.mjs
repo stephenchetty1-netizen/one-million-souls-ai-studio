@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { planRetentionExperiments } from './v60-retention-experiments.mjs'
+import { publicExperiment } from './v60-experiment-ledger.mjs'
 
 const now=new Date('2026-09-19T12:00:00.000Z')
 const tt=(extra={})=>({
@@ -70,4 +71,21 @@ test('zero or missing views and watch time are not interpreted as poor retention
   const plan=planRetentionExperiments({platform:'tiktok',evidence,now})
   assert.equal(plan.eligiblePosts,1)
   assert.equal(plan.experiments.length,0)
+})
+
+test('persisted experiment retains its variable and never becomes publishable',()=>{
+  const projected=publicExperiment({
+    id:'V60-0123456789abcdef',platform:'tiktok',singleVariable:'OPENING_HOOK',
+    sourcePostId:'valid',createdAt:'2026-09-19T11:00:00Z',
+    sourceTopic:'Test faith question',baseline:{views:220},status:'AWAIT_TEMPLATE_REVIEW',
+    creativeBrief:'Write an original opening'
+  })
+  assert.equal(projected.variable,'OPENING_HOOK')
+  assert.equal(projected.publishingLocked,true)
+  assert.equal(projected.publishingAuthority,false)
+  assert.equal(projected.humanTemplateReviewRequired,true)
+  assert.equal(projected.newMasterRequiresFullApproval,true)
+  const roundtrip=publicExperiment({...projected,status:'AWAIT_TEMPLATE_REVIEW'})
+  assert.equal(roundtrip.variable,'OPENING_HOOK')
+  assert.equal(roundtrip.progress,'PROPOSED_NOT_RENDERED')
 })
