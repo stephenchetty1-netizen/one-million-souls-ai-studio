@@ -26,7 +26,8 @@ function guard(){
   }
 }
 function safeSummary(bot,result,snapshot){
-  const ok=result?.ok===true&&result?.memory?.persistent===true
+  const queueErrors=Number(result?.growthMultiplier?.preProductionQueue?.failed||0)
+  const ok=result?.ok===true&&result?.memory?.persistent===true&&result?.growthMultiplier?.memory?.persistent!==false&&queueErrors===0
   const researchMode=String(result?.researchMode||'UNKNOWN')
   const cached=/CACHED|OWNED_METRICS/.test(researchMode)
   return {
@@ -44,7 +45,7 @@ function safeSummary(bot,result,snapshot){
     queuePersistence:result?.memory?.persistent===true,
     readOnlyPlatformAccess:true,
     releaseAuthority:false,
-    error:ok?null:(result?.memory?.warning||result?.failures?.[0]?.reason||'GROWTH_SCAN_INCOMPLETE'),
+    error:ok?null:(result?.memory?.warning||result?.growthMultiplier?.memory?.warning||(queueErrors?'GROWTH_QUEUE_WRITE_FAILED':null)||result?.failures?.[0]?.reason||'GROWTH_SCAN_INCOMPLETE'),
   }
 }
 async function releaseLease(bot,token){
