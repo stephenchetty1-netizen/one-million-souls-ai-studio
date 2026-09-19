@@ -11,12 +11,15 @@ const scenes=()=>make().beats.map((b,i)=>({
   license:'CC0-1.0',rightsNote:'Checked source attribution',
   startSeconds:b.startSeconds||0,repriseOf:b.repriseOf??null,
 }))
-test('worry devotional receives an intentional sunrise -> cave -> sunrise arc',()=>{
+test('worry devotional no longer selects rejected weather-map or cave footage',()=>{
  const p=make()
  assert.equal(p.version,STORYBOARD_VERSION)
  assert.deepEqual(p.beats.map(b=>b.stage),['TENSION','SCRIPTURE','RESPONSE'])
- assert.deepEqual(p.beats.map(b=>b.stockId),['sunrise-storm-portrait','domica-cave','sunrise-storm-portrait'])
- assert.equal(stockSelectionForBeat(p,2).repriseOf,0)
+ assert.deepEqual(p.beats.map(b=>b.stockId),[
+  'shoreline-footprints-waves','pangong-lake-waves','golden-sunset-january'
+ ])
+ assert.equal(p.beats.some(beat=>['sunrise-storm-portrait','domica-cave'].includes(beat.stockId)),false)
+ assert.equal(stockSelectionForBeat(p,2).repriseOf,null)
  assert.equal(p.publishingLocked,true)
 })
 test('revised coherent storyboard is only planning proof not perceptual approval',()=>{
@@ -35,9 +38,9 @@ test('airplane footage in Scripture beat is rejected despite technical decode',(
  const s=scenes();s[1].stockId='flight-over-clouds'
  assert.throws(()=>inspectVisualStoryboard(make(),s),/UNMATCHED_STOCK_SHOT/)
 })
-test('unplanned same clip and same trim is rejected',()=>{
- const s=scenes();s[2].repriseOf=null;s[2].startSeconds=0
- assert.throws(()=>inspectVisualStoryboard(make(),s),/INVALID_VISUAL_REPRISE/)
+test('unplanned duplicate scene is rejected even if scene file differs',()=>{
+ const s=scenes();s[2].stockId=s[0].stockId;s[2].repriseOf=null;s[2].startSeconds=s[0].startSeconds
+ assert.throws(()=>inspectVisualStoryboard(make(),s),/UNPLANNED_DUPLICATE_STOCK/)
 })
 test('missing source rights fails storyboard gate',()=>{
  const s=scenes();s[1].license=''
