@@ -8,6 +8,7 @@ import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
+import { stagePexelsCollection } from './pexels-source-import.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -322,8 +323,25 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'POST' && url.pathname === '/pexels-stage') {
+    if (!authorized(req)) return sendJson(res, 401, {ok:false,error:'Unauthorized'})
+    try {
+      const body=await readJson(req)
+      const result=await stagePexelsCollection(body?.collection||'BE_STILL_PEXELS_V1')
+      return sendJson(res,200,result)
+    } catch(error){
+      const code=String(error?.message||'')
+      const status=code==='PEXELS_API_KEY_REQUIRED'||code==='PEXELS_PRIVATE_STORAGE_REQUIRED'?409:
+        code==='PEXELS_COLLECTION_NOT_APPROVED_FOR_STAGING'?400:502
+      return sendJson(res,status,{ok:false,staged:false,publishingLocked:true,error:code})
+    }
+  }
+
   if (req.method === 'GET' && url.pathname.startsWith('/media/')) {
     const key = url.pathname.slice('/media/'.length).split('/').map(decodeURIComponent).join('/')
+    // Imported source clips are private inputs, not stock files for redistributing.
+    if(key==='internal'||key.startsWith('internal/'))
+      return sendJson(res,403,{ok:false,error:'PRIVATE_SOURCE_MEDIA_ACCESS_BLOCKED'})
     return serveMedia(req, res, key)
   }
 
