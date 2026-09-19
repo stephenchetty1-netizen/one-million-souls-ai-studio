@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
+import { durableRedis } from './durable-redis.mjs'
 
 const base=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
 const secret=String(process.env.VIDEO_RENDER_SECRET||'')
@@ -34,4 +35,8 @@ const packet={standard:'v59-independent-exact-master-v2',startDate:start,days,ex
 const json=JSON.stringify(packet,null,2)+'\n'
 const output=String(process.env.REVIEW_PACKET_PATH||'content-agents/independent-review-packet.json')
 await fs.writeFile(output,json)
-console.log(JSON.stringify({ok:true,path:output,slots:entries.length,approved:0,packetSha256:crypto.createHash('sha256').update(json).digest('hex')}))
+const redisKey='one-million-souls:v59:independent-review:'+start+':'+dateAt(days-1)
+const persisted=await durableRedis(['SET',redisKey,json])
+if(persisted!=='OK')throw new Error('REVIEW_PACKET_DURABLE_WRITE_FAILED')
+if(await durableRedis(['GET',redisKey])!==json)throw new Error('REVIEW_PACKET_DURABLE_READ_MISMATCH')
+console.log(JSON.stringify({ok:true,path:output,slots:entries.length,approved:0,redisKey,packetSha256:crypto.createHash('sha256').update(json).digest('hex')}))
