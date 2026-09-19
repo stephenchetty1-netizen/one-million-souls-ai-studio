@@ -7,11 +7,16 @@ const visualModel=process.env.MASTER_REVIEW_MODEL||process.env.AUTONOMY_MODEL||'
 const audioModel=process.env.AUDIO_REVIEW_MODEL||'gpt-audio-1.5'
 const timezone=process.env.APP_TIMEZONE||'Africa/Johannesburg'
 const v59Base=(process.env.AUTONOMY_BASE_URL||`http://127.0.0.1:${process.env.PORT||3000}`).replace(/\/$/,'')
-const rendererBase=String(
+function normalizeBaseUrl(value){
+  const raw=String(value||'').trim().replace(/\/$/,'')
+  if(!raw)return ''
+  return /^https?:\/\//i.test(raw)?raw:`https://${raw}`
+}
+const rendererBase=normalizeBaseUrl(
   process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||
   process.env.VIDEO_RENDER_WEBHOOK_URL||
   ''
-).replace(/\/$/,'')
+)
 const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
