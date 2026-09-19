@@ -9,7 +9,8 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
-import { renderChristianMusicVideoDraft } from './christian-music-video.mjs'
+import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
+import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -324,18 +325,36 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (req.method === 'GET' && url.pathname === '/christian-video-formats') {
+    if (!authorized(req)) return sendJson(res,401,{ok:false,error:'Unauthorized'})
+    try{
+      const [shorts,youtube]=await Promise.all([
+        inspectChristianVideoFormatReadiness('SHORT_59'),
+        inspectChristianVideoFormatReadiness('YOUTUBE_LONG')
+      ])
+      return sendJson(res,200,{ok:true,formats:CHRISTIAN_VIDEO_FORMATS,
+        sourceReadiness:{SHORT_59:shorts,YOUTUBE_LONG:youtube},
+        publishingAllowed:false,automaticPosting:false})
+    }catch(error){
+      return sendJson(res,503,{ok:false,error:String(error?.message||error),
+        publishingAllowed:false})
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/christian-music-video-draft') {
     if (!authorized(req)) return sendJson(res,401,{ok:false,error:'Unauthorized'})
     try{
-      const result=await renderChristianMusicVideoDraft()
-      return sendJson(res,200,{ok:true,mediaUrl:result.mediaUrl,
+      const body=await readJson(req)
+      const result=await renderChristianMusicVideoDraft({format:body?.format||'SHORT_59'})
+      return sendJson(res,200,{ok:true,profileId:result.profileId,
+        targetSeconds:result.measured?.targetSeconds,mediaUrl:result.mediaUrl,
         masterHash:result.masterHash,contactSheetUrl:result.contactSheetUrl,
         suggestedCaption:result.suggestedCaption,
         editorialStatus:result.editorialStatus,publishingAllowed:false})
     }catch(error){
       const code=String(error?.message||'CHRISTIAN_MUSIC_VIDEO_RENDER_FAILED')
       console.error('CHRISTIAN_MUSIC_VIDEO_DRAFT_FAILED',JSON.stringify({error:code,publishingLocked:true}))
-      return sendJson(res,502,{ok:false,error:code,publishingAllowed:false})
+      return sendJson(res,code.startsWith('CHRISTIAN_VIDEO_FORMAT_SOURCES_BLOCKED')?409:502,{ok:false,error:code,publishingAllowed:false})
     }
   }
 
