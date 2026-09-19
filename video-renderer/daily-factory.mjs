@@ -9,6 +9,11 @@ const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && proce
 const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
+const configuredQuotaPause = Number(process.env.FREE_ZEROGPU_QUOTA_COOLDOWN_MS || 60 * 60 * 1000)
+const QUOTA_COOLDOWN_MS = Number.isFinite(configuredQuotaPause)
+  ? Math.max(15 * 60 * 1000, Math.min(6 * 60 * 60 * 1000, configuredQuotaPause))
+  : 60 * 60 * 1000
+let zeroGpuCooldownUntil = 0
 
 const s3 = storageReady ? new S3Client({
   endpoint: process.env.ENDPOINT,
@@ -139,6 +144,12 @@ async function render(item, variationSeed=0) {
 
 export async function generateFor(date) {
   if (!enabled || !s3) return false
+  if (Date.now() < zeroGpuCooldownUntil) {
+    console.warn('DAILY_FACTORY_ZEROGPU_QUOTA_COOLDOWN', JSON.stringify({
+      targetDate:date,retryAt:new Date(zeroGpuCooldownUntil).toISOString(),publishingLocked:true
+    }))
+    return false
+  }
   const key = manifestKey(date)
   const buildingKey = buildingManifestKey(date)
   const slotTimes = configuredSlots()
@@ -218,8 +229,19 @@ export async function generateFor(date) {
     const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
+      if (Date.now() < zeroGpuCooldownUntil) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
       video = await render(effectiveItem, variationSeed)
     } catch (error) {
+      const failureMessage = error instanceof Error ? error.message : String(error)
+      if (/ZeroGPU quota exceeded|exceeded your ZeroGPU quota|FREE_ZEROGPU_QUOTA_COOLDOWN/i.test(failureMessage)) {
+        if (Date.now() >= zeroGpuCooldownUntil) {
+          zeroGpuCooldownUntil = Date.now() + QUOTA_COOLDOWN_MS
+          console.warn('DAILY_FACTORY_ZEROGPU_QUOTA_PAUSE', JSON.stringify({
+            targetDate:date,slot:slotTimes[i],cooldownMs:QUOTA_COOLDOWN_MS,
+            retryAt:new Date(zeroGpuCooldownUntil).toISOString(),publishingLocked:true
+          }))
+        }
+      }
       const failedEntry = {
         slot:slotTimes[i], title:effectiveItem.title, script:effectiveItem.script, scriptureReference:effectiveItem.ref, caption:effectiveItem.caption, replacement,
         publishingLocked:true, releaseStatus:'PRODUCTION_RETRY', renderQualityGate:'BLOCK',
@@ -415,12 +437,12 @@ async function tick() {
         nextFactoryAttemptAt = 0
       } else {
         lastFactoryDate = ''
-        nextFactoryAttemptAt = Date.now() + FACTORY_RETRY_MS
+        nextFactoryAttemptAt = Math.max(Date.now() + FACTORY_RETRY_MS, zeroGpuCooldownUntil)
         console.warn('DAILY_FACTORY_INCOMPLETE_BACKOFF', JSON.stringify({retryAfterMs:FACTORY_RETRY_MS,retryAt:new Date(nextFactoryAttemptAt).toISOString()}))
       }
     } catch (e) {
       lastFactoryDate=''
-      nextFactoryAttemptAt = Date.now() + FACTORY_RETRY_MS
+      nextFactoryAttemptAt = Math.max(Date.now() + FACTORY_RETRY_MS, zeroGpuCooldownUntil)
       console.error('DAILY_FACTORY_ERROR', e instanceof Error ? e.message : String(e))
       console.error('DAILY_FACTORY_BACKOFF', JSON.stringify({ retryAfterMs: FACTORY_RETRY_MS, retryAt: new Date(nextFactoryAttemptAt).toISOString() }))
     }
