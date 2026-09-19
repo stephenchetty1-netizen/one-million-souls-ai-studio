@@ -9,6 +9,7 @@ import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 import { createRightsClearedStockScene } from './stock-video-library.mjs'
+import { planVisualStory, stockSelectionForBeat, inspectVisualStoryboard, CAPTION_LAYOUT, STORYBOARD_VERSION } from './visual-storyboard.mjs'
 import { createRightsClearedStockMusic } from './stock-music-library.mjs'
 import { createGoogleVeoScene, googleVeoEnabled } from './google-veo-provider.mjs'
 
@@ -81,7 +82,7 @@ function captionChunks(script) {
   for (const word of words) {
     const candidate = [...current, word]
     const text = candidate.join(' ')
-    if (current.length && (candidate.length > 5 || text.length > 42)) {
+    if (current.length && (candidate.length > CAPTION_LAYOUT.maxWords || text.length > CAPTION_LAYOUT.maxCharacters)) {
       chunks.push(current)
       current = [word]
     } else {
@@ -96,7 +97,7 @@ function buildAss(script, duration) {
   const chunks = captionChunks(script).map((chunk) => chunk.join(' '))
   if (!chunks.length) chunks.push('Keep trusting God')
   const slice = duration / Math.max(1, chunks.length)
-  if (slice < 0.75) throw new Error(`Caption quality gate failed: caption cadence too fast (${slice.toFixed(2)}s per phrase)`)
+  if (slice < CAPTION_LAYOUT.minimumSecondsPerPhrase) throw new Error(`Caption quality gate failed: caption cadence too fast (${slice.toFixed(2)}s per phrase)`)
 
   const header = [
     '[Script Info]',
@@ -108,7 +109,7 @@ function buildAss(script, duration) {
     '',
     '[V4+ Styles]',
     'Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding',
-    'Style: Caption,Lato,58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H98000000,-1,0,0,0,100,100,0,0,3,1,0,2,90,90,170,1',
+    'Style: Caption,Lato,58,&H00FFFFFF,&H00FFFFFF,&H00000000,&H98000000,-1,0,0,0,100,100,0,0,3,1,0,2,140,180,380,1',
     '',
     '[Events]',
     'Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text',
@@ -164,21 +165,16 @@ async function mediaDuration(file) {
   return parsed
 }
 
-function scenePrompts(body, title, script) {
-  const supplied = Array.isArray(body?.visualPrompts)
-    ? body.visualPrompts.filter((x) => typeof x === 'string' && x.trim())
-    : []
-  if (supplied.length >= 3) return supplied.slice(0, 4)
-
-  const story = `${title}. ${script.slice(0, 320)}`
-  const common = 'cinematic photorealistic film still, premium commercial photography, natural skin and hands, realistic lighting, high dynamic range, vertical 9:16, no words, no captions, no typography, no watermark, no logos'
-
-  return [
-    `${common}, emotional opening scene about overcoming fear, solitary person near a rain-streaked window at blue hour, distant warm light breaking through storm clouds, intimate realistic atmosphere, ${story}`,
-    `${common}, close-up of natural hands in prayer beside an open Bible on a wooden table, warm sunrise through a window, shallow depth of field, peaceful reverent atmosphere, ${story}`,
-    `${common}, hopeful person walking along a quiet path toward a brilliant sunrise, subtle cross-shaped light in distant clouds, wide cinematic composition, fresh morning mist, ${story}`,
-    `${common}, uplifting worship moment seen from behind with a small diverse group in soft golden light, hands raised naturally, hopeful sky, authentic documentary feeling, ${story}`,
-  ]
+function scenePrompts(plan) {
+  const common = 'Vertical 9:16 documentary realism, coherent natural light, one recognizable visual motif throughout the same devotional, real people and real environments, no text, watermarks, distorted anatomy, or irrelevant footage'
+  return plan.beats.map((beat) => {
+    const stage={
+      TENSION:'Communicate the felt need with restraint; establish the setting and consistent time of day.',
+      SCRIPTURE:'Ground the same story in Scripture and attentive presence; keep a visual link to the first scene.',
+      RESPONSE:'Resolve the SAME story with a prayerful next step, hope and calm; visually echo the opening.',
+    }[beat.stage]
+    return beat.prompt||[common,stage,'Scene message: '+beat.narration,'Story title: '+plan.title,'Scripture: '+plan.scriptureReference].join('. ')
+  })
 }
 
 async function generateCloudScene(providers, prompt, index, work, seconds) {
@@ -220,7 +216,7 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
   }
 }
 
-async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0) {
+async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0, stockSelection = null) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
   const preferGoogleVeo = !ZERO_CREDIT_ONLY && googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
   const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
@@ -242,7 +238,7 @@ async function generateScene(providers, prompt, index, work, seconds, stockSeed 
   }
 
   if (stockEnabled && stockPrimary && !authenticatedHf) {
-    const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed)
+    const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed, stockSelection)
     console.log('RIGHTS_CLEARED_STOCK_PRIMARY', JSON.stringify({
       index,
       stockId: stock.stockId,
@@ -262,7 +258,7 @@ async function generateScene(providers, prompt, index, work, seconds, stockSeed 
     const message = error instanceof Error ? error.message : String(error)
     if (process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false') {
       try {
-        const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed)
+        const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed, stockSelection)
         console.warn('FREE_AI_STOCK_VIDEO_FALLBACK', JSON.stringify({
           index,
           stockId: stock.stockId,
@@ -428,16 +424,17 @@ function inspectCaptionSafeZones(script, duration) {
   if (!chunks.length) throw new Error('Caption quality gate failed: no caption phrases')
   const secondsPerPhrase = duration / chunks.length
   const problems = []
-  if (secondsPerPhrase < 0.75) problems.push('caption phrases advance too quickly')
-  if (chunks.some((chunk) => chunk.length > 5)) problems.push('caption phrase exceeds five words')
-  if (chunks.some((chunk) => chunk.join(' ').length > 42)) problems.push('caption phrase too wide for mobile safe zone')
-  // ASS Caption style uses L/R margins 90 and bottom margin 170 on a 1080x1920 canvas.
-  const horizontalSafeMargin = 90
-  const bottomSafeMargin = 170
-  if (horizontalSafeMargin < 80) problems.push('horizontal caption safe margin below 80px')
-  if (bottomSafeMargin < 160) problems.push('bottom caption safe margin below 160px')
+  if (secondsPerPhrase < CAPTION_LAYOUT.minimumSecondsPerPhrase) problems.push('caption phrases advance too quickly')
+  if (chunks.some((chunk) => chunk.length > CAPTION_LAYOUT.maxWords)) problems.push('caption phrase exceeds four words')
+  if (chunks.some((chunk) => chunk.join(' ').length > CAPTION_LAYOUT.maxCharacters)) problems.push('caption phrase too wide for mobile safe zone')
+  // Both TikTok and YouTube overlays need an intentionally larger protected
+  // region than the previous 170px bottom margin.
+  const horizontalSafeMargin = Math.min(CAPTION_LAYOUT.leftMargin,CAPTION_LAYOUT.rightMargin)
+  const bottomSafeMargin = CAPTION_LAYOUT.bottomMargin
+  if (horizontalSafeMargin < 120) problems.push('horizontal caption safe margin below 120px')
+  if (bottomSafeMargin < 360) problems.push('bottom caption safe margin below 360px')
   if (problems.length) throw new Error('Caption/mobile safe-zone gate failed: ' + problems.join('; '))
-  return { passed:true, status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:5, secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
+  return { passed:true, status:'PASS', phraseCount:chunks.length, maxWordsPerPhrase:CAPTION_LAYOUT.maxWords, timingMethod:'ESTIMATED_REQUIRES_INDEPENDENT_AUDIO_SYNC_REVIEW', secondsPerPhrase:Number(secondsPerPhrase.toFixed(2)), horizontalSafeMargin, bottomSafeMargin }
 }
 
 async function inspectVisualVariety(scenes) {
@@ -450,13 +447,22 @@ async function inspectVisualVariety(scenes) {
   const uniqueHashes = new Set(hashes)
   if (uniqueHashes.size !== hashes.length) throw new Error('Visual variety gate failed: duplicate scene media detected')
   const stockIds = scenes.map((s) => s.stockId).filter(Boolean)
-  if (new Set(stockIds).size !== stockIds.length) throw new Error('Visual variety gate failed: repeated stock footage detected')
+  const intentionalReprises=[]
+  for(let i=0;i<scenes.length;i++){
+    const scene=scenes[i]
+    if(!scene.stockId)continue
+    const earlier=scenes.slice(0,i).findIndex((s)=>s.stockId===scene.stockId)
+    if(earlier<0)continue
+    if(scene.repriseOf!==earlier||Math.abs((scene.startSeconds||0)-(scenes[earlier].startSeconds||0))<5)
+      throw new Error('Visual variety gate failed: unplanned duplicate stock footage')
+    intentionalReprises.push({stockId:scene.stockId,firstBeat:earlier,repriseBeat:i})
+  }
   const sources = scenes.map((s) => s.source || 'unknown')
   const longestRun = sources.reduce((state, source) => {
     const run = source === state.last ? state.run + 1 : 1
     return { last:source, run, max:Math.max(state.max,run) }
   }, {last:null,run:0,max:0}).max
-  return { passed:true, status:'PASS', sceneCount:scenes.length, uniqueSceneCount:uniqueHashes.size, repeatedStockIds:0, longestSameSourceRun:longestRun, sceneSources:sources }
+  return { passed:true, status:'PASS', sceneCount:scenes.length, uniqueSceneCount:uniqueHashes.size, repeatedStockIds:intentionalReprises.length, intentionalReprises, longestSameSourceRun:longestRun, sceneSources:sources }
 }
 
 async function inspectAudioMaster(file) {
