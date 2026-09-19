@@ -6,6 +6,7 @@ const A='a'.repeat(64),B='b'.repeat(64)
 function master(hash=A,title='BE STILL',extra={}){
   return {title,masterHash:hash,contentHash:A,
     releasePayload:{masterHash:hash},mediaUrl:'https://renderer.example/media/test.mp4',
+    durationSeconds:59,width:1080,height:1920,fps:30,
     renderQualityGate:'PASS',professionalMasterCandidate:true,
     releaseStatus:'AWAITING_MASTER_CERTIFICATION',fullDecodeInspection:{passed:true},
     reviewAssets:{audioReviewUrl:'https://renderer.example/media/audio.wav',audioReviewHash:B},...extra}
@@ -63,4 +64,17 @@ test('original visual motion survives the raw stock-only restriction, but remain
  const result=selectExactMasterForReview({buildingEntry:original})
  assert.equal(result.entry.masterHash,B)
  assert.equal(result.entry.releaseStatus,'AWAITING_MASTER_CERTIFICATION')
+})
+
+test('a technically passing old twenty-second devotional cannot enter review',()=>{
+  const old=master(A,'FAITH OVER FEAR',{durationSeconds:19.73})
+  assert.equal(reviewableExactMaster(old),false)
+  const result=selectExactMasterForReview({publicEntry:old})
+  assert.equal(result.entry,null)
+  assert.equal(result.reason,'CREATIVE_REJECTION_NEW_MASTER_REQUIRED')
+})
+test('portrait and frame-rate mismatch block an otherwise 59-second master',()=>{
+  for(const change of [{width:1920,height:1080},{fps:24},{durationSeconds:60}]){
+    assert.equal(reviewableExactMaster(master(A,'GOD IS NEAR',change)),false)
+  }
 })
