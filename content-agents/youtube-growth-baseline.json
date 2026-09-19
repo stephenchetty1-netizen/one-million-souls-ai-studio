@@ -1,0 +1,23 @@
+{
+  "source": "Metricool connected YouTube analytics",
+  "capturedAt": "2026-09-19",
+  "window": {
+    "from": "2026-08-20",
+    "to": "2026-09-19"
+  },
+  "metrics": {
+    "videoViews": 9749,
+    "uploads": 39,
+    "subscribersGained": 23,
+    "subscribersLost": 4,
+    "netSubscribers": 19,
+    "viewsPerUpload": 249.97,
+    "latestObservedSubscribers": 184
+  },
+  "audienceTiming": {
+    "timezone": "Africa/Johannesburg",
+    "strongestRecurringHour": 16,
+    "note": "Metricool audience-availability values were strongest around 16:00 on most observed days, especially midweek."
+  },
+  "purpose": "Initial zero-credit benchmark only. Replace with fresher measured channel analytics as they become available."
+}
