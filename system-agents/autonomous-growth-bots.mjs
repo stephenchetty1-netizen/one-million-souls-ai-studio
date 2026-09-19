@@ -2,6 +2,7 @@ import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs'
 import { runTikTokGrowthScan } from '../content-agents/tiktok-growth-swarm.mjs'
 import { loadAnalyticsSnapshot } from '../content-agents/growth-analytics-snapshot.mjs'
+import { loadVerifiedPerformance } from '../content-agents/verified-performance-evidence.mjs'
 
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
@@ -36,6 +37,13 @@ function safeSummary(bot,result,snapshot){
     analyticsSnapshotAvailable:snapshot?.available===true,
     analyticsCapturedAt:snapshot?.available?snapshot.capturedAt:null,
     analyticsSnapshotWarning:snapshot?.available?null:(snapshot?.reason||'ANALYTICS_SNAPSHOT_MISSING'),
+    performanceSource:result?.verifiedPerformance?.source||null,
+    performanceTransport:result?.verifiedPerformance?.transport||'UNAVAILABLE',
+    performanceCapturedAt:result?.verifiedPerformance?.capturedAt||null,
+    performanceFreshness:result?.verifiedPerformance?.freshness?.status||'UNAVAILABLE',
+    measuredPostCount:Number(result?.verifiedPerformance?.measuredPostCount||0),
+    measuredRecordsUsed:Number(result?.verifiedPerformance?.measuredRecordsUsed||0),
+    autonomousAnalyticsUpstreamConfigured:result?.verifiedPerformance?.autonomousUpstreamConfigured===true,
     measuredCurrentExternalResearch:ok&&!cached,
     topics:(result?.opportunities||[]).length,
     winners:(result?.growthMultiplier?.winners||[]).length,
@@ -62,8 +70,10 @@ async function runBot(bot){
   let snapshot
   try{snapshot=await loadAnalyticsSnapshot(bot.platform)}
   catch(err){return {id:bot.id,status:'BLOCKED',reason:'ANALYTICS_STORAGE_UNAVAILABLE',error:errorText(err)}}
+  const verified=await loadVerifiedPerformance(bot.platform)
   const newerSnapshot=snapshot.available===true && Date.parse(snapshot.capturedAt)>Date.parse(current?.analyticsCapturedAt||0)
-  if(!newerSnapshot&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
+  const newerVerified=Boolean(verified.capturedAt&&Date.parse(verified.capturedAt)>Date.parse(current?.performanceCapturedAt||0))
+  if(!newerSnapshot&&!newerVerified&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
     return {id:bot.id,status:'NOT_DUE',nextEligibleAt:current.nextEligibleAt,lastStatus:current.status}
   }
   const token=bot.id+':'+process.pid+':'+now
