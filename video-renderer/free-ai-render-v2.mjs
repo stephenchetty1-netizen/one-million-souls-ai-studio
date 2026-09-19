@@ -290,15 +290,16 @@ async function generateCloudVoice(providers, script, work) {
 }
 
 async function generateVoice(providers, script, work) {
-  if (process.env.EDGE_TTS_ENABLED !== 'false') {
-    try {
+  try {
+    return await generateCloudVoice(providers, script, work)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('KOKORO_TTS_PRIMARY_FAILED', JSON.stringify({ error: message }))
+    if (process.env.ALLOW_EDGE_TTS_PRODUCTION === 'true' && process.env.EDGE_TTS_ENABLED !== 'false') {
       return await generateEdgeVoice(script, work)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.warn('EDGE_TTS_FALLBACK', JSON.stringify({ error: message }))
     }
+    throw new Error(`Kokoro TTS unavailable and unverified Edge fallback is disabled for PROFESSIONAL_MASTER: ${message}`)
   }
-  return generateCloudVoice(providers, script, work)
 }
 
 async function generateCloudMusic(providers, duration, work) {
@@ -679,6 +680,21 @@ export async function renderFreeV2(body = {}) {
       rightsClearedStockScenes: scenes.filter((scene) => scene.source === 'rights-cleared-stock-video').map((scene) => ({ stockId:scene.stockId, sourcePage:scene.sourcePage, license:scene.license, rightsNote:scene.rightsNote })),
       sceneSources,
       voiceProvider: voice.provider,
+      voiceRights: /Kokoro/i.test(String(voice.provider || '')) ? {
+        model:'Kokoro-82M',
+        license:'Apache-2.0',
+        source:'https://huggingface.co/hexgrad/Kokoro-82M',
+      } : {
+        model:String(voice.provider || 'unknown'),
+        license:'UNVERIFIED_FOR_REUSE',
+        source:null,
+      },
+      musicRights: {
+        model:'Stable Audio Open',
+        license:'Stability AI Community License',
+        source:'https://stability.ai/license',
+        complianceRequired:true,
+      },
       imageProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
         ? 'not-used-stock-video-primary'
         : (sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name),
