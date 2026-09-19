@@ -1,6 +1,7 @@
 import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs'
 import { runTikTokGrowthScan } from '../content-agents/tiktok-growth-swarm.mjs'
+import { loadAnalyticsSnapshot } from '../content-agents/growth-analytics-snapshot.mjs'
 
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
@@ -24,13 +25,16 @@ function guard(){
     throw new Error('PAID_AI_BOT_DISABLED')
   }
 }
-function safeSummary(bot,result){
+function safeSummary(bot,result,snapshot){
   const ok=result?.ok===true&&result?.memory?.persistent===true
   const researchMode=String(result?.researchMode||'UNKNOWN')
   const cached=/CACHED|OWNED_METRICS/.test(researchMode)
   return {
     status:ok?(cached?'DEGRADED':'READY'):'BLOCKED',
     researchMode,
+    analyticsSnapshotAvailable:snapshot?.available===true,
+    analyticsCapturedAt:snapshot?.available?snapshot.capturedAt:null,
+    analyticsSnapshotWarning:snapshot?.available?null:(snapshot?.reason||'ANALYTICS_SNAPSHOT_MISSING'),
     measuredCurrentExternalResearch:ok&&!cached,
     topics:(result?.opportunities||[]).length,
     winners:(result?.growthMultiplier?.winners||[]).length,
@@ -54,7 +58,11 @@ async function runBot(bot){
   try{current=parse(await durableRedis(['GET',key(bot,'state')]))}
   catch(err){return {id:bot.id,status:'BLOCKED',reason:'STATE_STORAGE_UNAVAILABLE',error:errorText(err)}}
   const now=Date.now()
-  if(current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
+  let snapshot
+  try{snapshot=await loadAnalyticsSnapshot(bot.platform)}
+  catch(err){return {id:bot.id,status:'BLOCKED',reason:'ANALYTICS_STORAGE_UNAVAILABLE',error:errorText(err)}}
+  const newerSnapshot=snapshot.available===true && Date.parse(snapshot.capturedAt)>Date.parse(current?.analyticsCapturedAt||0)
+  if(!newerSnapshot&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
     return {id:bot.id,status:'NOT_DUE',nextEligibleAt:current.nextEligibleAt,lastStatus:current.status}
   }
   const token=bot.id+':'+process.pid+':'+now
@@ -71,8 +79,9 @@ async function runBot(bot){
     }
     await durableRedis(['SET',key(bot,'state'),JSON.stringify(running)])
     guard()
-    const result=await bot.run()
-    const summary=safeSummary(bot,result)
+    const input=snapshot.available?{metrics:snapshot.metrics,performanceRecords:snapshot.records}:{}
+    const result=await bot.run(input)
+    const summary=safeSummary(bot,result,snapshot)
     const finished=Date.now()
     const state={
       ...running,...summary,
