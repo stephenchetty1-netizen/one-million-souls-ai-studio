@@ -1,8 +1,14 @@
 import OpenAI from 'openai'
 import crypto from 'node:crypto'
 import { evaluateMaster } from './master-evaluator.mjs'
+import { zeroCreditPreflight } from './zero-credit-review.mjs'
 
-const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY})
+const zeroCreditOnly=process.env.ZERO_CREDIT_ONLY!=='false'
+let client=null
+function openaiClient(){
+ if(!client)client=new OpenAI({apiKey:process.env.OPENAI_API_KEY})
+ return client
+}
 const visualModel=process.env.MASTER_REVIEW_MODEL||process.env.AUTONOMY_MODEL||'gpt-5-mini'
 const audioModel=process.env.AUDIO_REVIEW_MODEL||'gpt-audio-1.5'
 const timezone=process.env.APP_TIMEZONE||'Africa/Johannesburg'
@@ -171,7 +177,7 @@ async function visualReview(entry,technical,rights){
     {type:'input_image',image_url:entry.reviewAssets.lastFrameUrl},
     {type:'input_image',image_url:entry.thumbnailUrl},
   ]
-  const r=await client.responses.create({model:visualModel,input:[{role:'user',content}],max_output_tokens:1800})
+  const r=await openaiClient().responses.create({model:visualModel,input:[{role:'user',content}],max_output_tokens:1800})
   const parsed=jsonFromText(r.output_text)
   const out={}
   for(const key of required){
@@ -195,7 +201,7 @@ async function audioReview(entry,audioBytes){
     },
     rule:'Quality outranks schedule. Use PASS, REVISE or BLOCK. Do not invent unheard evidence.',
   }
-  const completion=await client.chat.completions.create({
+  const completion=await openaiClient().chat.completions.create({
     model:audioModel,
     messages:[{role:'user',content:[
       {type:'text',text:JSON.stringify(prompt)},
@@ -304,7 +310,7 @@ async function reviseContent(entry,failed){
       'Return exactly: title, scriptureReference, script, caption.'
     ],
   }
-  const r=await client.responses.create({model:visualModel,input:JSON.stringify(prompt),max_output_tokens:1200})
+  const r=await openaiClient().responses.create({model:visualModel,input:JSON.stringify(prompt),max_output_tokens:1200})
   const parsed=jsonFromText(r.output_text)
   const replacement={
     title:String(parsed?.title||'').trim().slice(0,120),
@@ -384,8 +390,7 @@ async function candidateEntries(){
 
 export async function runCertificationCycle(){
   if(process.env.MASTER_CERTIFICATION_ENABLED==='false')return {ok:true,skipped:true,reason:'DISABLED'}
-  if(process.env.ZERO_CREDIT_ONLY==='true')throw new Error('ZERO_CREDIT_POLICY_ACTIVE_PAID_AI_DISABLED')
-  if(!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
+  if(!zeroCreditOnly&&!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
   const candidates=await candidateEntries()
   for(const entry of candidates){
     let state
@@ -421,10 +426,17 @@ export async function runCertificationCycle(){
 
     let visual,audio
     try{
-      ;[visual,audio]=await Promise.all([
-        visualReview(entry,technical,rights),
-        audioReview(entry,integrity.audioBytes),
-      ])
+      if(zeroCreditOnly){
+        const zero=await zeroCreditPreflight(entry,{technical,rights,integrity})
+        visual=zero.visual
+        audio=zero.audio
+        console.log('MASTER_CERTIFICATION_ZERO_CREDIT_PREFLIGHT',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,summary:zero.summary,ledgerVersion:zero.curated?.ledgerVersion}))
+      }else{
+        ;[visual,audio]=await Promise.all([
+          visualReview(entry,technical,rights),
+          audioReview(entry,integrity.audioBytes),
+        ])
+      }
     }catch(error){
       const message=error instanceof Error?error.message:String(error)
       console.error('MASTER_CERTIFICATION_REVIEW_EXECUTION_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}))
@@ -442,6 +454,7 @@ export async function runCertificationCycle(){
       }else{
         console.error('MASTER_CERTIFICATION_CONTENT_REVISION_REQUIRED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed:contentFailures}))
         try{
+          if(zeroCreditOnly)throw new Error('ZERO_CREDIT_CONTENT_REVISION_REQUIRES_NEW_CURATED_LEDGER_ENTRY')
           const replacement=await reviseContent(entry,contentFailures)
           await requestProductionRetry(entry,`CONTENT_REVISION_REQUIRED: ${JSON.stringify(contentFailures)}`,replacement)
           console.warn('MASTER_CERTIFICATION_CONTENT_REVISION_QUEUED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,targetDate:entry.targetDate,slot:entry.slot,newTitle:replacement.title,newScriptureReference:replacement.ref}))
@@ -485,6 +498,7 @@ export async function runCertificationCycle(){
         const needsContentRevision=failedVotes.some((x)=>contentAgents.has(x.agentId))
         if(needsContentRevision){
           try{
+            if(zeroCreditOnly)throw new Error('ZERO_CREDIT_CONTENT_REVISION_REQUIRES_NEW_CURATED_LEDGER_ENTRY')
             const replacement=await reviseContent(entry,failedVotes)
             await requestProductionRetry(entry,`AGENT_RELEASE_REVIEW_CONTENT_REVISION: ${JSON.stringify(failedVotes)}`,replacement)
             console.warn('MASTER_CERTIFICATION_AGENT_REVISION_QUEUED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,newTitle:replacement.title,failedAgents:failedVotes.map((x)=>x.agentId)}))
