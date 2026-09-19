@@ -18,7 +18,13 @@ for(let i=0;i<days;i++){
  if(!response.ok){blockers.push({date,reason:'MANIFEST_HTTP_'+response.status});continue}
  const manifest=await response.json()
  if(!Array.isArray(manifest.entries)||manifest.entries.length!==3){blockers.push({date,reason:'EXPECTED_THREE_SLOTS'});continue}
- for(const entry of manifest.entries){
+ const buildingResponse=await fetch(base+'/factory-manifest?date='+date+'&stage=building',{headers:{authorization:'Bearer '+secret},cache:'no-store'})
+ const building=buildingResponse.ok?await buildingResponse.json():null
+ const candidates=[...manifest.entries,...(Array.isArray(building?.entries)?building.entries:[])]
+ const reviewable=e=>validHash(e?.contentHash)&&validHash(e?.masterHash)&&e?.releasePayload?.masterHash===e.masterHash&&e?.mediaUrl&&e?.reviewAssets?.audioReviewUrl&&validHash(e?.reviewAssets?.audioReviewHash)
+ for(const slot of [...new Set(manifest.entries.map(e=>e.slot))]){
+  const entry=candidates.find(e=>e.slot===slot&&reviewable(e))||manifest.entries.find(e=>e.slot===slot)
+  if(!entry){blockers.push({date,slot,reason:'SLOT_MISSING'});continue}
   if(!validHash(entry.contentHash)||!validHash(entry.masterHash)||entry.releasePayload?.masterHash!==entry.masterHash){blockers.push({date,slot:entry.slot,title:entry.title,reason:'EXACT_MASTER_PENDING',renderFailure:String(entry.failureReason||'').slice(0,500)});continue}
   const assets=entry.reviewAssets||{}
   entries.push({
