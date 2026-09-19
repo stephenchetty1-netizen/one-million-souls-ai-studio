@@ -7,11 +7,18 @@ test('Christian music video uses documented Amazing Grace hymn recording, not Pe
  assert.match(musicVideoContract.musicSourcePage,/commons\.wikimedia\.org\/wiki\/File:Amazing_Grace_2011/)
  assert.equal(musicVideoContract.musicLicense,'CC BY 3.0')
 })
-test('three Pexels prayer-to-Scripture music beats last a coherent short reel',()=>{
+test('new shorts are 59 seconds, not the old 18-second proof-of-concept',()=>{
  assert.equal(musicVideoContract.collection,'BE_STILL_PEXELS_V1')
- assert.equal(musicVideoContract.bpmReference,79)
- assert.ok(musicVideoContract.secondsPerShot>6&&musicVideoContract.secondsPerShot<6.2)
- assert.ok(musicVideoContract.durationSeconds>18&&musicVideoContract.durationSeconds<18.5)
+ assert.equal(musicVideoContract.shortDurationSeconds,59)
+ assert.equal(musicVideoContract.formats.SHORT_59.durationSeconds,59)
+ assert.equal(musicVideoContract.formats.SHORT_59.minimumDistinctClips,9)
+ assert.equal(musicVideoContract.archivedPreviewDurationSeconds,18.228)
+})
+test('new long-form YouTube output uses four minutes of distinct landscape scenes',()=>{
+ assert.equal(musicVideoContract.longFormDurationSeconds,240)
+ assert.equal(musicVideoContract.formats.YOUTUBE_LONG.width,1920)
+ assert.equal(musicVideoContract.formats.YOUTUBE_LONG.height,1080)
+ assert.equal(musicVideoContract.formats.YOUTUBE_LONG.minimumDistinctClips,24)
 })
 test('music-led draft cannot become an autonomous publishing approval',()=>{
  assert.equal(musicVideoContract.publishingAllowed,false)
