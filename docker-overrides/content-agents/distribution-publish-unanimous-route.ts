@@ -29,6 +29,28 @@ function canonicalize(value:any):any{
   if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map((key)=>[key,canonicalize(value[key])]))
   return value
 }
+function sameCanonical(a:any,b:any){return JSON.stringify(canonicalize(a))===JSON.stringify(canonicalize(b))}
+function validateCanonicalRequest(body:any,releasePayload:any,problems:string[]){
+  const checks=[
+    ['title',releasePayload?.title],
+    ['script',releasePayload?.script],
+    ['caption',releasePayload?.caption],
+    ['platforms',releasePayload?.platforms],
+    ['platformPackages',releasePayload?.platformPackages],
+  ]
+  for(const [key,approved] of checks){
+    if(Object.prototype.hasOwnProperty.call(body||{},key)&&!sameCanonical(body?.[key],approved))problems.push(`${key} differs from approved releasePayload`)
+  }
+  if(Object.prototype.hasOwnProperty.call(body||{},'description')){
+    const approved=releasePayload?.platformPackages?.youtube?.description
+    if(!sameCanonical(body?.description,approved))problems.push('description differs from approved YouTube description')
+  }
+  if(Object.prototype.hasOwnProperty.call(body||{},'privacyLevel')&&!sameCanonical(body?.privacyLevel,releasePayload?.platformPackages?.tiktok?.privacyLevel))problems.push('privacyLevel differs from approved TikTok package')
+  if(Object.prototype.hasOwnProperty.call(body||{},'privacyStatus')&&!sameCanonical(body?.privacyStatus,releasePayload?.platformPackages?.youtube?.privacyStatus))problems.push('privacyStatus differs from approved YouTube package')
+  if(Object.prototype.hasOwnProperty.call(body||{},'madeForKids')&&!sameCanonical(body?.madeForKids,releasePayload?.platformPackages?.youtube?.madeForKids))problems.push('madeForKids differs from approved YouTube package')
+  if(Object.prototype.hasOwnProperty.call(body||{},'isAigc')&&!sameCanonical(body?.isAigc,releasePayload?.platformPackages?.tiktok?.isAigc))problems.push('isAigc differs from approved TikTok package')
+  if(Object.prototype.hasOwnProperty.call(body||{},'isAiGeneratedContent')&&!sameCanonical(body?.isAiGeneratedContent,releasePayload?.platformPackages?.youtube?.isAiGeneratedContent))problems.push('isAiGeneratedContent differs from approved YouTube package')
+}
 function releaseHash(payload:any){return crypto.createHash('sha256').update(JSON.stringify(canonicalize(payload))).digest('hex')}
 function approvalKey(contentHash:string,masterHash:string,agentId:string){return `one-million-souls:v59:approval:${contentHash}:${masterHash}:${agentId}`}
 function certificateKey(contentHash:string,masterHash:string){return `one-million-souls:v59:certificate:${contentHash}:${masterHash}`}
@@ -54,6 +76,7 @@ async function verify(body:any){
   if(releasePayload?.masterHash!==masterHash)problems.push('releasePayload.masterHash mismatch')
   if(body?.mediaUrl&&releasePayload?.mediaUrl!==body.mediaUrl)problems.push('mediaUrl differs from approved releasePayload')
   if(body?.thumbnailUrl&&releasePayload?.thumbnailUrl!==body.thumbnailUrl)problems.push('thumbnailUrl differs from approved releasePayload')
+  validateCanonicalRequest(body,releasePayload,problems)
   const scheduled=String(body?.scheduledPublishAt||body?.publishAt||'')
   if(scheduled&&releasePayload?.scheduledPublishAt!==scheduled)problems.push('scheduled publish time differs from approved releasePayload')
   if(problems.length)return {ok:false,problems,contentHash,masterHash}
