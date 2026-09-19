@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { durableRedis } from '@/content-agents/durable-redis.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const redisUrl = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '').replace(/\/$/, '')
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''
 
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET
@@ -21,12 +20,7 @@ async function policy() {
 function cleanHash(v:any) { return /^[a-f0-9]{64}$/i.test(String(v||'')) ? String(v).toLowerCase() : '' }
 function key(contentHash:string,masterHash:string,agentId:string) { return `one-million-souls:v59:approval:${contentHash}:${masterHash}:${agentId}` }
 function certificateKey(contentHash:string,masterHash:string) { return `one-million-souls:v59:certificate:${contentHash}:${masterHash}` }
-async function redis(command:any[]) {
-  if (!redisUrl || !redisToken) throw new Error('DURABLE_APPROVAL_STORE_NOT_CONFIGURED')
-  const r=await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
-  if(!r.ok) throw new Error(`APPROVAL_STORE_HTTP_${r.status}`)
-  const data:any=await r.json(); return data?.result
-}
+const redis=durableRedis
 async function readVote(contentHash:string,masterHash:string,agentId:string) {
   const raw=await redis(['GET',key(contentHash,masterHash,agentId)])
   return raw ? JSON.parse(raw) : null
