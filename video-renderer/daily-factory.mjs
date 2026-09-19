@@ -8,6 +8,14 @@ const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
 const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
+// Exact-master independent creative rejection: technical PASS is insufficient.
+const REJECTED_BE_STILL_MASTER = '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e'
+function rejectedVisualMaster(entry) {
+  if (String(entry?.title || '').trim().toUpperCase() !== 'BE STILL') return false
+  return String(entry?.masterHash || '').toLowerCase() === REJECTED_BE_STILL_MASTER ||
+    (entry?.rightsClearedStockScenes || []).some(scene => scene?.stockId === 'sunrise-storm-portrait') ||
+    (entry?.visualStoryboardInspection?.beats || []).some(beat => beat?.stockId === 'sunrise-storm-portrait')
+}
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 const configuredQuotaPause = Number(process.env.FREE_ZEROGPU_QUOTA_COOLDOWN_MS || 60 * 60 * 1000)
@@ -85,6 +93,7 @@ function manifestIsCurrent(manifest, date, slots) {
   if (!manifest || manifest.targetDate !== date || manifest.pipelineVersion !== PIPELINE_VERSION) return false
   if (!Array.isArray(manifest.entries) || manifest.entries.length !== slots.length) return false
   return manifest.entries.every((entry, index) =>
+    !rejectedVisualMaster(entry) &&
     entry?.slot === slots[index] &&
     entry?.renderer === 'one-million-souls-zero-credit-v3' &&
     entry?.renderQualityGate === 'PASS' &&
@@ -202,6 +211,7 @@ export async function generateFor(date) {
       caption:String(replacement.caption || item.caption).slice(0,2200),
     } : item
     const reusable = recoveryCandidates.find((entry) =>
+      !rejectedVisualMaster(entry) &&
       entry?.slot === slotTimes[i] &&
       entry?.title === effectiveItem.title &&
       entry?.renderQualityGate === 'PASS' &&
@@ -392,7 +402,7 @@ export async function generateFor(date) {
       ...(Array.isArray(previousBuilding?.entries)?previousBuilding.entries:[])]
     manifest.entries=entries.map(entry=>{
       if(entry?.releaseStatus!=='PRODUCTION_RETRY')return entry
-      const old=historical.find(prior=>prior?.slot===entry.slot &&
+      const old=historical.find(prior=>!rejectedVisualMaster(prior) && prior?.slot===entry.slot &&
         /^[a-f0-9]{64}$/i.test(String(prior?.masterHash||'')) &&
         prior?.mediaUrl && prior?.releasePayload?.masterHash===prior.masterHash)
       return old?{...old,releaseStatus:'TECHNICAL_BLOCK_REGENERATION_PENDING',
@@ -404,7 +414,11 @@ export async function generateFor(date) {
   // A partial regeneration must never destroy the last published review
   // manifest. Keep retry progress in buildingKey until all three masters
   // pass technical rendering. Review/export sees the previous exact assets.
-  if(complete || !existing){
+  if(complete || !existing || existing?.entries?.some(rejectedVisualMaster)){
+    // Correct public review archive immediately if it still exposes a rejected
+    // creative master. Preserve other good exact masters even on partial retry.
+    if(existing?.entries?.some(rejectedVisualMaster))
+      console.warn('DAILY_FACTORY_REJECTED_VISUAL_MASTER_REMOVED',JSON.stringify({targetDate:date,title:'BE STILL',masterHash:REJECTED_BE_STILL_MASTER,publishingLocked:true}))
     await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   }else{
     console.warn('DAILY_FACTORY_PUBLIC_MANIFEST_PRESERVED',JSON.stringify({

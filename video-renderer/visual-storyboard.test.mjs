@@ -56,3 +56,21 @@ test('platform UI clearance is larger than old 170px caption offset',()=>{
  assert.equal(CAPTION_LAYOUT.maxWords<=4,true)
  assert.equal(CAPTION_LAYOUT.maxCharacters<=32,true)
 })
+
+test('BE STILL three-beat revision eliminates rejected branded weather-map source',()=>{
+  const p=planVisualStory({title:'BE STILL',script,scriptureReference:'Psalm 46:10'})
+  assert.deepEqual(p.beats.map(beat=>beat.stockId),[
+    'shoreline-footprints-waves','pangong-lake-waves','golden-sunset-january'
+  ])
+  assert.equal(new Set(p.beats.map(beat=>beat.stockId)).size,3)
+  assert.equal(p.beats.some(beat=>beat.stockId==='sunrise-storm-portrait'),false)
+  assert.equal(p.stockStoryboardAvailable,true)
+  const scenes=p.beats.map((beat,i)=>({
+    local:'/tmp/still-'+i+'.mp4',source:'rights-cleared-stock-video',
+    stockId:beat.stockId,sourcePage:'https://commons.wikimedia.org/wiki/File:Example',
+    license:'CC0-1.0',rightsNote:'Verified individual CC0 source',
+    startSeconds:beat.startSeconds||0,repriseOf:beat.repriseOf??null,
+  }))
+  assert.equal(inspectVisualStoryboard(p,scenes).passed,true)
+  assert.equal(inspectVisualStoryboard(p,scenes).publishingAuthority,false)
+})
