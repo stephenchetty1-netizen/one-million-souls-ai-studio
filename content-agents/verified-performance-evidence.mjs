@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { durableRedis } from './durable-redis.mjs'
+import { loadAnalyticsSnapshot } from './growth-analytics-snapshot.mjs'
 
 const PREFIX='one-million-souls:v59:verified-performance:v1:'
 const PLATFORMS=new Set(['youtube','tiktok'])
@@ -25,7 +26,11 @@ function validCount(value,field){
 }
 function normalizeRecord(raw,platform){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))err('INVALID_ANALYTICS_RECORD')
-  const postId=String(raw.postId||raw.videoId||'').trim()
+  let postId=String(raw.postId||raw.videoId||raw.id||'').trim()
+  if(postId.startsWith('http')){
+    const match=postId.match(/(?:\/video\/|[?&]v=)([A-Za-z0-9_-]+)/)
+    postId=match?.[1]||''
+  }
   if(!postId||postId.length>100||!/^[A-Za-z0-9_-]+$/.test(postId))err('POST_ID_REQUIRED')
   const topic=String(raw.topic||raw.title||'').trim().slice(0,220)
   const result={postId,platform,topic}
@@ -92,15 +97,26 @@ export async function loadVerifiedPerformance(platform){
     const stored=await durableRedis(['GET',PREFIX+platform])
     if(stored)live=normalize(JSON.parse(stored))
   }catch(error){warning=String(error?.message||error)}
-  const selected=live&&(!seed||Date.parse(live.capturedAt)>=Date.parse(seed.capturedAt))?live:seed
+  let existing=null
+  try{
+    const snapshot=await loadAnalyticsSnapshot(platform)
+    if(snapshot.available){
+      existing=normalize({
+        platform,source:'CONNECTED_METRICOOL',capturedAt:snapshot.capturedAt,
+        records:snapshot.records||[],channelMetrics:snapshot.metrics||{},
+      })
+    }
+  }catch(error){
+    warning=warning||String(error?.message||error)
+  }
+  const available=[seed,live,existing].filter(Boolean)
+  const selected=available.sort((a,b)=>Date.parse(b.capturedAt)-Date.parse(a.capturedAt))[0]||null
   const result={
     platform,
-    transport:selected===live?'DURABLE_VERIFIED_INGEST':selected?'DATED_BOOTSTRAP_FILE':'UNAVAILABLE',
+    transport:selected===live?'DURABLE_VERIFIED_INGEST':selected===existing?'CONNECTED_METRICOOL_SNAPSHOT':selected?'DATED_BOOTSTRAP_FILE':'UNAVAILABLE',
     ...(selected||{capturedAt:null,records:[],channelMetrics:{},postCount:0,measuredPostCount:0,metricsComplete:false}),
     freshness:freshness(selected),
-    autonomousUpstreamConfigured:
-      platform==='youtube'?Boolean(process.env.YOUTUBE_API_KEY):
-      Boolean(process.env.TIKTOK_ANALYTICS_ACCESS_TOKEN),
+    autonomousUpstreamConfigured:false,
     persistenceWarning:warning,
   }
   return result
