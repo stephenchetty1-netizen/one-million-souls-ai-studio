@@ -24,7 +24,7 @@ for(let i=0;i<days;i++){
    date,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash,
    script:entry.releasePayload?.script,scriptureReference:entry.releasePayload?.scriptureReference,
    videoUrl:entry.mediaUrl,thumbnailUrl:entry.thumbnailUrl,
-   audioReviewUrl:assets.audioReviewUrl,firstFrameUrl:assets.firstFrameUrl,
+   audioReviewUrl:assets.audioReviewUrl,audioReviewHash:assets.audioReviewHash,firstFrameUrl:assets.firstFrameUrl,
    contactSheetUrl:assets.contactSheetUrl,lastFrameUrl:assets.lastFrameUrl,
    measured:{renderQualityGate:entry.renderQualityGate,fullDecodeInspection:entry.fullDecodeInspection,masterInspection:entry.masterInspection,audioInspection:entry.audioInspection,captionInspection:entry.captionInspection},
    independentReview:{status:'PENDING',fullWatch:'PENDING',voiceAndMix:'PENDING',visualStory:'PENDING',scriptureAndScript:'PENDING',thumbnail:'PENDING',reviewer:null,reviewedAt:null,notes:null},
@@ -41,4 +41,13 @@ const persisted=await durableRedis(['SET',redisKey,json])
 if(persisted!=='OK')throw new Error('REVIEW_PACKET_DURABLE_WRITE_FAILED')
 if(await durableRedis(['GET',redisKey])!==json)throw new Error('REVIEW_PACKET_DURABLE_READ_MISMATCH')
 console.log(JSON.stringify({ok:true,path:output,slots:entries.length,approved:0,redisKey,packetSha256:crypto.createHash('sha256').update(json).digest('hex')}))
+const sample=entries[0]
+for(const [kind,url,expectedHash] of [['video',sample.videoUrl,sample.masterHash],['audio',sample.audioReviewUrl,sample.audioReviewHash]]){
+ if(!/^[a-f0-9]{64}$/i.test(String(expectedHash||'')))throw new Error('MEDIA_EXPECTED_HASH_MISSING_'+kind)
+ const response=await fetch(url,{signal:AbortSignal.timeout(90000),cache:'no-store'})
+ if(!response.ok)throw new Error('MEDIA_ACCESS_HTTP_'+kind+'_'+response.status)
+ const actual=crypto.createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex')
+ if(actual.toLowerCase()!==expectedHash.toLowerCase())throw new Error('MEDIA_HASH_MISMATCH_'+kind)
+ console.log('INDEPENDENT_REVIEW_MEDIA_ACCESS_VERIFIED '+JSON.stringify({kind,date:sample.date,slot:sample.slot,sha256:actual}))
+}
 console.log('INDEPENDENT_REVIEW_MEDIA_INDEX '+JSON.stringify(entries.map(e=>({date:e.date,slot:e.slot,title:e.title,masterHash:e.masterHash,videoUrl:e.videoUrl,audioReviewUrl:e.audioReviewUrl,contactSheetUrl:e.contactSheetUrl}))))
