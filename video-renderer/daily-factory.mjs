@@ -134,14 +134,14 @@ async function render(item, variationSeed=0) {
 }
 
 export async function generateFor(date) {
-  if (!enabled || !s3) return
+  if (!enabled || !s3) return false
   const key = manifestKey(date)
   const buildingKey = buildingManifestKey(date)
   const slotTimes = configuredSlots()
   const existing = await readJsonObject(key)
   if (manifestIsCurrent(existing, date, slotTimes)) {
     console.log('DAILY_FACTORY_CURRENT', JSON.stringify({ targetDate: date, pipelineVersion: PIPELINE_VERSION }))
-    return
+    return true
   }
   if (existing) {
     console.warn('DAILY_FACTORY_STALE_REGENERATE', JSON.stringify({
@@ -339,6 +339,7 @@ export async function generateFor(date) {
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   console.log(complete ? 'DAILY_FACTORY_SUCCESS' : 'DAILY_FACTORY_PARTIAL_FAILURE', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
+  return complete
 }
 
 async function writeJsonObject(key,value){
@@ -395,8 +396,18 @@ async function tick() {
   if (now.time === '23:30' || lastFactoryDate === '') {
     lastFactoryDate = runKey
     try {
-      for (let day=1; day<=ADVANCE_DAYS; day++) await generateFor(futureDate(day))
-      nextFactoryAttemptAt = 0
+      let allComplete = true
+      for (let day=1; day<=ADVANCE_DAYS; day++) {
+        const complete = await generateFor(futureDate(day))
+        if (complete !== true) allComplete = false
+      }
+      if (allComplete) {
+        nextFactoryAttemptAt = 0
+      } else {
+        lastFactoryDate = ''
+        nextFactoryAttemptAt = Date.now() + FACTORY_RETRY_MS
+        console.warn('DAILY_FACTORY_INCOMPLETE_BACKOFF', JSON.stringify({retryAfterMs:FACTORY_RETRY_MS,retryAt:new Date(nextFactoryAttemptAt).toISOString()}))
+      }
     } catch (e) {
       lastFactoryDate=''
       nextFactoryAttemptAt = Date.now() + FACTORY_RETRY_MS
