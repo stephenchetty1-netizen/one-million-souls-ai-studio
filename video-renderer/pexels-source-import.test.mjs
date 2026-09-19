@@ -7,7 +7,7 @@ import {
 const hd=(width,height,fps=30,link='https://videos.pexels.com/video-files/100/100-hd_1080_1920.mp4')=>
  ({id:200,quality:'hd',file_type:'video/mp4',width,height,fps,link})
 test('same-contributor devotional uses explicitly selected source pages',()=>{
- assert.deepEqual(PEXELS_COLLECTIONS.BE_STILL_PEXELS_V1.map(x=>x.id),[5206028,5206029,5206032])
+ assert.deepEqual(PEXELS_COLLECTIONS.BE_STILL_PEXELS_V1.map(x=>x.id),[5206028,5206029,5206136])
  assert.deepEqual(PEXELS_COLLECTIONS.BE_STILL_PEXELS_V1.map(x=>x.beat),['TENSION','SCRIPTURE','RESPONSE'])
 })
 test('native portrait at least 1080x1920 beats stretched landscape and 720p',()=>{
