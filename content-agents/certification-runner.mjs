@@ -98,6 +98,7 @@ async function releaseReadinessSummary(){
         continue
       }
       summary.awaiting++
+      issue({date,slot:entry?.slot,title:entry?.title,reason:certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'?'LEGACY_CERTIFICATE_REQUIRES_INDEPENDENT_REVIEW':'PROFESSIONAL_MASTER_NOT_CERTIFIED',contentHash:String(entry.contentHash).toLowerCase(),masterHash:String(entry.masterHash).toLowerCase()})
       const deadline=Date.parse(entry?.releaseReadyDeadline||'')
       if(Number.isFinite(deadline)&&Date.now()>=deadline){
         summary.deadlineMissed++;issue({date,slot:entry?.slot,title:entry?.title,reason:'RELEASE_READY_DEADLINE_MISSED',releaseReadyDeadline:entry.releaseReadyDeadline})
