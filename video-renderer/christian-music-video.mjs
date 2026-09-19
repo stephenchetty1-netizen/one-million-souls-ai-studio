@@ -14,6 +14,7 @@ const TITLE='AMAZING GRACE'
 const ARCHIVED_PREVIEW_SECONDS=18.228
 const MUSIC_START_SECONDS=15
 const MAX_AUDIO=25*1024*1024
+const MIN_LICENSED_MUSIC_SECONDS=60
 const PREFIX='music-video-review-v1'
 const MUSIC={
   title:'Amazing Grace 2011',artist:'Kevin MacLeod',
@@ -21,7 +22,7 @@ const MUSIC={
   fileUrl:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Amazing_Grace_2011_%28ISRC_USUAN1100820%29.mp3',
   composerPage:'https://incompetech.com/',
   license:'CC BY 3.0',licenseUrl:'https://creativecommons.org/licenses/by/3.0/',
-  officialCredit:'Amazing Grace 2011 Kevin MacLeod (incompetech.com) — CC BY 3.0; excerpt, fades and video synchronisation added.',
+  officialCredit:'Amazing Grace 2011 Kevin MacLeod (incompetech.com) — CC BY 3.0; excerpt, looping for long-form, fades and video synchronisation added.',
   genre:'Christian hymn instrumental: clarinet, pipe organ, piano',
 }
 const script='When the world feels loud, remember the amazing grace of Jesus Christ. Be still, open Scripture, and pray. His mercy meets you today. God gives grace upon grace, and you can draw near to Him.'
@@ -151,17 +152,18 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const audio=path.join(work,'amazing-grace-2011.mp3')
       let music=await cachedMusic(s3)
       await fs.writeFile(audio,music)
-      let musicDuration
-      try{
-        musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
-      }catch(error){
-        if(!String(error?.message||'').startsWith('CHRISTIAN_MUSIC_DURATION_INVALID'))throw error
-        console.warn('CHRISTIAN_MUSIC_CACHE_DURATION_RECHECK',JSON.stringify({reason:error.message,sourceHash:hash(music),publishingAllowed:false}))
-        music=await cachedMusic(s3,{forceRefresh:true})
-        await fs.writeFile(audio,music)
-        musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
-      }
-      requireChristianVideoSources(format,staged,musicDuration-MUSIC_START_SECONDS)
+      // The licensed source is 189.2s. A 240s draft uses an explicitly disclosed
+      // looped arrangement, never a truncated audio track or a silent tail.
+      const musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',MIN_LICENSED_MUSIC_SECONDS)
+      const availableAfterOffset=musicDuration-MUSIC_START_SECONDS
+      if(availableAfterOffset<MIN_LICENSED_MUSIC_SECONDS-MUSIC_START_SECONDS)
+        throw new Error('CHRISTIAN_MUSIC_USABLE_SEGMENT_TOO_SHORT')
+      const loopedMusic=availableAfterOffset<profile.requiredAudioSeconds+0.5
+      if(loopedMusic)console.log('CHRISTIAN_MUSIC_LICENSED_LOOP_ARRANGEMENT',JSON.stringify({
+        sourceDurationSeconds:musicDuration,requiredSeconds:profile.requiredAudioSeconds,
+        offsetSeconds:MUSIC_START_SECONDS,editorialReviewRequired:true,publishingAllowed:false
+      }))
+      requireChristianVideoSources(format,staged,Math.max(availableAfterOffset,profile.requiredAudioSeconds))
       const collection=format==='SHORT_59'?'BE_STILL_PEXELS_V1':'YOUTUBE_WORSHIP_LANDSCAPE_V1'
       const eligible=staged.filter(source=>{
         try{verifyChristianVideoSceneMetadata(source,format,collection);return true}
@@ -207,7 +209,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       try{await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
         '-filter_complex_threads','1',
         '-f','concat','-safe','0','-i',listFile,
-        '-ss',String(MUSIC_START_SECONDS),'-i',audio,'-t',String(profile.durationSeconds),
+        '-stream_loop',loopedMusic?'-1':'0','-ss',String(MUSIC_START_SECONDS),'-i',audio,'-t',String(profile.durationSeconds),
         '-filter_complex',`[0:v]${vf}[v];[1:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=${audioFadeStart}:d=1.25,loudnorm=I=-14:LRA=9:TP=-1.5[a]`,
         '-map','[v]','-map','[a]','-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
         '-pix_fmt','yuv420p','-r',String(profile.fps),'-c:a','aac','-b:a','192k','-ac','2',
@@ -247,6 +249,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         mediaUrl:`${publicBase()}/media/${key}`,masterHash:hash(buffer),
         contactSheetUrl:`${publicBase()}/media/${contactKey}`,contactSheetHash:hash(sheet),
         musicSourceHash:hash(music),music:MUSIC,
+        musicArrangement:{looped:loopedMusic,sourceDurationSeconds:musicDuration,offsetSeconds:MUSIC_START_SECONDS,editorialReviewRequired:true},
         sourceScenes:scenes.map(s=>({stockId:s.stockId,sourcePage:s.sourcePage,
           sourceVideoHash:s.sourceVideoHash,license:s.license,contributor:s.pexelsContributor})),
         suggestedCaption:'Amazing Grace | Be still and remember the grace of Jesus. John 1:16. #AmazingGrace #Jesus #ChristianMusic #Worship #OneMillionSouls\n\n'+attribution,
