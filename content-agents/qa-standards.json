@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "updatedAt": "2026-09-19",
   "policy": "FAIL_CLOSED",
   "gates": {
@@ -121,7 +121,10 @@
     "legacy, substituted, silently repaired, or recompressed media after approval",
     "any content, thumbnail, caption, audio, title, description, or metadata change after approval without full re-approval",
     "creativeMaster or technicalMaster below PASS",
-    "quota or scheduled slot used to justify a lower-quality release"
+    "quota or scheduled slot used to justify a lower-quality release",
+    "irrelevant stock-video selection or off-theme visual sequence",
+    "V17-or-earlier render presented as V18 storyboard-compliant master",
+    "automated storyboard check presented as proof of independent visual/audio review"
   ],
   "releaseStandard": {
     "name": "PROFESSIONAL_MASTER",
@@ -130,5 +133,33 @@
     "masterReadyRule": "Release voting starts only after the actual assembled video, final audio, captions/lyrics, thumbnail, metadata, rights manifest, Scripture/fact checks, safe-zone inspection, export inspection, full-watch review, and immutable master hash exist.",
     "certification": "PROFESSIONAL_MASTER_CERTIFIED",
     "certificationRule": "TECHNICAL_MASTER=PASS and CREATIVE_MASTER=PASS and all required QA=PASS and exact-hash 49 approvals plus Publisher-last approval. Any subsequent media or metadata change invalidates certification and approvals."
+  },
+  "visualStoryContract": {
+    "version": "v59-visual-coherence-v1",
+    "caseStudy": "DO NOT CARRY TOMORROW V3 — planned sunrise / cave / sunrise",
+    "mandatoryForShorts": true,
+    "beats": [
+      "TENSION",
+      "SCRIPTURE",
+      "RESPONSE"
+    ],
+    "productionRules": [
+      "Use each scene to support the corresponding narration or Scripture, with an intentional emotional and visual progression.",
+      "Do not select stock footage by numeric index or use uncurated fallback footage when an original video provider fails.",
+      "Stock scenes must have explicit source IDs, provenance, story-beat purpose and, for an intentional reprise, a different source trim.",
+      "Do not use unrelated exercise, airplane or travel B-roll simply to fill duration.",
+      "When a topic lacks curated footage, try original free motion video; if real coherent motion cannot be rendered, hold the master for production, do not publish.",
+      "Technical storyboard matching does not certify the actual visual story; independently review the exact final master before release."
+    ],
+    "captionSafeZones": {
+      "canvas": "1080x1920",
+      "minBottomMarginPx": 360,
+      "minHorizontalMarginPx": 120,
+      "maxWordsPerPhrase": 4,
+      "maxCharactersPerPhrase": 32,
+      "estimatedTimingNotFullAudioSync": true
+    },
+    "legacyMasterPolicy": "V17 and older renders lack this enforceable storyboard inspection and need a new version-bound master and full independent review.",
+    "releaseRule": "No old 50-agent approval can be transferred to a newly rendered, revised, caption-adjusted, recompressed or re-trimmed master."
   }
 }
