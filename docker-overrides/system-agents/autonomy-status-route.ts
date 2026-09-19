@@ -4,9 +4,8 @@ export const runtime='nodejs'; export const dynamic='force-dynamic'
 export async function GET(){
  const provider=Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY)
  const zeroCreditOnly=process.env.ZERO_CREDIT_ONLY==='true'
- // In zero-credit mode the runtime uses deterministic/curated research-planning,
- // the external zero-credit renderer, and deterministic exact-master approvals.
- // A paid reasoning provider is therefore not a readiness prerequisite.
+ // Adapter registration is NOT evidence of a working renderer, durable approvals,
+ // a certified exact master, or a successfully deployed publishing pipeline.
  const localAutonomy=zeroCreditOnly||provider
  const adapters={
   research:localAutonomy?()=>{}:undefined,
@@ -19,6 +18,13 @@ export async function GET(){
  return NextResponse.json({
   ok:true,
   ...readiness,
+  readinessScope:'ADAPTER_CONFIGURATION_ONLY',
+  releaseReady:false,
+  releaseReadiness:'UNVERIFIED',
+  publishingLocked:true,
+  rendererVerified:false,
+  exactMasterCertified:false,
+  durableFiftyApprovalsVerified:false,
   providerConnected:provider,
   providerRequired:!zeroCreditOnly,
   zeroCreditOnly,
