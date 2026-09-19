@@ -295,7 +295,9 @@ const server = http.createServer(async (req, res) => {
     const date = url.searchParams.get('date') || 'latest'
     if (date !== 'latest' && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { ok:false, error:'date must be YYYY-MM-DD or latest' })
     try {
-      const key = date === 'latest' ? 'manifests/latest.json' : `manifests/${date}.json`
+      const building = url.searchParams.get('stage') === 'building'
+      if(building && date === 'latest') return sendJson(res,400,{ok:false,error:'building stage requires a date'})
+      const key = date === 'latest' ? 'manifests/latest.json' : `manifests/${date}${building ? '.building' : ''}.json`
       const manifest = await readStoredJson(key)
       return sendJson(res, 200, manifest)
     } catch (error) {
