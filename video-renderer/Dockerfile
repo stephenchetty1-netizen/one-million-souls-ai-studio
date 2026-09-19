@@ -28,7 +28,7 @@ COPY stock-music-library.mjs ./
 COPY pexels-source-import.mjs ./
 COPY pexels-source-import.test.mjs ./
 RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs \
- && node --check server.mjs && node --check pexels-source-import.mjs \
+ && node --check server.mjs && node --check bootstrap.mjs && node --check pexels-source-import.mjs \
  && node --test visual-storyboard.test.mjs pexels-source-import.test.mjs
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
