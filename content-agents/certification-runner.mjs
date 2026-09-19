@@ -40,7 +40,7 @@ function certificateKey(contentHash,masterHash){
 async function releaseReadinessSummary(){
   if(!rendererBase)throw new Error('RENDERER_BASE_URL_MISSING')
   const summary={days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:0,allCertified:false,issues:[],nextDayPackages:[]}
-  const issue=(value)=>{if(summary.issues.length<20)summary.issues.push(value)}
+  const issue=(value)=>{if(summary.issues.length<summary.expected)summary.issues.push(value)}
   for(let day=1;day<=advanceDays;day++){
     const date=futureDate(day)
     let manifest
