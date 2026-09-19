@@ -14,7 +14,13 @@
     "tt-posting-window-bot",
     "tt-fatigue-guard-bot",
     "tt-experiment-manager-bot",
-    "channel-attraction-director"
+    "channel-attraction-director",
+    "growth-multiplier-director",
+    "winner-replication-engine",
+    "rescue-packaging-engine",
+    "search-gap-expander",
+    "series-cluster-builder",
+    "collaboration-scout"
   ],
   "promotionPolicy": {
     "developAtScore": 65,
@@ -52,5 +58,19 @@
     "maxRotationAtOnce": 7,
     "fatigueReviewDays": 14,
     "requirePlatformSpecificPackaging": true
+  },
+  "growthMultiplier": {
+    "enabled": true,
+    "policy": "content-agents/growth-multiplier-policy.json",
+    "persistentMemory": true,
+    "maximumWinnerVariationsPerCycle": 5,
+    "classifications": [
+      "WINNER",
+      "RESCUE",
+      "RETIRE",
+      "MEASURE",
+      "AWAIT_DATA"
+    ],
+    "publishingAuthority": false
   }
 }
