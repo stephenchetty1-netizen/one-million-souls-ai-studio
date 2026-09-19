@@ -266,11 +266,24 @@
       "scriptureReference": "Isaiah 41:10",
       "videoMasterStatus": "EXISTS_IN_RENDERER_MANIFEST_NOT_INDEPENDENTLY_APPROVED",
       "publishStatus": "LOCKED"
+    },
+    {
+      "date": "2026-09-26",
+      "slot": "20:30",
+      "title": "YOU ARE NOT ALONE",
+      "reason": "LEGACY_CERTIFICATE_REQUIRES_INDEPENDENT_REVIEW",
+      "contentHash": "308822cd2a683151a1adf74cf0d8f3efc479b537f2196b9f4e5e6eb51bd0922a",
+      "masterHash": "8a4d0abb542b378916160d37ae1f5a9b9c3970a952603d7860bf7e84c7efba55",
+      "script": "Loneliness can make you feel forgotten, but feelings are not the whole story. Hebrews 13:5 reminds believers of God’s promise never to leave or forsake them. Reach out to trusted people, stay connected to Christian community, and remember that Jesus remains faithful even in quiet seasons.",
+      "caption": "You are not forgotten. Stay connected, keep praying, and remember God’s faithfulness. Hebrews 13:5. #Jesus #Hope #Faith #ChristianCommunity #OneMillionSouls",
+      "scriptureReference": "Hebrews 13:5",
+      "videoMasterStatus": "EXISTS_IN_RENDERER_MANIFEST_NOT_INDEPENDENTLY_APPROVED",
+      "publishStatus": "LOCKED"
     }
   ],
   "unmatchedTitles": [],
-  "note": "Live readiness summary caps issues at 20, so one of 21 renderer slots is not included here. Do not treat this as a complete renderer manifest, video approval, or 50 durable votes.",
-  "reconciledSlotDetails": 20,
-  "reconciliationComplete": false,
-  "unreconciledSlots": 1
+  "note": "All 21 live renderer slots reconciled to written scripts by title, but schedule and video approval must be assessed against exact master hashes; 0 certified. No fabricated approval.",
+  "reconciledSlotDetails": 21,
+  "reconciliationComplete": true,
+  "unreconciledSlots": 0
 }
