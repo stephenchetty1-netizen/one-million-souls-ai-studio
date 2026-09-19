@@ -41,13 +41,41 @@ const persisted=await durableRedis(['SET',redisKey,json])
 if(persisted!=='OK')throw new Error('REVIEW_PACKET_DURABLE_WRITE_FAILED')
 if(await durableRedis(['GET',redisKey])!==json)throw new Error('REVIEW_PACKET_DURABLE_READ_MISMATCH')
 console.log(JSON.stringify({ok:true,path:output,slots:entries.length,approved:0,redisKey,packetSha256:crypto.createHash('sha256').update(json).digest('hex')}))
-const sample=entries[0]
-for(const [kind,url,expectedHash] of [['video',sample.videoUrl,sample.masterHash],['audio',sample.audioReviewUrl,sample.audioReviewHash]]){
- if(!/^[a-f0-9]{64}$/i.test(String(expectedHash||'')))throw new Error('MEDIA_EXPECTED_HASH_MISSING_'+kind)
- const response=await fetch(url,{signal:AbortSignal.timeout(90000),cache:'no-store'})
- if(!response.ok)throw new Error('MEDIA_ACCESS_HTTP_'+kind+'_'+response.status)
- const actual=crypto.createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex')
- if(actual.toLowerCase()!==expectedHash.toLowerCase())throw new Error('MEDIA_HASH_MISMATCH_'+kind)
- console.log('INDEPENDENT_REVIEW_MEDIA_ACCESS_VERIFIED '+JSON.stringify({kind,date:sample.date,slot:sample.slot,sha256:actual}))
+const mediaChecks=[]
+async function verifyMedia(entry,kind,url,expectedHash){
+ const label=entry.date+'_'+entry.slot+'_'+kind
+ if(!validHash(expectedHash))throw new Error('MEDIA_EXPECTED_HASH_MISSING_'+label)
+ const parsed=new URL(String(url||''))
+ if(parsed.origin!==new URL(base).origin || !parsed.pathname.startsWith('/media/'))throw new Error('MEDIA_URL_NOT_RENDERER_'+label)
+ const response=await fetch(parsed.href,{signal:AbortSignal.timeout(120000),cache:'no-store'})
+ if(!response.ok)throw new Error('MEDIA_ACCESS_HTTP_'+label+'_'+response.status)
+ if(!response.body)throw new Error('MEDIA_EMPTY_BODY_'+label)
+ const hash=crypto.createHash('sha256')
+ let bytes=0
+ for await(const chunk of response.body){hash.update(chunk);bytes+=chunk.length}
+ if(!bytes)throw new Error('MEDIA_EMPTY_FILE_'+label)
+ const actual=hash.digest('hex')
+ if(actual.toLowerCase()!==expectedHash.toLowerCase())throw new Error('MEDIA_HASH_MISMATCH_'+label)
+ const check={date:entry.date,slot:entry.slot,kind,sha256:actual,bytes}
+ console.log('INDEPENDENT_REVIEW_MEDIA_ACCESS_VERIFIED '+JSON.stringify(check))
+ return check
 }
+const failed=[]
+for(let i=0;i<entries.length;i+=3){
+ const batch=entries.slice(i,i+3)
+ const outcomes=await Promise.all(batch.map(async entry=>{
+  const result=[]
+  for(const [kind,url,hash] of [['video',entry.videoUrl,entry.masterHash],['audio',entry.audioReviewUrl,entry.audioReviewHash]]){
+   try{result.push(await verifyMedia(entry,kind,url,hash))}
+   catch(error){failed.push({date:entry.date,slot:entry.slot,kind,error:String(error?.message||error)})}
+  }
+  return result
+ }))
+ for(const outcome of outcomes)mediaChecks.push(...outcome)
+}
+const verification={startDate:start,days,expected:entries.length*2,verified:mediaChecks.length,failed,publishingLocked:true,reviewStatus:'NOT_INDEPENDENTLY_APPROVED',at:new Date().toISOString()}
+const verificationKey=redisKey+':media-integrity'
+if(await durableRedis(['SET',verificationKey,JSON.stringify(verification)])!=='OK')throw new Error('MEDIA_INTEGRITY_RESULT_DURABLE_WRITE_FAILED')
+console.log('INDEPENDENT_REVIEW_MEDIA_INTEGRITY_SUMMARY '+JSON.stringify(verification))
+if(failed.length)throw new Error('INDEPENDENT_REVIEW_MEDIA_INTEGRITY_FAILED_'+failed.length)
 console.log('INDEPENDENT_REVIEW_MEDIA_INDEX '+JSON.stringify(entries.map(e=>({date:e.date,slot:e.slot,title:e.title,masterHash:e.masterHash,videoUrl:e.videoUrl,audioReviewUrl:e.audioReviewUrl,contactSheetUrl:e.contactSheetUrl}))))
