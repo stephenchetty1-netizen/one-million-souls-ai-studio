@@ -30,11 +30,22 @@ const TRACKS=[
 ]
 
 async function download(url,file){
-  const r=await fetch(url,{redirect:'follow',headers:{'user-agent':'OneMillionSoulsRenderer/1.0'}})
-  if(!r.ok)throw new Error(`stock music download failed ${r.status}`)
-  const bytes=Buffer.from(await r.arrayBuffer())
-  if(bytes.length<100000)throw new Error('stock music download too small')
-  await fs.writeFile(file,bytes)
+  let lastStatus=0
+  for(let attempt=0;attempt<4;attempt++){
+    const r=await fetch(url,{redirect:'follow',headers:{'user-agent':'OneMillionSoulsRenderer/1.1 (automated devotional media renderer; respectful caching and backoff)'}})
+    lastStatus=r.status
+    if(r.ok){
+      const bytes=Buffer.from(await r.arrayBuffer())
+      if(bytes.length<100000)throw new Error('stock music download too small')
+      await fs.writeFile(file,bytes)
+      return
+    }
+    if(r.status!==429 && r.status<500) break
+    const retryAfter=Number(r.headers.get('retry-after')||0)
+    const waitMs=Math.max(retryAfter*1000,Math.min(30000,1000*(2**attempt)))
+    await new Promise(resolve=>setTimeout(resolve,waitMs))
+  }
+  throw new Error(`stock music download failed ${lastStatus}`)
 }
 
 export async function createRightsClearedStockMusic(duration,work,seed=0){

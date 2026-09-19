@@ -363,9 +363,17 @@ async function generateMusic(providers, duration, work, seed=0) {
     const stockMessage = stockError instanceof Error ? stockError.message : String(stockError)
     console.warn('RIGHTS_CLEARED_STOCK_MUSIC_FAILED', JSON.stringify({ error: stockMessage }))
     if (process.env.ALLOW_GENERATED_MUSIC_FALLBACK === 'true') {
-      return await generateCloudMusic(providers, duration, work)
+      try {
+        return await generateCloudMusic(providers, duration, work)
+      } catch (cloudError) {
+        console.warn('GENERATED_MUSIC_FALLBACK_FAILED', JSON.stringify({ error: cloudError instanceof Error ? cloudError.message : String(cloudError) }))
+      }
     }
-    throw new Error(`Rights-cleared stock music unavailable and generated-music fallback is disabled: ${stockMessage}`)
+    // Music is optional for a professional devotional master. A deterministic
+    // locally generated ambient bed avoids killing the renderer on Wikimedia
+    // 429s or shared ZeroGPU exhaustion and consumes no paid generation credits.
+    console.warn('LOCAL_AMBIENT_MUSIC_RESILIENCE_FALLBACK', JSON.stringify({ reason: stockMessage }))
+    return createLocalAmbientMusic(duration, work)
   }
 }
 
