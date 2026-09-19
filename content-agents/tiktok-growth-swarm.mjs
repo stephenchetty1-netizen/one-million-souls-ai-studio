@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { loadTikTokGrowthState, rememberTikTokGrowthScan } from './tiktok-growth-memory.mjs'
+import { recommendChannelAttractions } from './channel-attraction-selector.mjs'
 
 export const TIKTOK_GROWTH_BOTS=Object.freeze([
   {id:'tt-hook-lab-bot',job:'Improve the first 1-2 seconds using the channel’s measured retention evidence.'},
@@ -238,6 +239,7 @@ export async function runTikTokGrowthScan(input={}){
       formatSuggestions:formatSuggestions(topic,ownMatch,evidence),
     }
   }).sort((a,b)=>b.opportunityScore-a.opportunityScore)
+  const attractions=await recommendChannelAttractions({platform:'tiktok',opportunities,recentTopics:state.recentTopics||[],metrics:benchmark(metrics,base)})
   const result={
     ok:true,
     zeroCreditOnly:true,
@@ -256,6 +258,7 @@ export async function runTikTokGrowthScan(input={}){
     },
     recentPerformance:posts.slice(0,12),
     opportunities,
+    channelAttractions:attractions,
     retention:retentionActions(input.metrics||base?.recentPostSignal||{}),
     followerGrowth:followerActions(metrics),
     captionInspection:input.caption?inspectTikTokCaption(input.caption,recentCaptions):null,
