@@ -355,8 +355,13 @@ async function candidateEntries(){
     const date=futureDate(day)
     try{
       const manifest=await fetchJson(`${rendererBase}/factory-manifest?date=${date}`,renderSecret)
+      const versionMatch=String(manifest?.pipelineVersion||'').match(/v59-professional-master-certified-v(\d+)$/)
+      if(!versionMatch||Number(versionMatch[1])<17){
+        console.warn('MASTER_CERTIFICATION_STALE_PIPELINE_SKIP',JSON.stringify({date,pipelineVersion:manifest?.pipelineVersion||'missing'}))
+        continue
+      }
       for(const entry of manifest?.entries||[]){
-        if(entry?.renderQualityGate!=='PASS'||!entry?.professionalMasterCandidate)continue
+        if(entry?.renderQualityGate!=='PASS'||!entry?.professionalMasterCandidate||entry?.releaseStatus!=='AWAITING_MASTER_CERTIFICATION')continue
         if(!validHash(entry?.masterHash)||!validHash(entry?.contentHash)||!validHash(entry?.thumbnailHash))continue
         if(!entry?.releasePayload||entry.releasePayload.masterHash!==entry.masterHash)continue
         if(!entry?.reviewAssets?.audioReviewUrl||!validHash(entry?.reviewAssets?.audioReviewHash))continue
