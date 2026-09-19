@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v14'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v15'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -98,7 +98,7 @@ function manifestIsCurrent(manifest, date, slots) {
     typeof entry?.masterHash === 'string' &&
     entry.masterHash.length === 64 &&
     entry?.publishingLocked === true &&
-    entry?.releaseStatus === 'AWAITING_50_AGENT_APPROVAL' &&
+    entry?.releaseStatus === 'AWAITING_MASTER_CERTIFICATION' &&
     Number.isFinite(Date.parse(entry?.scheduledPublishAt || '')) &&
     Date.parse(entry.scheduledPublishAt) === slotTimestamp(date, slots[index])
   )
@@ -265,9 +265,9 @@ async function generateFor(date) {
       contentHash,
       renderQualityGate:'PASS',
       professionalMasterCandidate:video.professionalMasterCandidate === true,
-      masterReady:video.masterReady === true,
-      technicalMaster:video.technicalMaster || 'PENDING',
-      creativeMaster:video.creativeMaster || 'PENDING',
+      masterReady:false,
+      technicalMaster:'PENDING',
+      creativeMaster:'PENDING',
       masterInspection:video.masterInspection,
       fullDecodeInspection:video.fullDecodeInspection,
       audioInspection:video.audioInspection,
@@ -286,7 +286,7 @@ async function generateFor(date) {
       releaseStandard:'PROFESSIONAL_MASTER',
       requiredApprovals:50,
       publishingLocked:true,
-      releaseStatus:(video.masterReady === true && video.technicalMaster === 'PASS' && video.creativeMaster === 'PASS') ? 'AWAITING_50_AGENT_APPROVAL' : 'RETURN_TO_PRODUCTION',
+      releaseStatus:'AWAITING_MASTER_CERTIFICATION',
       scheduledPublishAt:releasePayload.scheduledPublishAt,
       releaseReadyDeadline:new Date(slotTimestamp(date, slotTimes[i]) - RELEASE_READY_BUFFER_MS).toISOString(),
       minimumReleaseReadyBufferHours:2,
