@@ -78,3 +78,17 @@ test('portrait and frame-rate mismatch block an otherwise 59-second master',()=>
     assert.equal(reviewableExactMaster(master(A,'GOD IS NEAR',change)),false)
   }
 })
+
+// The user's footage objection is an exact-master rejection, not a metadata check.
+test('rejected Amazing Grace Pexels edits cannot be reintroduced as reviewable masters',()=>{
+ for(const hash of [
+  '9ce6a7c24f91f24c11d0e4ce20210712ec5a82b050a9b4960607d1e7ecd064e0',
+  '7c83f42184d5df46cdb9f86ba066e84c7354b02114c9e60fa9a434b6d3d4105b',
+  '26e66db356fd15971b59d2084bd6d9fc14854a8da6490c2b56076951937ba2d3',
+ ]){
+  const item=master(hash,'AMAZING GRACE')
+  assert.equal(creativelyRejected(item),true)
+  assert.equal(reviewableExactMaster(item),false)
+  assert.equal(selectExactMasterForReview({buildingEntry:item}).entry,null)
+ }
+})
