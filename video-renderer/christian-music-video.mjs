@@ -139,14 +139,23 @@ export async function renderChristianMusicVideoDraft(){
         `drawtext=fontfile=${font}:textfile=${ref}:fontsize=36:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=1350:enable='between(t\\,10.0\\,18.2)'`,
         `drawtext=fontfile=${font}:textfile=${brand}:fontsize=25:fontcolor=white:borderw=2:bordercolor=black@0.75:x=(w-text_w)/2:y=1460`,
       ].join(',')
-      await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
+      try{await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
+        '-filter_complex_threads','1',
         '-f','concat','-safe','0','-i',listFile,
         '-ss','15','-i',audio,'-t',String(DURATION),
         '-filter_complex',`[0:v]${vf}[v];[1:a]atrim=duration=${DURATION},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=17.0:d=1.228,loudnorm=I=-14:LRA=9:TP=-1.5[a]`,
-        '-map','[v]','-map','[a]','-c:v','libx264','-preset','veryfast','-crf','18',
+        '-map','[v]','-map','[a]','-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
         '-pix_fmt','yuv420p','-r','30','-c:a','aac','-b:a','192k','-ac','2',
         '-movflags','+faststart','-shortest',video],
         {timeout:210000,maxBuffer:10*1024*1024})
+      }catch(error){
+        const detail=String(error?.stderr||error?.message||'').slice(-3500)
+        console.error('CHRISTIAN_MUSIC_VIDEO_COMPOSE_BLOCKED',JSON.stringify({
+          code:error?.code||null,signal:error?.signal||null,stderr:detail,
+          publishingAllowed:false
+        }))
+        throw new Error('CHRISTIAN_MUSIC_VIDEO_COMPOSE_FAILED: '+detail.slice(-900))
+      }
       const duration=await checkedWork(video,'MUSIC_VIDEO',DURATION-0.3)
       await run('ffmpeg',['-v','error','-i',video,'-f','null','-'],
         {timeout:120000,maxBuffer:5*1024*1024})
