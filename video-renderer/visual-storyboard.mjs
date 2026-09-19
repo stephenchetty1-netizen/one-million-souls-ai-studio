@@ -17,6 +17,56 @@ const CURATED_STOCK_STORYBOARDS=Object.freeze({
     {stockId:'pangong-lake-waves',meaning:'A close shoreline rhythm underscores the invitation to stop striving and remember God',startSeconds:0},
     {stockId:'golden-sunset-january',meaning:'Actual golden evening light resolves the same waterside story with a hopeful response of prayer and trust',startSeconds:7},
   ],
+  'GOD IS NEAR':[
+    {stockId:'domica-cave',meaning:'A dark enclosed space conveys the felt distance of grief',startSeconds:0},
+    {stockId:'shoreline-footprints-waves',meaning:'Moving water creates room to breathe and hear Psalm 34:18',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Warm light resolves the sequence with a quiet sense of nearness',startSeconds:5},
+  ],
+  'FAITH OVER FEAR':[
+    {stockId:'domica-cave',meaning:'Cave darkness represents the uncertainty fear magnifies',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'A steady shoreline rhythm holds the promise of Isaiah 41:10',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Open evening light marks one faithful step beyond fear',startSeconds:5},
+  ],
+  'GRACE IN WEAKNESS':[
+    {stockId:'shoreline-footprints-waves',meaning:'Footprints erased by waves show the limits of self-reliance',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'A persistent water rhythm carries the sufficiency of grace',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Gentle sunset light closes on dependence rather than performance',startSeconds:5},
+  ],
+  'KEEP PRAYING':[
+    {stockId:'shoreline-footprints-waves',meaning:'Waves washing over footprints convey repeated waiting',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Unhurried lake movement holds the invitation to persevere',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Evening light closes with prayerful patience, not a promised deadline',startSeconds:5},
+  ],
+  'GOD IS STILL WORKING':[
+    {stockId:'domica-cave',meaning:'A shadowed cave establishes a chapter whose outcome is unseen',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Continuing waves imply movement even when change is hard to notice',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Evening light resolves in trust without claiming every pain is explained',startSeconds:5},
+  ],
+  'YOU ARE NOT ALONE':[
+    {stockId:'domica-cave',meaning:'An empty cave illustrates felt isolation without depicting a person',startSeconds:0},
+    {stockId:'shoreline-footprints-waves',meaning:'Footprints at the waterline suggest presence and a path forward',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Warm light opens the final beat toward connection and hope',startSeconds:5},
+  ],
+  'LET YOUR LIGHT SHINE':[
+    {stockId:'domica-cave',meaning:'A dim interior contrasts the choice to hide faith',startSeconds:0},
+    {stockId:'golden-sunset-january',meaning:'Natural golden light illustrates visible kindness without spectacle',startSeconds:2},
+    {stockId:'hornbill-morning',meaning:'Morning wildlife carries the invitation to live faith in ordinary life',startSeconds:5},
+  ],
+  'NOTHING CAN SEPARATE YOU':[
+    {stockId:'domica-cave',meaning:'A cave establishes changing circumstances and uncertainty',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Unbroken lake movement anchors the constancy of love in Christ',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Evening light closes the same journey without implying life is easy',startSeconds:5},
+  ],
+  'START AGAIN WITH GOD':[
+    {stockId:'shoreline-footprints-waves',meaning:'Waves erasing footprints mark the end of yesterday',startSeconds:0},
+    {stockId:'pangong-lake-waves',meaning:'Fresh water movement carries the mercy of a new beginning',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'A sunset signals the possibility of a faithful next step',startSeconds:5},
+  ],
+  'RUN YOUR RACE':[
+    {stockId:'shoreline-footprints-waves',meaning:'Footprints show an individual path rather than comparison',startSeconds:0},
+    {stockId:'dragon-boat-sunrise',meaning:'Real coordinated rowing illustrates endurance and steady effort',startSeconds:2},
+    {stockId:'golden-sunset-january',meaning:'Evening light closes on finishing the day with eyes on Jesus',startSeconds:5},
+  ],
   'DO NOT CARRY TOMORROW':[
     {stockId:'sunrise-storm-portrait',meaning:'Today begins; tomorrow is still unknown',startSeconds:0},
     {stockId:'domica-cave',meaning:'A temporary visual metaphor for feeling overwhelmed by worry',startSeconds:0},
