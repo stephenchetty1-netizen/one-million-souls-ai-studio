@@ -652,7 +652,10 @@ export async function renderFreeV2(body = {}) {
   const title = extractTitle(body)
   const script = extractScript(body)
   const providers = getFreeProviders()
-  const prompts = scenePrompts(body, title, script)
+  const scriptureReference=cleanText(body?.scriptureReference||body?.ref||
+    script.match(/\b(?:Matthew|Mark|Luke|John|Romans|Psalms?|Isaiah|Jeremiah|Hebrews|Philippians|Lamentations|Corinthians)\s+\d+:\d+(?:-\d+)?\b/i)?.[0]||'')
+  const storyboard=planVisualStory({title,script,scriptureReference,visualPrompts:body?.visualPrompts})
+  const prompts = scenePrompts(storyboard)
   const variationSeed = Math.max(0, Number(body?.variationSeed || 0))
   const stockSeed = [...`${title}|${script}|variation:${variationSeed}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
 
@@ -668,7 +671,8 @@ export async function renderFreeV2(body = {}) {
     const sceneSeconds = Math.max(4.5, Math.min(6.5, (voiceDuration / prompts.length) + 0.2))
     for (let index = 0; index < prompts.length; index += 1) {
       try {
-        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed)
+        const selection=storyboard.stockStoryboardAvailable?stockSelectionForBeat(storyboard,index):null
+        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed, selection)
         scenes.push(scene)
         console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
       } catch (error) {
@@ -716,6 +720,7 @@ export async function renderFreeV2(body = {}) {
       throw new Error('Quality gate failed: legacy/synthetic fallback narration is not PROFESSIONAL_MASTER eligible')
     }
 
+    const visualStoryboardInspection=inspectVisualStoryboard(storyboard,scenes)
     const captionInspection = inspectCaptionSafeZones(script, voiceDuration)
     const sceneMotionInspection = []
     for (let index = 0; index < scenes.length; index += 1) sceneMotionInspection.push(await inspectSceneMotion(scenes[index], index))
@@ -787,10 +792,12 @@ export async function renderFreeV2(body = {}) {
       captionInspection,
       audioInspection,
       visualVarietyInspection,
+      visualStoryboardInspection,
+      storyboardVersion:STORYBOARD_VERSION,
       sceneMotionInspection,
       animatedStillScenes: 0,
       minimumExportProfile: '1080x1920@30fps',
-      designSystem: 'v4-lato-gold-ass-captions',
+      designSystem: 'v5-safe-zone-380px-story-beats',
       publishingAllowed: false,
       reviewRequired: true,
     }
