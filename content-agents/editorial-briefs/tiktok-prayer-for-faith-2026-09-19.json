@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "tiktok-prayer-for-faith-owner-csi-2026-09-19",
+  "platform": "tiktok",
+  "mission": "One Million Souls",
+  "status": "DRAFT_FOR_EDITORIAL_REVIEW",
+  "publishingLocked": true,
+  "publishingAuthority": false,
+  "evidence": {
+    "source": "Owner-provided screenshot of TikTok Creator Search Insights with Content gap selected",
+    "record": "content-agents/tiktok-search-evidence.json",
+    "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+    "query": "prayer for faith",
+    "displayed_flame_figure": "84.4K",
+    "displayed_growth": "+56.9%",
+    "note": "TikTok UI figures are not guaranteed future views. The source is a dated screenshot, not autonomous live TikTok Studio API access."
+  },
+  "brief": {
+    "workingTitle": "A Prayer for Faith When You Feel Afraid",
+    "searchQuestion": "prayer for faith",
+    "targetDurationSeconds": [
+      30,
+      38
+    ],
+    "format": "Original spoken Christian devotional; vertical 9:16, licensed cinematic moving footage, legible mobile captions",
+    "openingHook": "When fear is louder than your faith, pray this with me.",
+    "scripture": {
+      "reference": "Mark 9:24",
+      "translation": "KJV",
+      "shortQuote": "Lord, I believe; help thou mine unbelief.",
+      "accuracyNote": "Use the father asking Jesus to help his unbelief as an illustration; do not imply faith ensures an immediate specific outcome."
+    },
+    "spokenScript": "When fear is louder than your faith, pray this with me. In Mark 9:24, a father cried, ‘Lord, I believe; help thou mine unbelief.’ Jesus, meet me where my faith feels weak. Teach me to trust You when I cannot see the answer. Give me courage for the next step, peace for tonight, and strength to keep praying. My hope is in You, not in perfect feelings. Amen.",
+    "closingOnScreen": "Mark 9:24 • Save this prayer for a difficult day",
+    "caption": "If your faith feels small today, you can still bring it to Jesus. “Lord, I believe; help thou mine unbelief.” — Mark 9:24 (KJV). Save this prayer for the days trusting God feels hard.",
+    "hashtags": [
+      "#PrayerForFaith",
+      "#Mark924",
+      "#ChristianEncouragement",
+      "#FaithInJesus"
+    ],
+    "originality": "Do not copy other creators' hooks, scripts, recordings or footage.",
+    "visualDirections": [
+      {
+        "seconds": "0-4",
+        "shot": "Natural low-light window or early dawn; subtle motion, no generated fake crowd",
+        "onScreen": "FAITH FEELS SMALL?"
+      },
+      {
+        "seconds": "4-15",
+        "shot": "Licensed close-up praying hands or quiet landscape; calm restrained editing",
+        "onScreen": "Lord, I believe..."
+      },
+      {
+        "seconds": "15-29",
+        "shot": "Genuine licensed sunrise or nature B-roll with motion; mobile-safe captions",
+        "onScreen": "Help my unbelief"
+      },
+      {
+        "seconds": "29-38",
+        "shot": "Warm natural sunrise, slow hold, original end card",
+        "onScreen": "Mark 9:24 • Save this prayer"
+      }
+    ],
+    "audio": "Use cleared soundtrack with documented sync/license or no music; intelligible human-quality voice, no clipped peaks."
+  },
+  "qualityGates": [
+    "Verify exact KJV verse and context",
+    "Document stock-clip and soundtrack licensing",
+    "Review actual final MP4 on phone for frame quality and crop",
+    "Verify subtitle timing and safe zones",
+    "Independent exact-file review and standard V59 approvals before publishing"
+  ],
+  "nextAction": "Research -> original production draft -> independent technical/editorial review; no scheduling or posting"
+}
