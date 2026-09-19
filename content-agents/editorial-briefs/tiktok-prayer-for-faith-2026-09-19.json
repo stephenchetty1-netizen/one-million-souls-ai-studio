@@ -21,10 +21,25 @@
       "search_popularity": "84.4K",
       "growth": "+56.9%",
       "creators_also_posted": "19.0K",
-      "majority_age": "25–34",
-      "gender": "Not shown",
+      "majority_age": null,
+      "gender": "Male 14%, Female 24%, Others 62%",
       "viewer_need_summary": "Strengthen faith, seek forgiveness, and feel spiritually encouraged through simple shareable videos",
-      "caution": "Global aggregate and self-described viewer insights do not identify South African age distribution or predict future views."
+      "caution": "Global aggregate and self-described viewer insights do not identify South African age distribution or predict future views.",
+      "age_breakdown_percent": {
+        "Others": 33,
+        "25-34": 24,
+        "35+": 24,
+        "18-24": 19,
+        "4-15": 0,
+        "16-17": 0
+      },
+      "gender_breakdown_percent": {
+        "Male": 14,
+        "Female": 24,
+        "Others": 62
+      },
+      "age_note": "The first summary tile named 25–34 but full chart shows Others 33%, 25–34 24%, 35+ 24%, 18–24 19%. No named age group forms a majority; 'Others' is undefined in TikTok UI.",
+      "audience_source_id": "owner_uploaded_tiktok_creator_search_insights_prayer_for_faith_viewer_insights_2026-09-19_21-27_SAST"
     }
   },
   "brief": {
@@ -75,8 +90,8 @@
       }
     ],
     "audio": "Use cleared soundtrack with documented sync/license or no music; intelligible human-quality voice, no clipped peaks.",
-    "targetAudienceEvidence": "TikTok Studio shows ages 25–34 as the majority age band for this global search topic, not necessarily for the channel's own audience.",
-    "creativeFocus": "Simple, personal, faith-strengthening prayer that makes room for imperfect belief; do not promise a breakthrough, shame doubters, or infer precise demographics beyond the global screenshot."
+    "targetAudienceEvidence": "Global topic viewer age breakdown: Others 33% (undefined), 25–34 24%, 35+ 24%, 18–24 19%, ages 4–17 shown 0%. This is not the channel's own demographic breakdown, and no named age segment forms a majority.",
+    "creativeFocus": "Clear, gentle adult-accessible faith-strengthening prayer, without demographic stereotyping or assumptions about the undefined Others age/gender categories. Preserve sincere hope without guaranteed breakthroughs or shame toward doubters."
   },
   "qualityGates": [
     "Verify exact KJV verse and context",
