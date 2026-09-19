@@ -517,6 +517,21 @@ async function inspectFullDecode(file, expectedDuration) {
   }
 }
 
+async function persistReviewAudio(file, id) {
+  if (!s3) throw new Error('Persistent storage is required for review audio')
+  const key = `review-v2/${new Date().toISOString().slice(0, 10)}/${id}-audio.mp3`
+  const bytes = await fs.readFile(file)
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex')
+  await s3.send(new PutObjectCommand({
+    Bucket: process.env.BUCKET,
+    Key: key,
+    Body: bytes,
+    ContentType: 'audio/mpeg',
+    CacheControl: 'public, max-age=31536000, immutable',
+  }))
+  return { url:`${publicBase()}/media/${key.split('/').map(encodeURIComponent).join('/')}`, hash, bytes:bytes.length }
+}
+
 async function persistReviewImage(file, id, label) {
   if (!s3) throw new Error('Persistent storage is required for review assets')
   const key = `review-v2/${new Date().toISOString().slice(0, 10)}/${id}-${label}.jpg`
@@ -537,6 +552,7 @@ async function createReviewAssets(masterFile, id, work, duration) {
   const contact = path.join(work, 'review-contact.jpg')
   const last = path.join(work, 'review-last.jpg')
   const thumb = path.join(work, 'thumbnail.jpg')
+  const audio = path.join(work, 'review-audio.mp3')
   const endAt = Math.max(0, duration - 0.20)
   const reviewFps = Math.max(0.25, 16 / Math.max(1, duration))
 
@@ -548,12 +564,16 @@ async function createReviewAssets(masterFile, id, work, duration) {
     '-vf',`fps=${reviewFps.toFixed(4)},scale=270:-2,tile=4x4:padding=4:margin=4`,
     '-frames:v','1','-q:v','3',contact
   ], { timeout: 120_000 })
+  await execFileAsync('ffmpeg', [
+    '-y','-i',masterFile,'-vn','-c:a','libmp3lame','-b:a','160k',audio
+  ], { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 })
 
-  const [firstAsset, contactAsset, lastAsset, thumbnailAsset] = await Promise.all([
+  const [firstAsset, contactAsset, lastAsset, thumbnailAsset, audioAsset] = await Promise.all([
     persistReviewImage(first,id,'first'),
     persistReviewImage(contact,id,'contact'),
     persistReviewImage(last,id,'last'),
     persistReviewImage(thumb,id,'thumbnail'),
+    persistReviewAudio(audio,id),
   ])
 
   return {
@@ -565,6 +585,8 @@ async function createReviewAssets(masterFile, id, work, duration) {
     lastFrameHash:lastAsset.hash,
     thumbnailUrl:thumbnailAsset.url,
     thumbnailHash:thumbnailAsset.hash,
+    audioReviewUrl:audioAsset.url,
+    audioReviewHash:audioAsset.hash,
     temporalCoverage:{startSeconds:0,endSeconds:Number(duration.toFixed(2)),contactSheetTargetFrames:16},
     method:'first-frame + uniform temporal contact sheet + final-frame',
   }
