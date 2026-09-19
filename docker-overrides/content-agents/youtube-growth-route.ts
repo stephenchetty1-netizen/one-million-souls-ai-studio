@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { runYoutubeGrowthScan, YOUTUBE_GROWTH_BOTS } from '../../../../content-agents/youtube-growth-swarm.mjs'
+import { runYoutubeGrowthScan, YOUTUBE_GROWTH_BOTS, inspectTitlePackaging } from '../../../../content-agents/youtube-growth-swarm.mjs'
+import { loadYoutubeGrowthState, recordYoutubeExperiment } from '../../../../content-agents/youtube-growth-memory.mjs'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -18,6 +19,7 @@ export async function GET(req:Request){
   try{
     config=JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','youtube-growth-config.json'),'utf8'))
   }catch{}
+  const state=await loadYoutubeGrowthState()
   return NextResponse.json({
     ok:true,
     system:'youtube-growth-swarm',
@@ -26,6 +28,14 @@ export async function GET(req:Request){
     channelConfigured:Boolean(process.env.YOUTUBE_CHANNEL_ID),
     intervalHours:Number(process.env.YOUTUBE_GROWTH_INTERVAL_HOURS||6),
     bots:YOUTUBE_GROWTH_BOTS,
+    memory:{
+      updatedAt:state.updatedAt,
+      recentTopics:(state.recentTopics||[]).slice(0,12),
+      latestRecommendations:state.latestRecommendations||[],
+      metricSnapshots:(state.metricsHistory||[]).length,
+      experiments:(state.experiments||[]).slice(0,12),
+      persistenceWarning:state.persistenceWarning||null,
+    },
     config,
   })
 }
@@ -34,11 +44,19 @@ export async function POST(req:Request){
   if(!authorized(req))return NextResponse.json({ok:false,error:'Unauthorized'},{status:401})
   const body=await req.json().catch(()=>({}))
   try{
+    if(body?.action==='record-experiment'){
+      const result=await recordYoutubeExperiment(body?.experiment||{})
+      return NextResponse.json({ok:true,zeroCreditOnly:true,experiment:result.experiments?.[0]||null})
+    }
+    if(body?.action==='inspect-title'){
+      return NextResponse.json({ok:true,zeroCreditOnly:true,inspection:inspectTitlePackaging(String(body?.title||''),Array.isArray(body?.recentTitles)?body.recentTitles:[])})
+    }
     const result=await runYoutubeGrowthScan({
       topics:Array.isArray(body?.topics)?body.topics:undefined,
       metrics:body?.metrics&&typeof body.metrics==='object'?body.metrics:undefined,
       days:Number(body?.days||120),
       maxResults:Number(body?.maxResults||8),
+      recentTitles:Array.isArray(body?.recentTitles)?body.recentTitles:undefined,
     })
     return NextResponse.json(result)
   }catch(error){
