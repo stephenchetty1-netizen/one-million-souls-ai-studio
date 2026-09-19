@@ -1,0 +1,409 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-19",
+  "mission": "Create repeatable channel attractions that make the Christian content recognizable, useful, memorable and worth returning for, while avoiding manipulative clickbait or artificial engagement.",
+  "selectionRule": "Every attraction must earn platform-specific development through measured evidence. Do not force a franchise into production simply because it exists.",
+  "drawCards": [
+    {
+      "id": "DC01",
+      "name": "Prayer Right Now",
+      "promise": "A short, direct prayer for one specific real-life need.",
+      "viewerNeed": [
+        "anxiety",
+        "fear",
+        "sleep",
+        "strength",
+        "direction",
+        "healing support",
+        "grief",
+        "waiting"
+      ],
+      "hookPatterns": [
+        "If your heart is heavy right now, pray this with me.",
+        "Before you scroll, give God the next 30 seconds.",
+        "If you do not know what to pray, start here."
+      ],
+      "payoff": "Begin useful prayer immediately; no long introduction.",
+      "youtube": {
+        "format": "Short + longer companion prayer",
+        "titleStyle": "Prayer for [specific need] | Pray This With Me",
+        "cta": "Continue with the related prayer/Bible video."
+      },
+      "tiktok": {
+        "format": "direct-to-viewer prayer",
+        "captionStyle": "one need + one Scripture + relevant hashtags",
+        "cta": "Follow for the next prayer in the series after value is delivered."
+      },
+      "guardrails": [
+        "No guaranteed miracles or outcomes.",
+        "No 'type AMEN to receive' coercion.",
+        "Prayer must remain biblically responsible."
+      ]
+    },
+    {
+      "id": "DC02",
+      "name": "One Question. One Verse.",
+      "promise": "Answer one real faith question using one carefully explained Scripture passage.",
+      "viewerNeed": [
+        "Bible questions",
+        "doubt",
+        "relationships",
+        "purpose",
+        "fear",
+        "prayer",
+        "forgiveness"
+      ],
+      "hookPatterns": [
+        "What does the Bible actually say about this?",
+        "One question. One verse. Here is the answer.",
+        "You may have heard this verse before—but what does it mean?"
+      ],
+      "payoff": "Give the answer before adding context.",
+      "youtube": {
+        "format": "searchable Short + 3-8 minute explainer",
+        "titleStyle": "What Does the Bible Say About [question]?",
+        "cta": "Watch the full explanation or related playlist."
+      },
+      "tiktok": {
+        "format": "20-45 second answer",
+        "captionStyle": "question-first searchable caption",
+        "cta": "Comment a sincere Bible question for future consideration."
+      },
+      "guardrails": [
+        "Verify context before publishing.",
+        "Do not oversimplify disputed interpretations as settled fact."
+      ]
+    },
+    {
+      "id": "DC03",
+      "name": "Bible in 60 Seconds",
+      "promise": "Explain a Bible person, passage, event or theme simply and accurately in about one minute.",
+      "viewerNeed": [
+        "Bible literacy",
+        "new believers",
+        "youth faith",
+        "quick learning"
+      ],
+      "hookPatterns": [
+        "Here is [Bible story] in 60 seconds.",
+        "You know the name—but do you know what happened?",
+        "The Bible story everyone mentions, explained simply."
+      ],
+      "payoff": "Fast narrative with one memorable takeaway.",
+      "youtube": {
+        "format": "Short series + playlist",
+        "titleStyle": "[Bible Story] in 60 Seconds",
+        "cta": "Continue to the next Bible story in the series."
+      },
+      "tiktok": {
+        "format": "fast visual storytelling",
+        "captionStyle": "story name + takeaway + Scripture reference",
+        "cta": "Follow the series from Genesis onward."
+      },
+      "guardrails": [
+        "No invented dialogue presented as Scripture.",
+        "Clearly distinguish interpretation from biblical text."
+      ]
+    },
+    {
+      "id": "DC04",
+      "name": "Before You Give Up",
+      "promise": "Christ-centered encouragement for someone at a breaking point.",
+      "viewerNeed": [
+        "discouragement",
+        "waiting",
+        "failure",
+        "fear",
+        "loneliness"
+      ],
+      "hookPatterns": [
+        "If you feel like giving up today, hear this first.",
+        "This is for the person who is tired of waiting.",
+        "Your difficult chapter is not permission to lose hope."
+      ],
+      "payoff": "Specific encouragement + Scripture + one practical next step.",
+      "youtube": {
+        "format": "Short + devotional companion",
+        "titleStyle": "Before You Give Up, Remember This",
+        "cta": "Move to a related encouragement playlist."
+      },
+      "tiktok": {
+        "format": "20-35 second emotional short",
+        "captionStyle": "specific pain point; avoid generic hype",
+        "cta": "Save this for the hard day, if it genuinely helped."
+      },
+      "guardrails": [
+        "No false certainty about outcomes.",
+        "Never exploit crisis language for engagement."
+      ]
+    },
+    {
+      "id": "DC05",
+      "name": "Morning With Jesus",
+      "promise": "A repeatable start-of-day Scripture, prayer and focus.",
+      "viewerNeed": [
+        "morning routine",
+        "prayer habit",
+        "daily faith",
+        "peace"
+      ],
+      "hookPatterns": [
+        "Before your day gets busy, give Jesus one minute.",
+        "Start today with this Scripture and prayer.",
+        "Before you check everything else, center your heart here."
+      ],
+      "payoff": "Verse → brief reflection → prayer.",
+      "youtube": {
+        "format": "daily/weekday Short + longer morning prayer playlist",
+        "titleStyle": "Morning Prayer for [date/need] | Start With Jesus",
+        "cta": "Return tomorrow / continue playlist."
+      },
+      "tiktok": {
+        "format": "20-45 second morning devotional",
+        "captionStyle": "morning intent + Scripture reference",
+        "cta": "Follow for tomorrow's morning devotion."
+      },
+      "guardrails": [
+        "Do not manufacture urgency.",
+        "Avoid date-specific promises from God."
+      ]
+    },
+    {
+      "id": "DC06",
+      "name": "Night Prayer",
+      "promise": "A calm close-of-day prayer for peace, surrender and rest.",
+      "viewerNeed": [
+        "sleep",
+        "worry",
+        "gratitude",
+        "rest",
+        "night anxiety"
+      ],
+      "hookPatterns": [
+        "Before you sleep tonight, pray this with me.",
+        "Give God what you are still carrying tonight.",
+        "You do not have to take today's weight into tomorrow."
+      ],
+      "payoff": "Calm prayer with low-stimulation pacing.",
+      "youtube": {
+        "format": "Short + 10-30 minute prayer/Scripture companion",
+        "titleStyle": "Night Prayer for Peace and Rest",
+        "cta": "Continue with the sleep-prayer playlist."
+      },
+      "tiktok": {
+        "format": "calm short prayer",
+        "captionStyle": "night prayer + one relevant Scripture",
+        "cta": "Save for tonight if useful."
+      },
+      "guardrails": [
+        "No sleep/health guarantees.",
+        "Music and visuals must remain rights-safe."
+      ]
+    },
+    {
+      "id": "DC07",
+      "name": "Faith Real Talk",
+      "promise": "Address difficult Christian-life questions without pretending faith removes every struggle.",
+      "viewerNeed": [
+        "youth questions",
+        "doubt",
+        "church hurt",
+        "waiting",
+        "identity",
+        "peer pressure"
+      ],
+      "hookPatterns": [
+        "Can we talk about the part of faith people skip over?",
+        "Following Jesus does not mean this never hurts.",
+        "Here is the Christian answer without pretending the struggle is easy."
+      ],
+      "payoff": "Honest tension → biblical framing → practical response.",
+      "youtube": {
+        "format": "Shorts + longer discussion",
+        "titleStyle": "Christian Real Talk: [specific issue]",
+        "cta": "Continue the deeper discussion."
+      },
+      "tiktok": {
+        "format": "camera-facing or cinematic direct address",
+        "captionStyle": "specific honest question",
+        "cta": "Invite sincere discussion, not controversy bait."
+      },
+      "guardrails": [
+        "No fabricated testimonies.",
+        "Do not shame viewers for doubts or struggles."
+      ]
+    },
+    {
+      "id": "DC08",
+      "name": "One Million Souls",
+      "promise": "A mission-centered series showing simple ways Christians can pray, invite, encourage and share Jesus.",
+      "viewerNeed": [
+        "evangelism",
+        "purpose",
+        "mission",
+        "community"
+      ],
+      "hookPatterns": [
+        "One conversation could change someone's eternity.",
+        "The mission is big; today's step is simple.",
+        "One million souls starts with one person."
+      ],
+      "payoff": "One actionable mission step per episode.",
+      "youtube": {
+        "format": "mission Shorts + testimony/impact long-form",
+        "titleStyle": "One Million Souls: [today's mission step]",
+        "cta": "Take one authentic action, then continue the mission series."
+      },
+      "tiktok": {
+        "format": "mission challenge without coercion",
+        "captionStyle": "one practical faith action",
+        "cta": "Share hope with one person if appropriate."
+      },
+      "guardrails": [
+        "Never reduce people to metrics.",
+        "No manipulative conversion claims.",
+        "Do not fabricate impact numbers."
+      ]
+    },
+    {
+      "id": "DC09",
+      "name": "Verse You Need Today",
+      "promise": "One Scripture applied carefully to one specific human need.",
+      "viewerNeed": [
+        "daily encouragement",
+        "search",
+        "shareable Scripture"
+      ],
+      "hookPatterns": [
+        "If you are facing [need], remember this verse.",
+        "One verse for the day you feel [emotion].",
+        "Read this slowly if today feels heavy."
+      ],
+      "payoff": "Verse context + one application, not just a quote card.",
+      "youtube": {
+        "format": "Short + verse playlist",
+        "titleStyle": "Bible Verse for [need]",
+        "cta": "Continue the Scripture-for-life playlist."
+      },
+      "tiktok": {
+        "format": "15-30 second moving-video devotional",
+        "captionStyle": "specific need + verse reference",
+        "cta": "Save if you want to return to the verse."
+      },
+      "guardrails": [
+        "Verify translation/reference.",
+        "Avoid decontextualized promises."
+      ]
+    },
+    {
+      "id": "DC10",
+      "name": "What Happens Next?",
+      "promise": "A serial Bible-story format with a clean cliffhanger based on actual narrative progression.",
+      "viewerNeed": [
+        "storytelling",
+        "Bible learning",
+        "return viewing"
+      ],
+      "hookPatterns": [
+        "This is where the story changes.",
+        "Most people stop the story here—but look what happens next.",
+        "The next verse changes everything."
+      ],
+      "payoff": "Narrative episode with a truthful continuation hook.",
+      "youtube": {
+        "format": "serialized Shorts playlist",
+        "titleStyle": "[Bible Story] Part [n]: What Happens Next?",
+        "cta": "Continue directly to the next episode."
+      },
+      "tiktok": {
+        "format": "20-45 second serialized story",
+        "captionStyle": "story + part number + reference",
+        "cta": "Follow the series for the next chapter."
+      },
+      "guardrails": [
+        "No fake cliffhangers.",
+        "Never alter Scripture chronology for drama."
+      ]
+    },
+    {
+      "id": "DC11",
+      "name": "30-Second Reset",
+      "promise": "A very short Scripture-based mental/spiritual reset for a stressful moment.",
+      "viewerNeed": [
+        "stress",
+        "fear",
+        "focus",
+        "workday",
+        "school"
+      ],
+      "hookPatterns": [
+        "Give me 30 seconds—reset your heart with this truth.",
+        "Stop for one moment. Breathe. Remember who God is.",
+        "Before you react, anchor yourself here."
+      ],
+      "payoff": "One truth + one breath/prayer + one next step.",
+      "youtube": {
+        "format": "ultra-short Short",
+        "titleStyle": "30-Second Faith Reset: [need]",
+        "cta": "Use the playlist when you need another reset."
+      },
+      "tiktok": {
+        "format": "12-25 second loop-friendly short",
+        "captionStyle": "short searchable need-based caption",
+        "cta": "Save for the next stressful moment."
+      },
+      "guardrails": [
+        "Do not present as medical treatment.",
+        "No forced loop tricks."
+      ]
+    },
+    {
+      "id": "DC12",
+      "name": "Ask. Seek. Knock.",
+      "promise": "Turn real audience questions into thoughtful Scripture-grounded responses.",
+      "viewerNeed": [
+        "community",
+        "questions",
+        "participation"
+      ],
+      "hookPatterns": [
+        "Someone asked: [question].",
+        "A real question deserves a real biblical answer.",
+        "Let's answer this without clichés."
+      ],
+      "payoff": "Answer a genuine question clearly and respectfully.",
+      "youtube": {
+        "format": "comment-to-video Shorts + Q&A long-form",
+        "titleStyle": "Answering Your Bible Question: [question]",
+        "cta": "Submit sincere future questions."
+      },
+      "tiktok": {
+        "format": "reply-to-question video",
+        "captionStyle": "question + concise answer framing",
+        "cta": "Ask a genuine question; no comment bait."
+      },
+      "guardrails": [
+        "Do not fabricate viewer questions.",
+        "Protect private/sensitive commenter information."
+      ]
+    }
+  ],
+  "rotationRules": {
+    "minimumActiveFranchises": 4,
+    "maximumActiveFranchises": 7,
+    "noSingleFranchiseSharePercent": 35,
+    "fatigueReviewDays": 14,
+    "requirePlatformSpecificPackaging": true,
+    "promoteOnlyWithMeasuredEvidence": true
+  },
+  "attractionScoreWeights": {
+    "audienceNeed": 20,
+    "platformEvidence": 20,
+    "retentionPotential": 15,
+    "repeatReturnPotential": 15,
+    "searchPotential": 10,
+    "sharePotential": 10,
+    "originality": 5,
+    "productionFeasibility": 5
+  }
+}
