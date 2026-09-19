@@ -27,6 +27,11 @@ const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
 const reviewBackoffUntil=new Map()
+const CERTIFICATE_REQUIRED_GATES=Object.freeze([
+  'rightsStatus','theologyStatus','factualStatus','mediaIntegrity','captionSync','audioMix',
+  'visualQuality','thumbnailQuality','contentQuality','lyricSync','originality',
+  'professionalExecution','technicalMaster','creativeMaster'
+])
 
 
 function certificateKey(contentHash,masterHash){
@@ -59,19 +64,37 @@ async function releaseReadinessSummary(){
       }catch(error){
         summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'CERTIFICATE_STORE_READ_FAILED',error:error instanceof Error?error.message:String(error)});continue
       }
-      const exact=certificate?.contentHash===String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+      const qaPass=CERTIFICATE_REQUIRED_GATES.every((gate)=>certificate?.qa?.[gate]==='PASS')
+      const exact=certificate?.contentHash===String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'&&qaPass
       if(exact){
+        if(day===1){
+          let approval=null
+          try{approval=await approvalState(entry)}
+          catch(error){
+            summary.invalid++
+            issue({date,slot:entry?.slot,title:entry?.title,reason:'NEXT_DAY_DURABLE_APPROVAL_READ_FAILED',error:error instanceof Error?error.message:String(error)})
+            continue
+          }
+          const approvalExact=approval?.publishingLocked===false&&approval?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&approval?.releaseStatus==='APPROVED_AWAITING_POST_TIME'&&approval?.certificate?.certificateId===certificate?.certificateId
+          if(!approvalExact){
+            summary.invalid++
+            issue({date,slot:entry?.slot,title:entry?.title,reason:'NEXT_DAY_DURABLE_50_APPROVAL_VALIDATION_FAILED'})
+            continue
+          }
+          summary.nextDayPackages.push({
+            targetDate:date,
+            slot:entry?.slot,
+            title:entry?.title,
+            contentHash:String(entry.contentHash).toLowerCase(),
+            masterHash:String(entry.masterHash).toLowerCase(),
+            certificateId:certificate?.certificateId||null,
+            releaseStatus:certificate?.releaseStatus,
+            requiredApprovals:50,
+            durableApprovalValidated:true,
+            releasePayload:entry?.releasePayload,
+          })
+        }
         summary.certified++
-        if(day===1)summary.nextDayPackages.push({
-          targetDate:date,
-          slot:entry?.slot,
-          title:entry?.title,
-          contentHash:String(entry.contentHash).toLowerCase(),
-          masterHash:String(entry.masterHash).toLowerCase(),
-          certificateId:certificate?.certificateId||null,
-          releaseStatus:certificate?.releaseStatus,
-          releasePayload:entry?.releasePayload,
-        })
         continue
       }
       summary.awaiting++
