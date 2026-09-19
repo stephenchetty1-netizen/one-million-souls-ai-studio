@@ -13,7 +13,8 @@
     "tt-follower-conversion-bot",
     "tt-posting-window-bot",
     "tt-fatigue-guard-bot",
-    "tt-experiment-manager-bot"
+    "tt-experiment-manager-bot",
+    "channel-attraction-director"
   ],
   "promotionPolicy": {
     "developAtScore": 65,
@@ -43,5 +44,13 @@
     "Use trend patterns only as inspiration for original content.",
     "Every recommendation must preserve the channel's Christian identity and verified Scripture/factual standards.",
     "ZERO_CREDIT_ONLY must remain true."
-  ]
+  ],
+  "attractionSystem": {
+    "library": "content-agents/channel-attraction-cards.json",
+    "selector": "content-agents/channel-attraction-selector.mjs",
+    "maxFeaturedAtOnce": 4,
+    "maxRotationAtOnce": 7,
+    "fatigueReviewDays": 14,
+    "requirePlatformSpecificPackaging": true
+  }
 }
