@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { runTikTokGrowthScan, TIKTOK_GROWTH_BOTS, inspectTikTokCaption } from '../../../../content-agents/tiktok-growth-swarm.mjs'
 import { loadTikTokGrowthState, recordTikTokExperiment } from '../../../../content-agents/tiktok-growth-memory.mjs'
+import { loadGrowthMultiplierState } from '../../../../content-agents/growth-multiplier-memory.mjs'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -20,6 +21,7 @@ export async function GET(req:Request){
   try{config=JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','tiktok-growth-config.json'),'utf8'))}catch{}
   try{baseline=JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','tiktok-growth-baseline.json'),'utf8'))}catch{}
   const state=await loadTikTokGrowthState()
+  const multiplier=await loadGrowthMultiplierState()
   return NextResponse.json({
     ok:true,
     system:'tiktok-growth-swarm',
@@ -35,6 +37,7 @@ export async function GET(req:Request){
       experiments:(state.experiments||[]).slice(0,12),
       persistenceWarning:state.persistenceWarning||null,
     },
+    growthMultiplier:{winnersStored:(multiplier.winners||[]).length,rescuesStored:(multiplier.rescues||[]).length,retiredStored:(multiplier.retired||[]).length,persistenceWarning:multiplier.persistenceWarning||null},
     config,
   })
 }
@@ -59,6 +62,7 @@ export async function POST(req:Request){
       metrics:body?.metrics&&typeof body.metrics==='object'?body.metrics:undefined,
       recentCaptions:Array.isArray(body?.recentCaptions)?body.recentCaptions:undefined,
       caption:typeof body?.caption==='string'?body.caption:undefined,
+      performanceRecords:Array.isArray(body?.performanceRecords)?body.performanceRecords:undefined,
     })
     return NextResponse.json(result)
   }catch(error){
