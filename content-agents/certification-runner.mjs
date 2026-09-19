@@ -237,13 +237,19 @@ function aggregateEvidence(entry,technical,rights,integrity,visual,audio){
     fullWatch:{
       status:fullWatchPass?'PASS':'BLOCK',
       notes:fullWatchPass
-        ? 'Exact final MP4 was decoded end-to-end from first to last frame; uniformly sampled temporal contact sheet plus first/final frames were visually reviewed; exact final mixed audio was separately listened to.'
-        : 'End-to-end decode, temporal visual review, or exact mixed-audio review did not fully PASS.',
+        ? (zeroCreditOnly
+          ? 'Zero-credit full-master verification PASS: the exact final MP4 was decoded end-to-end from first to last frame, every scene passed motion/black/freeze checks, temporal first/contact/final assets were hash-verified, and the exact final mixed audio passed objective loudness/peak/integrity checks. No claim of human or paid-AI perceptual viewing/listening is made.'
+          : 'Exact final MP4 was decoded end-to-end from first to last frame; uniformly sampled temporal contact sheet plus first/final frames were visually reviewed; exact final mixed audio was separately listened to.')
+        : 'End-to-end decode, temporal visual verification, or exact mixed-audio verification did not fully PASS.',
     },
     technicalMaster:technical,
     creativeMaster:{
       status:creativePass?'PASS':'BLOCK',
-      notes:creativePass?'Visual storytelling, frame quality, content execution, exact final audio and voice performance all PASS.':'One or more creative/master experience gates require revision or are blocked.',
+      notes:creativePass
+        ? (zeroCreditOnly
+          ? 'Zero-credit creative master gates PASS using exact curated-content identity, measured real-motion/frame integrity, immutable packaging, caption/safe-zone checks, audio mastering metrics, Kokoro provenance and speaking-rate proxy. No human or paid-AI subjective quality review is claimed.'
+          : 'Visual storytelling, frame quality, content execution, exact final audio and voice performance all PASS.')
+        : 'One or more creative/master experience gates require revision or are blocked.',
     },
     rightsManifest:rights,
     thumbnailInspection:visual.thumbnailInspection,
