@@ -1,1 +1,155 @@
-{"creator_search_insights":[],"creator_insights":[],"web_intel":[{"query":"how to pray","cluster":"prayer","captured_at":"2026-09-19"},{"query":"Bible study for beginners","cluster":"bible","captured_at":"2026-09-19"},{"query":"how to hear God's voice","cluster":"relationship_with_god","captured_at":"2026-09-19"},{"query":"prayer when you feel like giving up","cluster":"prayer","captured_at":"2026-09-19"},{"query":"where to start reading the Bible","cluster":"bible","captured_at":"2026-09-19"},{"query":"when God feels silent","cluster":"relationship_with_god","captured_at":"2026-09-19"}]}
+{
+  "creator_search_insights": [
+    {
+      "query": "christian inspiration",
+      "cluster": "youth_and_encouragement",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 193000,
+      "displayed_growth_percent": 37.8,
+      "displayed_growth_label": "37.8%",
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "jesus christ tiktok",
+      "cluster": "salvation",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 201000,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": null,
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "god's words for today",
+      "cluster": "bible",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 165000,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": null,
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "prayer for faith",
+      "cluster": "prayer",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 84400,
+      "displayed_growth_percent": 56.9,
+      "displayed_growth_label": "56.9%",
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "christian tiktokers",
+      "cluster": "youth_and_encouragement",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 71100,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": null,
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "trusting in god in difficult situations",
+      "cluster": "relationship_with_god",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 250000,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": null,
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "thank jesus",
+      "cluster": "relationship_with_god",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 164000,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": "1000%+",
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "verse of the day motivation",
+      "cluster": "bible",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": 90700,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": "1000%+",
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": null
+    },
+    {
+      "query": "god is listening",
+      "cluster": "prayer",
+      "content_gap": true,
+      "source_type": "OWNER_SCREENSHOT",
+      "evidence_id": "owner_uploaded_tiktok_creator_search_insights_screenshot_2026-09-19_21-19_SAST",
+      "captured_at": "2026-09-19T21:19:00+02:00",
+      "displayed_volume": null,
+      "displayed_growth_percent": null,
+      "displayed_growth_label": null,
+      "metric_note": "TikTok UI flame count and displayed growth indicator; do not equate flame count to validated search-volume units.",
+      "capture_note": "Term visible only at bottom of screen; no accompanying volume visible."
+    }
+  ],
+  "creator_insights": [],
+  "web_intel": [
+    {
+      "query": "how to pray",
+      "cluster": "prayer",
+      "captured_at": "2026-09-19"
+    },
+    {
+      "query": "Bible study for beginners",
+      "cluster": "bible",
+      "captured_at": "2026-09-19"
+    },
+    {
+      "query": "how to hear God's voice",
+      "cluster": "relationship_with_god",
+      "captured_at": "2026-09-19"
+    },
+    {
+      "query": "prayer when you feel like giving up",
+      "cluster": "prayer",
+      "captured_at": "2026-09-19"
+    },
+    {
+      "query": "where to start reading the Bible",
+      "cluster": "bible",
+      "captured_at": "2026-09-19"
+    },
+    {
+      "query": "when God feels silent",
+      "cluster": "relationship_with_god",
+      "captured_at": "2026-09-19"
+    }
+  ],
+  "evidence_notice": "Manually transcribed from owner's screenshot of Creator Search Insights with Content gap selected. Not an authenticated TikTok API feed. No automated refresh; screenshot itself is not stored in this repository."
+}
