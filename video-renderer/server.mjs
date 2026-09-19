@@ -379,15 +379,40 @@ server.listen(PORT, '0.0.0.0', () => {
   // Trigger a single authenticated-provider import on explicit operator opt-in.
   // S3 per-source cache is durable, so a restart does not duplicate downloads.
   // Source clips are NOT made public or promoted to approved video masters.
-  if (process.env.PEXELS_STAGE_ON_BOOT === 'true') {
-    console.log('PEXELS_BOOT_STAGE_REQUESTED',JSON.stringify({
-      collection:'BE_STILL_PEXELS_V1',publishingLocked:true
-    }))
-    void stagePexelsCollection('BE_STILL_PEXELS_V1')
-      .then(result=>console.log('PEXELS_BOOT_STAGE_RESULT',JSON.stringify(result)))
-      .catch(error=>console.error('PEXELS_BOOT_STAGE_FAILED',JSON.stringify({
-        error:error instanceof Error?error.message:String(error),
-        publishingLocked:true
-      })))
+  if (process.env.PEXELS_STAGE_ON_BOOT === 'true' ||
+      process.env.PEXELS_PREVIEW_ON_BOOT === 'true') {
+    void (async()=>{
+      try{
+        if(process.env.PEXELS_STAGE_ON_BOOT === 'true'){
+          console.log('PEXELS_BOOT_STAGE_REQUESTED',JSON.stringify({
+            collection:'BE_STILL_PEXELS_V1',publishingLocked:true
+          }))
+          const staged=await stagePexelsCollection('BE_STILL_PEXELS_V1')
+          console.log('PEXELS_BOOT_STAGE_RESULT',JSON.stringify(staged))
+        }
+        if(process.env.PEXELS_PREVIEW_ON_BOOT === 'true'){
+          console.log('PEXELS_EDITORIAL_PROOF_START',JSON.stringify({
+            collection:'BE_STILL_PEXELS_V1',publishingLocked:true
+          }))
+          const proof=await renderFreeV2({
+            title:'BE STILL',script:'Not every battle is won by doing more. Psalm 46:10 calls us to be still and know that God is God. Make space today to stop the noise, pray, listen, and remember who is truly in control. Stillness is not giving up. It is choosing to trust God instead of letting panic lead you.',
+            scriptureReference:'Psalm 46:10',pexelsPreview:true
+          })
+          console.log('PEXELS_EDITORIAL_PROOF_RESULT',JSON.stringify({
+            title:'BE STILL',masterHash:proof.masterHash,mediaUrl:proof.mediaUrl,
+            contactSheetUrl:proof.reviewAssets?.contactSheetUrl,
+            durationSeconds:proof.durationSeconds,qualityGate:proof.qualityGate,
+            visualProductionStatus:proof.visualProductionStatus,
+            professionalMasterCandidate:proof.professionalMasterCandidate,
+            publishingAllowed:false,reviewRequired:true
+          }))
+        }
+      }catch(error){
+        console.error('PEXELS_BOOT_WORKFLOW_FAILED',JSON.stringify({
+          error:error instanceof Error?error.message:String(error),
+          publishingLocked:true
+        }))
+      }
+    })()
   }
 })
