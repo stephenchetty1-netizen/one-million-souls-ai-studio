@@ -74,6 +74,7 @@ async function audioVote(agentId,payload,bytes){
 }
 
 export async function evaluateMaster({contentHash,masterHash,master,evidence}){
+ if(process.env.ZERO_CREDIT_ONLY==='true')throw new Error('ZERO_CREDIT_POLICY_ACTIVE_PAID_AI_DISABLED')
  if(!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
  if(!/^[a-f0-9]{64}$/i.test(contentHash)||!/^[a-f0-9]{64}$/i.test(masterHash))throw new Error('INVALID_MASTER_IDENTITY')
  if(!master||!evidence)throw new Error('REAL_MASTER_AND_MEASURED_EVIDENCE_REQUIRED')
