@@ -22,7 +22,7 @@ export function publicExperiment(item){
     id:item.id,platform:item.platform,createdAt:item.createdAt,
     status:item.status,sourcePostId:item.sourcePostId,
     sourceTopic:item.sourceTopic,baseline:item.baseline,
-    variable:item.singleVariable,hypothesis:item.hypothesis,
+    variable:item.singleVariable||item.variable,hypothesis:item.hypothesis,
     creativeBrief:item.creativeBrief,holdConstant:item.holdConstant,
     primaryMetric:item.primaryMetric,secondaryMetric:item.secondaryMetric,
     durationBand:item.durationBand,
