@@ -1,3 +1,7 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { loadYoutubeGrowthState, rememberYoutubeGrowthScan } from './youtube-growth-memory.mjs'
+
 const API_BASE='https://www.googleapis.com/youtube/v3'
 
 export const YOUTUBE_GROWTH_BOTS=Object.freeze([
@@ -9,6 +13,8 @@ export const YOUTUBE_GROWTH_BOTS=Object.freeze([
   {id:'yt-retention-bot',job:'Translate retention evidence into hook, pacing and payoff changes for future videos.'},
   {id:'yt-subscriber-conversion-bot',job:'Improve legitimate subscribe conversion through stronger series continuity, value promise and natural CTAs.'},
   {id:'yt-experiment-manager-bot',job:'Run one-variable-at-a-time content experiments and preserve winning ingredients without artificial engagement.'},
+  {id:'yt-fatigue-guard-bot',job:'Block repetitive topics, near-duplicate packaging and overused emotional promises.'},
+  {id:'yt-quality-floor-bot',job:'Require enough measured evidence before a growth idea is promoted into production.'},
 ])
 
 const DEFAULT_TOPICS=Object.freeze([
@@ -22,10 +28,47 @@ const DEFAULT_TOPICS=Object.freeze([
   'Christian youth',
 ])
 
+const BLOCKED_GROWTH_TACTICS=Object.freeze([
+  'sub4sub','sub for sub','view4view','view for view','buy subscribers','buy views',
+  'engagement exchange','comment exchange','traffic bot','watch-time bot','fake subscribers',
+])
+
 function clean(value){return typeof value==='string'?value.trim():''}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 function isoDaysAgo(days){return new Date(Date.now()-days*86400000).toISOString()}
-
+function ratio(n,d){return d>0?n/d:0}
+function normalizeWords(value){
+  return new Set(String(value||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(x=>x.length>2))
+}
+function similarity(a,b){
+  const aa=normalizeWords(a),bb=normalizeWords(b)
+  if(!aa.size||!bb.size)return 0
+  let common=0
+  for(const x of aa)if(bb.has(x))common++
+  return common/(aa.size+bb.size-common)
+}
+function recentTopicPenalty(topic,state){
+  const recent=(state?.recentTopics||[]).slice(0,24)
+  let penalty=0
+  for(const item of recent){
+    const sim=similarity(topic,item?.topic||item?.key||'')
+    if(sim>=0.8)penalty=Math.max(penalty,20)
+    else if(sim>=0.5)penalty=Math.max(penalty,10)
+  }
+  return penalty
+}
+function opportunityScore(topic,rows,state){
+  const totalViews=rows.reduce((a,x)=>a+Number(x.views||0),0)
+  const recent=rows.filter(x=>Date.now()-Date.parse(x.publishedAt||0)<45*86400000).length
+  const channels=new Set(rows.map(x=>x.channelTitle).filter(Boolean)).size
+  const evidence=Math.min(10,rows.length*1.25)
+  const demand=Math.min(35,Math.log10(totalViews+1)*5)
+  const freshness=Math.min(25,recent*5)
+  const diversity=Math.min(20,channels*4)
+  const novelty=10
+  const fatigue=recentTopicPenalty(topic,state)
+  return Math.round(clamp(demand+freshness+diversity+evidence+novelty-fatigue,0,100))
+}
 async function getJson(url){
   const controller=new AbortController()
   const timer=setTimeout(()=>controller.abort(),15000)
@@ -36,18 +79,25 @@ async function getJson(url){
     return data
   }finally{clearTimeout(timer)}
 }
-
-function youtubeKey(){
-  return clean(process.env.YOUTUBE_API_KEY)
-}
-
+function youtubeKey(){return clean(process.env.YOUTUBE_API_KEY)}
 function zeroCreditGuard(){
-  if(process.env.ZERO_CREDIT_ONLY!=='true')return
+  if(process.env.ZERO_CREDIT_ONLY!=='true')throw new Error('ZERO_CREDIT_ONLY_REQUIRED')
   if(process.env.YOUTUBE_GROWTH_ALLOW_PAID_AI==='true'){
     throw new Error('ZERO_CREDIT_POLICY_VIOLATION:YOUTUBE_GROWTH_ALLOW_PAID_AI')
   }
 }
-
+export function growthIntegrityGuard(input={}){
+  const text=JSON.stringify(input).toLowerCase()
+  const blocked=BLOCKED_GROWTH_TACTICS.filter(x=>text.includes(x))
+  if(blocked.length)throw new Error('ARTIFICIAL_ENGAGEMENT_BLOCKED:'+blocked.join(','))
+  return {passed:true,status:'PASS',artificialEngagement:false}
+}
+async function baseline(){
+  try{
+    const file=path.join(process.cwd(),'content-agents','youtube-growth-baseline.json')
+    return JSON.parse(await fs.readFile(file,'utf8'))
+  }catch{return {metrics:{},audienceTiming:{}}}
+}
 async function videoDetails(ids,key){
   if(!ids.length)return []
   const u=new URL(API_BASE+'/videos')
@@ -57,9 +107,9 @@ async function videoDetails(ids,key){
   const data=await getJson(u)
   return Array.isArray(data?.items)?data.items:[]
 }
-
 export async function searchYoutubeTopic(topic,{maxResults=8,days=120}={}){
   zeroCreditGuard()
+  growthIntegrityGuard({topic})
   const key=youtubeKey()
   if(!key)return {ok:false,skipped:true,reason:'YOUTUBE_API_KEY_MISSING',topic}
   const u=new URL(API_BASE+'/search')
@@ -87,7 +137,6 @@ export async function searchYoutubeTopic(topic,{maxResults=8,days=120}={}){
   })).sort((a,b)=>b.views-a.views)
   return {ok:true,topic,results:rows}
 }
-
 function titlePatterns(rows){
   const words=new Map()
   for(const row of rows){
@@ -96,36 +145,65 @@ function titlePatterns(rows){
   }
   return [...words.entries()].sort((a,b)=>b[1]-a[1]).slice(0,12).map(([word,count])=>({word,count}))
 }
-
-function opportunityFrom(topic,rows){
+export function inspectTitlePackaging(title,recentTitles=[]){
+  const value=clean(title)
+  const letters=[...value].filter(ch=>/[A-Za-z]/.test(ch))
+  const upper=letters.filter(ch=>/[A-Z]/.test(ch)).length
+  const upperRatio=ratio(upper,letters.length)
+  const hashtags=(value.match(/#[\p{L}\p{N}_]+/gu)||[]).length
+  const emojis=(value.match(/\p{Extended_Pictographic}/gu)||[]).length
+  const duplicate=recentTitles.reduce((m,t)=>Math.max(m,similarity(value,t)),0)
+  const warnings=[]
+  if(value.length>75)warnings.push('title longer than 75 characters')
+  if(upperRatio>0.65&&letters.length>12)warnings.push('excessive ALL CAPS')
+  if(hashtags>1)warnings.push('more than one hashtag in title')
+  if(emojis>3)warnings.push('too many emojis in title')
+  if(/!{2,}|\?{2,}/.test(value))warnings.push('repeated punctuation')
+  if(/god told me you|guaranteed miracle|miracle in 24 hours|you will be rich|watch before it is too late/i.test(value))warnings.push('unsupported/manipulative promise')
+  if(duplicate>=0.72)warnings.push('near-duplicate of a recent title')
+  return {status:warnings.length?'REVISE':'PASS',warnings,upperCaseRatio:Number(upperRatio.toFixed(2)),hashtags,emojis,recentTitleSimilarity:Number(duplicate.toFixed(2))}
+}
+function titleDirections(topic){
+  const t=clean(topic)
+  return [
+    `What the Bible Says About ${t}`,
+    `When ${t} Feels Hard: A Biblical Response`,
+    `${t}: One Truth to Remember Today`,
+  ]
+}
+function opportunityFrom(topic,rows,state,recentTitles=[]){
   const totalViews=rows.reduce((a,x)=>a+x.views,0)
   const recent=rows.filter(x=>Date.now()-Date.parse(x.publishedAt||0)<45*86400000).length
   const leaders=rows.slice(0,5).map(x=>({title:x.title,channelTitle:x.channelTitle,views:x.views,publishedAt:x.publishedAt,videoId:x.videoId}))
+  const score=opportunityScore(topic,rows,state)
+  const directions=titleDirections(topic).map(title=>({title,inspection:inspectTitlePackaging(title,recentTitles)}))
   return {
     topic,
+    opportunityScore:score,
+    decision:score>=65?'DEVELOP':score>=50?'RESEARCH_MORE':'HOLD',
     publicEvidenceCount:rows.length,
     totalPublicViewsObserved:totalViews,
     recentExamples:recent,
     recurringTitleTerms:titlePatterns(rows),
     leadingExamples:leaders,
-    nextContentDirection:rows.length
-      ? `Create an original video answering the viewer need behind "${topic}" with a direct first-second hook and a title/thumbnail promise that exactly matches the opening.`
-      : `No useful public examples found for "${topic}" in this scan; keep it in research, not production.`,
+    titleDirections:directions,
+    thumbnailDirection:'One clear visual focal point, one truthful promise, minimal text, no misleading before/after or fabricated reaction imagery.',
+    nextContentDirection:score>=65
+      ? `Develop an original answer to the viewer need behind "${topic}". Deliver the title/thumbnail promise in the first seconds and change only one growth variable at a time.`
+      : `Keep "${topic}" in research until the evidence score improves or channel analytics reveal a specific audience need.`,
   }
 }
-
 export function retentionActions(metrics={}){
   const intro=Number(metrics.introRetention30s)
   const ctr=Number(metrics.ctr)
   const avg=Number(metrics.averagePercentageViewed)
   const actions=[]
-  if(Number.isFinite(intro)&&intro<50)actions.push('Rewrite the opening 30 seconds so it immediately delivers the title/thumbnail promise.')
-  if(Number.isFinite(ctr)&&ctr<4)actions.push('Test a clearer title/thumbnail package while keeping the promise truthful.')
-  if(Number.isFinite(avg)&&avg<40)actions.push('Tighten pacing, move the strongest payoff earlier, and remove filler.')
+  if(Number.isFinite(intro)&&intro>0&&intro<50)actions.push('Rewrite the opening 30 seconds so it immediately delivers the title/thumbnail promise.')
+  if(Number.isFinite(ctr)&&ctr>0&&ctr<4)actions.push('Test a clearer title/thumbnail package while keeping the promise truthful.')
+  if(Number.isFinite(avg)&&avg>0&&avg<40)actions.push('Tighten pacing, move the strongest payoff earlier, and remove filler.')
   if(!actions.length)actions.push('Preserve the strongest hook, packaging and pacing ingredients; change only one experimental variable next.')
   return actions
 }
-
 export function subscriberActions(metrics={}){
   const gained=Number(metrics.subscribersGained||0)
   const views=Number(metrics.views||0)
@@ -140,9 +218,29 @@ export function subscriberActions(metrics={}){
     ],
   }
 }
-
+function channelBenchmark(metrics,base){
+  const views=Number(metrics.views||base?.metrics?.videoViews||0)
+  const uploads=Number(metrics.uploads||base?.metrics?.uploads||0)
+  const gained=Number(metrics.subscribersGained||base?.metrics?.subscribersGained||0)
+  const lost=Number(metrics.subscribersLost||base?.metrics?.subscribersLost||0)
+  return {
+    views,
+    uploads,
+    viewsPerUpload:uploads?Number((views/uploads).toFixed(2)):null,
+    subscribersGained:gained,
+    subscribersLost:lost,
+    netSubscribers:gained-lost,
+    benchmarkViewsPerUpload:Number(base?.metrics?.viewsPerUpload||0)||null,
+    strongestRecurringHourSast:base?.audienceTiming?.strongestRecurringHour??null,
+  }
+}
 export async function runYoutubeGrowthScan(input={}){
   zeroCreditGuard()
+  growthIntegrityGuard(input)
+  const state=await loadYoutubeGrowthState()
+  const base=await baseline()
+  const metrics={...(base.metrics||{}),...(input.metrics||{})}
+  const recentTitles=Array.isArray(input.recentTitles)?input.recentTitles.filter(Boolean).slice(0,60):[]
   const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS)
     .map(clean).filter(Boolean).slice(0,8)
   const scans=[]
@@ -150,8 +248,10 @@ export async function runYoutubeGrowthScan(input={}){
     try{scans.push(await searchYoutubeTopic(topic,{maxResults:input.maxResults||8,days:input.days||120}))}
     catch(error){scans.push({ok:false,topic,error:error instanceof Error?error.message:String(error)})}
   }
-  const opportunities=scans.filter(x=>x.ok).map(x=>opportunityFrom(x.topic,x.results||[]))
-  return {
+  const opportunities=scans.filter(x=>x.ok)
+    .map(x=>opportunityFrom(x.topic,x.results||[],state,recentTitles))
+    .sort((a,b)=>b.opportunityScore-a.opportunityScore)
+  const result={
     ok:opportunities.length>0,
     zeroCreditOnly:true,
     artificialEngagement:false,
@@ -159,9 +259,20 @@ export async function runYoutubeGrowthScan(input={}){
     searchedAt:new Date().toISOString(),
     bots:YOUTUBE_GROWTH_BOTS,
     quotaPolicy:{maxTopicSearchesPerCycle:8,minimumHoursBetweenCycles:6},
+    promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
+    benchmark:channelBenchmark(metrics,base),
     opportunities,
-    retention:retentionActions(input.metrics||{}),
-    subscriberGrowth:subscriberActions(input.metrics||{}),
+    retention:retentionActions(metrics),
+    subscriberGrowth:subscriberActions(metrics),
     failures:scans.filter(x=>!x.ok),
   }
+  const remembered=await rememberYoutubeGrowthScan(result,metrics)
+  result.memory={
+    persistent:!remembered.persistenceWarning,
+    recentTopicCount:(remembered.recentTopics||[]).length,
+    metricSnapshots:(remembered.metricsHistory||[]).length,
+    experimentCount:(remembered.experiments||[]).length,
+    warning:remembered.persistenceWarning||null,
+  }
+  return result
 }
