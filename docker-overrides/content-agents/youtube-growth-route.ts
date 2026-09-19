@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { runYoutubeGrowthScan, YOUTUBE_GROWTH_BOTS, inspectTitlePackaging } from '../../../../content-agents/youtube-growth-swarm.mjs'
 import { loadYoutubeGrowthState, recordYoutubeExperiment } from '../../../../content-agents/youtube-growth-memory.mjs'
+import { loadGrowthMultiplierState } from '../../../../content-agents/growth-multiplier-memory.mjs'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -20,6 +21,7 @@ export async function GET(req:Request){
     config=JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','youtube-growth-config.json'),'utf8'))
   }catch{}
   const state=await loadYoutubeGrowthState()
+  const multiplier=await loadGrowthMultiplierState()
   return NextResponse.json({
     ok:true,
     system:'youtube-growth-swarm',
@@ -36,6 +38,7 @@ export async function GET(req:Request){
       experiments:(state.experiments||[]).slice(0,12),
       persistenceWarning:state.persistenceWarning||null,
     },
+    growthMultiplier:{winnersStored:(multiplier.winners||[]).length,rescuesStored:(multiplier.rescues||[]).length,retiredStored:(multiplier.retired||[]).length,persistenceWarning:multiplier.persistenceWarning||null},
     config,
   })
 }
@@ -57,6 +60,7 @@ export async function POST(req:Request){
       days:Number(body?.days||120),
       maxResults:Number(body?.maxResults||8),
       recentTitles:Array.isArray(body?.recentTitles)?body.recentTitles:undefined,
+      performanceRecords:Array.isArray(body?.performanceRecords)?body.performanceRecords:undefined,
     })
     return NextResponse.json(result)
   }catch(error){
