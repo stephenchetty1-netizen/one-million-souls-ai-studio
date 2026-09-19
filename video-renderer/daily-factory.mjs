@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v6'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v7'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -77,6 +77,11 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.renderer === 'one-million-souls-zero-credit-v3' &&
     entry?.renderQualityGate === 'PASS' &&
     entry?.professionalMasterCandidate === true &&
+    typeof entry?.thumbnailUrl === 'string' && entry.thumbnailUrl.startsWith('http') &&
+    /^[a-f0-9]{64}$/i.test(String(entry?.thumbnailHash || '')) &&
+    entry?.reviewAssets?.contactSheetUrl &&
+    entry?.reviewAssets?.firstFrameUrl &&
+    entry?.reviewAssets?.lastFrameUrl &&
     entry?.masterInspection?.passed === true &&
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
@@ -155,6 +160,11 @@ async function generateFor(date) {
       entry?.title === item.title &&
       entry?.renderQualityGate === 'PASS' &&
       entry?.professionalMasterCandidate === true &&
+      typeof entry?.thumbnailUrl === 'string' && entry.thumbnailUrl.startsWith('http') &&
+      /^[a-f0-9]{64}$/i.test(String(entry?.thumbnailHash || '')) &&
+      entry?.reviewAssets?.contactSheetUrl &&
+      entry?.reviewAssets?.firstFrameUrl &&
+      entry?.reviewAssets?.lastFrameUrl &&
       entry?.masterInspection?.passed === true &&
       entry?.audioInspection?.passed === true &&
       entry?.captionInspection?.passed === true &&
@@ -215,6 +225,9 @@ async function generateFor(date) {
       aiDisclosure:true,
       renderer:video.renderer,
       masterHash:video.masterHash,
+      thumbnailUrl:video.thumbnailUrl,
+      thumbnailHash:video.thumbnailHash,
+      reviewAssets:video.reviewAssets,
       contentHash,
       renderQualityGate:'PASS',
       professionalMasterCandidate:video.professionalMasterCandidate === true,
