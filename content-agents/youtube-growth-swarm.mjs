@@ -97,8 +97,24 @@ async function ownChannelFeed(){
       const published=block.match(/<published>([^<]+)<\/published>/)?.[1]||null
       return {title,videoId,published}
     }).filter(x=>x.title)
-    return {ok:true,items:entries.slice(0,30)}
+    if(entries.length)return {ok:true,items:entries.slice(0,30),source:'YOUTUBE_RSS'}
+    throw new Error('YOUTUBE_RSS_EMPTY')
   }catch(error){
+    try{
+      const raw=await fs.readFile(path.join(process.cwd(),'content-agents','youtube-recent-titles-baseline.json'),'utf8')
+      const fallback=JSON.parse(raw)
+      const items=Array.isArray(fallback?.items)?fallback.items.filter(x=>x?.title).slice(0,30):[]
+      if(items.length){
+        return {
+          ok:true,
+          items,
+          source:'METRICOOL_RECENT_TITLES_BASELINE',
+          degraded:true,
+          upstreamWarning:error instanceof Error?error.message:String(error),
+          capturedAt:fallback?.capturedAt||null,
+        }
+      }
+    }catch{}
     return {ok:false,reason:error instanceof Error?error.message:String(error),items:[]}
   }
 }
