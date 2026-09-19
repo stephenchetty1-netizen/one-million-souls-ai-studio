@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
+import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
@@ -8,6 +9,7 @@ const secret=process.env.CRON_SECRET||''
 const provider=Boolean(process.env.OPENAI_API_KEY||process.env.ANTHROPIC_API_KEY||process.env.GEMINI_API_KEY)
 const growthIntervalMs=Math.max(6,Number(process.env.YOUTUBE_GROWTH_INTERVAL_HOURS||6))*60*60*1000
 let lastGrowthScanAt=0
+let redisVerified=false
 
 if (process.argv.includes('--with-app')) {
   console.log('V59_AUTONOMY_SUPERVISOR '+JSON.stringify({mode:'24X7',failClosed:true,worker:'enabled',entrypoint:'npm-start'}))
@@ -22,8 +24,22 @@ async function call(path,method='GET',body){
  const text=await r.text(); if(!r.ok) throw new Error(path+':'+r.status+':'+text.slice(0,300)); return text
 }
 async function waitReady(){for(let i=0;i<60;i++){try{await call('/api/system-agents/autonomy-status');return}catch{} await sleep(2000)}throw new Error('APP_NOT_READY')}
+async function verifyRedis(){
+ if(redisVerified)return {ok:true,cached:true}
+ const key=`one-million-souls:v59:selftest:${process.pid}:${Date.now()}`
+ const value=`ready:${Date.now()}`
+ const set=await durableRedis(['SET',key,value,'EX','60'])
+ if(set!=='OK')throw new Error('DURABLE_REDIS_SELFTEST_SET_FAILED')
+ const got=await durableRedis(['GET',key])
+ await durableRedis(['DEL',key])
+ if(got!==value)throw new Error('DURABLE_REDIS_SELFTEST_READ_MISMATCH')
+ redisVerified=true
+ console.log('DURABLE_REDIS_READY',JSON.stringify({ok:true,transport:process.env.REDIS_URL?'redis-url-resp':'rest-fallback'}))
+ return {ok:true,cached:false}
+}
 async function cycle(){
  const evidence={at:new Date().toISOString(),providerConnected:provider}
+ evidence.redis=await verifyRedis()
  evidence.systemAgents=await call('/api/system-agents/autonomy-status')
  evidence.contentAgents=await call('/api/content-agents/status')
  if(Date.now()-lastGrowthScanAt>=growthIntervalMs){
