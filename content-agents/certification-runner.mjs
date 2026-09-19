@@ -279,10 +279,42 @@ async function approvalState(entry){
   const url=`${v59Base}/api/content-agents/approval-record?contentHash=${encodeURIComponent(entry.contentHash)}&masterHash=${encodeURIComponent(entry.masterHash)}`
   return fetchJson(url,cronSecret)
 }
-async function requestProductionRetry(entry,reason){
+async function reviseContent(entry,failed){
+  const prompt={
+    task:'Revise this blocked One Million Souls SHORT package for a brand-new production version. Return JSON only.',
+    current:{
+      title:entry.releasePayload?.title,
+      scriptureReference:entry.releasePayload?.scriptureReference,
+      script:entry.releasePayload?.script,
+      caption:entry.releasePayload?.caption,
+    },
+    failedGates:failed,
+    requirements:[
+      'Create original wording; do not copy protected scripts, captions, titles, melodies, or edits.',
+      'Keep Jesus-centred Christian encouragement biblically faithful and factually accurate.',
+      'Do not turn narrative/covenant passages into unconditional personal prosperity promises.',
+      'Use one clear felt need, a strong first-two-second hook, concise story progression, faithful Scripture context, practical next step, and hopeful close.',
+      'Do not manipulate fear, promise guaranteed earthly outcomes, or use engagement bait as theology.',
+      'Caption must accurately represent the revised master and may include relevant hashtags.',
+      'Return exactly: title, scriptureReference, script, caption.'
+    ],
+  }
+  const r=await client.responses.create({model:visualModel,input:JSON.stringify(prompt),max_output_tokens:1200})
+  const parsed=jsonFromText(r.output_text)
+  const replacement={
+    title:String(parsed?.title||'').trim().slice(0,120),
+    ref:String(parsed?.scriptureReference||parsed?.ref||'').trim().slice(0,120),
+    script:String(parsed?.script||'').trim().slice(0,3500),
+    caption:String(parsed?.caption||'').trim().slice(0,2200),
+  }
+  if(!replacement.title||!replacement.ref||replacement.script.length<80||!replacement.caption)throw new Error('CONTENT_REVISION_INCOMPLETE')
+  return replacement
+}
+
+async function requestProductionRetry(entry,reason,replacement=null){
   try{
     const result=await postJson(`${rendererBase}/factory-retry`,{
-      date:entry.targetDate,slot:entry.slot,expectedMasterHash:entry.masterHash,reason
+      date:entry.targetDate,slot:entry.slot,expectedMasterHash:entry.masterHash,reason,replacement
     },renderSecret)
     console.warn('MASTER_CERTIFICATION_RETURNED_TO_PRODUCTION',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,targetDate:entry.targetDate,slot:entry.slot,retryAttempt:result?.retryAttempt}))
     return result
@@ -395,8 +427,18 @@ export async function runCertificationCycle(){
       console.error('MASTER_CERTIFICATION_CREATIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed}))
       await recordQaBlock(entry,'PROFESSIONAL_MASTER_PREFLIGHT',failed)
       const contentFailures=contentLevelFailures(failed)
-      if(!contentFailures.length)await requestProductionRetry(entry,`PROFESSIONAL_MASTER_PREFLIGHT: ${JSON.stringify(failed)}`)
-      else console.error('MASTER_CERTIFICATION_CONTENT_REVISION_REQUIRED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed:contentFailures}))
+      if(!contentFailures.length){
+        await requestProductionRetry(entry,`PROFESSIONAL_MASTER_PREFLIGHT: ${JSON.stringify(failed)}`)
+      }else{
+        console.error('MASTER_CERTIFICATION_CONTENT_REVISION_REQUIRED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed:contentFailures}))
+        try{
+          const replacement=await reviseContent(entry,contentFailures)
+          await requestProductionRetry(entry,`CONTENT_REVISION_REQUIRED: ${JSON.stringify(contentFailures)}`,replacement)
+          console.warn('MASTER_CERTIFICATION_CONTENT_REVISION_QUEUED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,targetDate:entry.targetDate,slot:entry.slot,newTitle:replacement.title,newScriptureReference:replacement.ref}))
+        }catch(error){
+          console.error('MASTER_CERTIFICATION_CONTENT_REVISION_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error)}))
+        }
+      }
       return {ok:false,blocked:true,stage:'PROFESSIONAL_MASTER_PREFLIGHT',contentRevisionRequired:contentFailures.length>0,contentHash:entry.contentHash,masterHash:entry.masterHash,evidence}
     }
 
