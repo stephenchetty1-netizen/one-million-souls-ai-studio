@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { loadTikTokGrowthState, rememberTikTokGrowthScan } from './tiktok-growth-memory.mjs'
 import { recommendChannelAttractions } from './channel-attraction-selector.mjs'
+import { loadVerifiedPerformance } from './verified-performance-evidence.mjs'
 import { runGrowthMultiplier } from './growth-multiplier.mjs'
 
 export const TIKTOK_GROWTH_BOTS=Object.freeze([
@@ -206,6 +207,7 @@ function benchmark(metrics,base){
 export async function runTikTokGrowthScan(input={}){
   zeroCreditGuard()
   growthIntegrityGuard(input)
+  const verifiedPerformance=await loadVerifiedPerformance('tiktok')
   const [state,base,recent,patterns,trends]=await Promise.all([
     loadTikTokGrowthState(),
     readJson('tiktok-growth-baseline.json',{metrics:{},audienceTiming:{}}),
@@ -213,9 +215,10 @@ export async function runTikTokGrowthScan(input={}){
     readJson('million-view-patterns.json',{examples:[]}),
     readJson('trend-evidence.json',{externalTrendSignals:[]}),
   ])
-  const posts=Array.isArray(input.performanceRecords)&&input.performanceRecords.length
-    ? input.performanceRecords
-    : (Array.isArray(recent.posts)?recent.posts:[])
+  const measuredRecords=['FRESH','AGING'].includes(verifiedPerformance.freshness.status)
+    ? (verifiedPerformance.records||[]).filter(x=>Number.isFinite(x.views))
+    : []
+  const posts=measuredRecords.length?measuredRecords:(Array.isArray(recent.posts)?recent.posts:[])
   const recentCaptions=Array.isArray(input.recentCaptions)?input.recentCaptions.filter(Boolean).slice(0,50):posts.map(x=>x.topic)
   const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS).map(clean).filter(Boolean).slice(0,8)
   const metrics={...(base.metrics||{}),...(input.metrics||{})}
@@ -243,8 +246,7 @@ export async function runTikTokGrowthScan(input={}){
     }
   }).sort((a,b)=>b.opportunityScore-a.opportunityScore)
   const attractions=await recommendChannelAttractions({platform:'tiktok',opportunities,recentTopics:state.recentTopics||[],metrics:benchmark(metrics,base)})
-  const multiplierRecords=posts
-  const multiplier=await runGrowthMultiplier({platform:'tiktok',records:multiplierRecords,baseline:benchmark(metrics,base),opportunities,attractions})
+  const multiplier=await runGrowthMultiplier({platform:'tiktok',records:measuredRecords,baseline:benchmark(metrics,base),opportunities,attractions})
   const result={
     ok:true,
     zeroCreditOnly:true,
@@ -264,6 +266,7 @@ export async function runTikTokGrowthScan(input={}){
     recentPerformance:posts.slice(0,12),
     opportunities,
     channelAttractions:attractions,
+    verifiedPerformance:{source:verifiedPerformance.source||null,transport:verifiedPerformance.transport,capturedAt:verifiedPerformance.capturedAt,freshness:verifiedPerformance.freshness,postCount:verifiedPerformance.postCount,measuredPostCount:verifiedPerformance.measuredPostCount,measuredRecordsUsed:measuredRecords.length,autonomousUpstreamConfigured:verifiedPerformance.autonomousUpstreamConfigured,warning:verifiedPerformance.warning||verifiedPerformance.persistenceWarning||null},
     growthMultiplier:multiplier,
     retention:retentionActions(input.metrics?.durationSeconds?input.metrics:(posts[0]||base?.recentPostSignal||{})),
     followerGrowth:followerActions(metrics),
