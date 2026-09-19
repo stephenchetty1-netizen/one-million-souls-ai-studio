@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
 import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runDueAutonomousGrowthBots } from './autonomous-growth-bots.mjs'
+import { evaluateReleaseReadiness } from './release-readiness.mjs'
 import { bootstrapAnalyticsSnapshotEnv } from '../content-agents/growth-analytics-snapshot.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
@@ -58,23 +59,13 @@ async function cycle(){
  // multimodal QA evidence. The runner processes at most one pending master per cycle.
  const certification=await runCertificationCycle()
  evidence.certification=certification
- const exactMasterCertified=certification?.execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certification?.execution?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
- const bufferCertified=certification?.readiness?.allCertified===true
- evidence.releaseState={
-   publishingLocked:!(exactMasterCertified||bufferCertified),
+ const systemReadiness=JSON.parse(evidence.systemAgents)
+ evidence.releaseState=evaluateReleaseReadiness({
+   system:systemReadiness,
+   certification,
+   publishEnabled:process.env.V59_PUBLISH_ENABLED==='true',
    requiredApprovals:plan.requiredApprovals,
-   nextAction:exactMasterCertified
-     ? 'AWAIT_SCHEDULED_POST_TIME'
-     : bufferCertified
-       ? 'BUFFER_CERTIFIED_AWAIT_SCHEDULED_POST_TIME'
-       : plan.nextAction,
-   reason:exactMasterCertified
-     ? 'EXACT_MASTER_CERTIFIED_AND_QUEUED'
-     : bufferCertified
-       ? 'ALL_BUFFER_MASTERS_CERTIFIED'
-       : (certification?.reason||certification?.stage||'NO_CERTIFIED_MASTER_THIS_CYCLE'),
-   bufferReadiness:certification?.readiness||null,
- }
+ })
  return evidence
 }
 await waitReady()
