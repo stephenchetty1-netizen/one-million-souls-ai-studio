@@ -96,7 +96,7 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.visualVarietyInspection?.passed === true &&
     entry?.visualStoryboardInspection?.passed === true &&
     entry?.visualStoryboardInspection?.version === 'v59-visual-coherence-v1' &&
-    entry?.captionInspection?.bottomSafeMargin >= 360 &&
+    entry?.captionInspection?.bottomSafeMargin >= 650 &&
     entry?.captionInspection?.horizontalSafeMargin >= 120 &&
     Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
     typeof entry?.masterHash === 'string' &&
@@ -196,7 +196,7 @@ export async function generateFor(date) {
       entry?.visualVarietyInspection?.passed === true &&
       entry?.visualStoryboardInspection?.passed === true &&
       entry?.visualStoryboardInspection?.version === 'v59-visual-coherence-v1' &&
-      entry?.captionInspection?.bottomSafeMargin >= 360 &&
+      entry?.captionInspection?.bottomSafeMargin >= 650 &&
       entry?.captionInspection?.horizontalSafeMargin >= 120 &&
       Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
       typeof entry?.masterHash === 'string' &&
