@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v10'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v11'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -41,6 +41,11 @@ function localDate(date = new Date()) {
 function futureDate(days=1) { return localDate(new Date(Date.now()+days*24*60*60*1000)).date }
 function tomorrowDate() { return futureDate(1) }
 function hashDate(s) { return [...s].reduce((a,c)=>((a*31+c.charCodeAt(0))>>>0),7) }
+function canonicalize(value) {
+  if (Array.isArray(value)) return value.map(canonicalize)
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map((key)=>[key,canonicalize(value[key])]))
+  return value
+}
 function manifestKey(date) { return `manifests/${date}.json` }
 function buildingManifestKey(date) { return `manifests/${date}.building.json` }
 
@@ -220,7 +225,7 @@ async function generateFor(date) {
       aiDisclosure:true,
       platforms:['tiktok','youtube'],
     }
-    const contentHash = crypto.createHash('sha256').update(JSON.stringify(releasePayload)).digest('hex')
+    const contentHash = crypto.createHash('sha256').update(JSON.stringify(canonicalize(releasePayload))).digest('hex')
     const entry = {
       slot:slotTimes[i],
       title:item.title,
