@@ -219,7 +219,8 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
 async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0, stockSelection = null) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
   const preferGoogleVeo = !ZERO_CREDIT_ONLY && googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
-  const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
+  // Stock fallback is opt-in only. License clearance is not visual quality clearance.
+  const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK === 'true'
   const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true' || (process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && Boolean(stockSelection?.stockId))
   const authenticatedHf = Boolean(String(process.env.HF_TOKEN || '').trim())
 
@@ -752,6 +753,13 @@ export async function renderFreeV2(body = {}) {
     const reviewAssets = await createReviewAssets(composed.out, id, work, composed.duration)
     const mediaUrl = persisted.mediaUrl
     const sceneSources = scenes.map((scene) => scene.source || 'unknown')
+    const stockOnlyPreview = sceneSources.length > 0 &&
+      sceneSources.every((source) => source === 'rights-cleared-stock-video')
+    if (stockOnlyPreview) console.warn('FREE_AI_STOCK_ONLY_CREATIVE_HOLD',JSON.stringify({
+      id,title,masterHash:persisted.masterHash,
+      reason:'Licensed stock footage and technical metrics are not a professional visual-quality certificate.',
+      publishingAllowed:false,professionalMasterCandidate:false
+    }))
 
     const result = {
       ok: true,
@@ -805,7 +813,10 @@ export async function renderFreeV2(body = {}) {
       googleFlowClassGenerationUsed: false,
       persistentStorage: true,
       qualityGate: 'passed',
-      professionalMasterCandidate: true,
+      technicalRenderPassed: true,
+      visualProductionStatus:stockOnlyPreview?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
+      creativeVisualReviewRequired: true,
+      professionalMasterCandidate: !stockOnlyPreview,
       masterInspection,
       fullDecodeInspection,
       captionInspection,
