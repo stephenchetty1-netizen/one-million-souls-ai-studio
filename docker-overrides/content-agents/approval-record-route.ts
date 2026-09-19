@@ -77,7 +77,7 @@ export async function GET(req: Request) {
     const rawCertificate=await redis(['GET',certificateKey(contentHash,masterHash)])
     const certificate=rawCertificate?JSON.parse(rawCertificate):null
     const unanimous=required.every((id)=>approvals[id]?.decision==='APPROVE'&&approvals[id]?.contentHash===contentHash&&approvals[id]?.masterHash===masterHash)
-    const certified=unanimous&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+    const certified=unanimous&&certificate?.reviewStandardVersion==='v59-independent-exact-master-v2'&&certificate?.contentHash===contentHash&&certificate?.masterHash===masterHash&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
     return NextResponse.json({ok:true,publishingLocked:!certified,durable:true,contentHash,masterHash,approvals,certificate,releaseStatus:certified?'APPROVED_AWAITING_POST_TIME':'RETURN_TO_PRODUCTION',certification:certified?'PROFESSIONAL_MASTER_CERTIFIED':'NOT_CERTIFIED'})
   } catch(error) {
     return NextResponse.json({ok:false,blocked:true,error:error instanceof Error?error.message:'approval store failed'},{status:503})
