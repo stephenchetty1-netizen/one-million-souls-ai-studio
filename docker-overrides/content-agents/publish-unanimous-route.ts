@@ -114,7 +114,7 @@ async function verify(body:any){
   }
 
   const latestOther=Math.max(0,...agents.filter((id)=>id!=='publisher').map((id)=>times[id]||0))
-  if(!times.publisher||times.publisher<latestOther)problems.push('publisher must approve last')
+  if(!times.publisher||times.publisher<=latestOther)problems.push('publisher must approve strictly after all 49 prior approvals')
 
   const releaseReadyAt=Date.parse(certificate?.releaseReadyAt||'')
   const scheduledPublishAt=Date.parse(releasePayload?.scheduledPublishAt||'')
