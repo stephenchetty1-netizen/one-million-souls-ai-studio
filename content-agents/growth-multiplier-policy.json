@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-19",
+  "mode": "ZERO_CREDIT_ONLY",
+  "mission": "Convert measured winners into original growth families, rescue strong-but-underdistributed content, retire persistently weak patterns, and expand search/series/collaboration opportunities without artificial engagement.",
+  "stages": [
+    "INGEST_MEASURED_PERFORMANCE",
+    "COMPARE_TO_PLATFORM_BASELINE",
+    "CLASSIFY_WINNER_RESCUE_RETIRE_OR_MEASURE",
+    "GENERATE_ORIGINAL_VARIATION_BRIEFS",
+    "BUILD_PLATFORM_SPECIFIC_CONTENT_CLUSTER",
+    "ROUTE_EACH_VARIATION_THROUGH_NORMAL_PRODUCTION_AND_APPROVAL",
+    "MEASURE_RESULTS",
+    "PROMOTE_RESCUE_OR_RETIRE_PATTERN"
+  ],
+  "thresholds": {
+    "winnerRequiresMultipleStrongSignals": true,
+    "winnerReachIndex": 1.25,
+    "strongSignalIndex": 1.1,
+    "rescueReachBelowIndex": 0.8,
+    "retireReachBelowIndex": 0.65,
+    "maximumWinnerVariationsPerCycle": 5
+  },
+  "multiplierLanes": [
+    "direct prayer",
+    "Bible answer/search-intent",
+    "story or authentic testimony angle",
+    "20-30 second reset",
+    "deeper companion",
+    "series cluster",
+    "playlist/related-content route",
+    "collaboration opportunity"
+  ],
+  "hardRules": [
+    "Never clone a winning script, edit, thumbnail, caption or voice treatment.",
+    "Never repost an identical failed TikTok asset as a growth tactic.",
+    "Never fabricate analytics, followers, views, comments, shares, retention or conversions.",
+    "No sub-for-sub, follow-for-follow, view exchanges, engagement pods, traffic bots or watch-time bots.",
+    "No automated unsolicited collaboration spam.",
+    "Every generated variation is only a brief until it passes normal theology, factual, originality, rights, media-quality and release gates.",
+    "The Growth Multiplier has no publishing authority.",
+    "ZERO_CREDIT_ONLY must remain true."
+  ]
+}
