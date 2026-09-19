@@ -27,7 +27,13 @@ export async function POST(req: Request) {
     const raw = await fs.readFile(path.join(process.cwd(), 'content-agents', 'seed-queue.json'), 'utf8')
     const queue = JSON.parse(raw)
     const bucket = mode === 'SHORT' ? queue.shorts : mode === 'LONG' ? queue.longForm : queue.lyricVideos
-    const growthCandidate = body.growthCandidateId ? await getGrowthCandidate(String(body.growthCandidateId)) : null
+    const requestedGrowthCandidate=body.growthCandidateId!==undefined&&body.growthCandidateId!==null
+    const growthCandidate=requestedGrowthCandidate
+      ? await getGrowthCandidate(String(body.growthCandidateId))
+      : null
+    if(requestedGrowthCandidate&&!growthCandidate){
+      return NextResponse.json({ok:false,error:'Requested growth candidate not found; no fallback permitted'},{status:404})
+    }
     const item = growthCandidate || (body.id ? bucket.find((x:any) => x.id === body.id) : bucket[0])
     if (!item) return NextResponse.json({ ok:false, error:'No queue item found' }, { status:404 })
     if (growthCandidate && (growthCandidate.publishingLocked !== true || growthCandidate.requiresNormalV59Approval !== true)) {
