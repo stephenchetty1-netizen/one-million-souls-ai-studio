@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v9'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v10'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -205,21 +205,29 @@ async function generateFor(date) {
       console.error('DAILY_FACTORY_ITEM_QUARANTINED', JSON.stringify({targetDate:date,slot:slotTimes[i],title:item.title,error:failedEntry.failureReason}))
       continue
     }
-    const contentHash = crypto.createHash('sha256').update(JSON.stringify({
+    const releasePayload = {
       title:item.title,
       script:item.script,
       scriptureReference:item.ref,
       caption:item.caption,
-      mediaMasterHash:video.masterHash,
+      mediaUrl:video.mediaUrl,
+      masterHash:video.masterHash,
+      thumbnailUrl:video.thumbnailUrl,
       thumbnailHash:video.thumbnailHash,
       slot:slotTimes[i],
       targetDate:date,
-    })).digest('hex')
+      scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
+      aiDisclosure:true,
+      platforms:['tiktok','youtube'],
+    }
+    const contentHash = crypto.createHash('sha256').update(JSON.stringify(releasePayload)).digest('hex')
     const entry = {
       slot:slotTimes[i],
       title:item.title,
+      script:item.script,
       scriptureReference:item.ref,
       caption:item.caption,
+      releasePayload,
       mediaUrl:video.mediaUrl,
       width:video.width,
       height:video.height,
@@ -254,7 +262,7 @@ async function generateFor(date) {
       requiredApprovals:50,
       publishingLocked:true,
       releaseStatus:(video.masterReady === true && video.technicalMaster === 'PASS' && video.creativeMaster === 'PASS') ? 'AWAITING_50_AGENT_APPROVAL' : 'RETURN_TO_PRODUCTION',
-      scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
+      scheduledPublishAt:releasePayload.scheduledPublishAt,
       releaseReadyDeadline:new Date(slotTimestamp(date, slotTimes[i]) - RELEASE_READY_BUFFER_MS).toISOString(),
       minimumReleaseReadyBufferHours:2,
     }
