@@ -384,6 +384,7 @@ async function candidateEntries(){
 
 export async function runCertificationCycle(){
   if(process.env.MASTER_CERTIFICATION_ENABLED==='false')return {ok:true,skipped:true,reason:'DISABLED'}
+  if(process.env.ZERO_CREDIT_ONLY==='true')throw new Error('ZERO_CREDIT_POLICY_ACTIVE_PAID_AI_DISABLED')
   if(!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
   const candidates=await candidateEntries()
   for(const entry of candidates){
