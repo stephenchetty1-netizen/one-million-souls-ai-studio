@@ -495,6 +495,59 @@ async function inspectMaster(file, expectedDuration) {
   return { passed:true, status:'PASS', width:Number(video.width), height:Number(video.height), fps:Number(fps.toFixed(2)), durationSeconds:Number(duration.toFixed(2)), bitrate }
 }
 
+async function persistReviewImage(file, id, label) {
+  if (!s3) throw new Error('Persistent storage is required for review assets')
+  const key = `review-v2/${new Date().toISOString().slice(0, 10)}/${id}-${label}.jpg`
+  const bytes = await fs.readFile(file)
+  const hash = crypto.createHash('sha256').update(bytes).digest('hex')
+  await s3.send(new PutObjectCommand({
+    Bucket: process.env.BUCKET,
+    Key: key,
+    Body: bytes,
+    ContentType: 'image/jpeg',
+    CacheControl: 'public, max-age=31536000, immutable',
+  }))
+  return { url: `${publicBase()}/media/${key.split('/').map(encodeURIComponent).join('/')}`, hash, bytes: bytes.length }
+}
+
+async function createReviewAssets(masterFile, id, work, duration) {
+  const first = path.join(work, 'review-first.jpg')
+  const contact = path.join(work, 'review-contact.jpg')
+  const last = path.join(work, 'review-last.jpg')
+  const thumb = path.join(work, 'thumbnail.jpg')
+  const endAt = Math.max(0, duration - 0.20)
+  const reviewFps = Math.max(0.25, 16 / Math.max(1, duration))
+
+  await execFileAsync('ffmpeg', ['-y','-ss','0','-i',masterFile,'-frames:v','1','-q:v','2',first], { timeout: 60_000 })
+  await execFileAsync('ffmpeg', ['-y','-ss',String(Math.min(1.0, Math.max(0, duration / 4))),' -i'.trim(),masterFile,'-frames:v','1','-q:v','2',thumb], { timeout: 60_000 })
+  await execFileAsync('ffmpeg', ['-y','-ss',endAt.toFixed(3),'-i',masterFile,'-frames:v','1','-q:v','2',last], { timeout: 60_000 })
+  await execFileAsync('ffmpeg', [
+    '-y','-i',masterFile,
+    '-vf',`fps=${reviewFps.toFixed(4)},scale=270:-2,tile=4x4:padding=4:margin=4`,
+    '-frames:v','1','-q:v','3',contact
+  ], { timeout: 120_000 })
+
+  const [firstAsset, contactAsset, lastAsset, thumbnailAsset] = await Promise.all([
+    persistReviewImage(first,id,'first'),
+    persistReviewImage(contact,id,'contact'),
+    persistReviewImage(last,id,'last'),
+    persistReviewImage(thumb,id,'thumbnail'),
+  ])
+
+  return {
+    firstFrameUrl:firstAsset.url,
+    firstFrameHash:firstAsset.hash,
+    contactSheetUrl:contactAsset.url,
+    contactSheetHash:contactAsset.hash,
+    lastFrameUrl:lastAsset.url,
+    lastFrameHash:lastAsset.hash,
+    thumbnailUrl:thumbnailAsset.url,
+    thumbnailHash:thumbnailAsset.hash,
+    temporalCoverage:{startSeconds:0,endSeconds:Number(duration.toFixed(2)),contactSheetTargetFrames:16},
+    method:'first-frame + uniform temporal contact sheet + final-frame',
+  }
+}
+
 async function persist(file, id) {
   if (!s3) throw new Error('Persistent storage is required for render-v2')
   const key = `renders-v2/${new Date().toISOString().slice(0, 10)}/${id}.mp4`
@@ -586,6 +639,7 @@ export async function renderFreeV2(body = {}) {
     const masterInspection = await inspectMaster(composed.out, composed.duration)
     const audioInspection = await inspectAudioMaster(composed.out)
     const persisted = await persist(composed.out, id)
+    const reviewAssets = await createReviewAssets(composed.out, id, work, composed.duration)
     const mediaUrl = persisted.mediaUrl
     const sceneSources = scenes.map((scene) => scene.source || 'unknown')
 
@@ -595,6 +649,9 @@ export async function renderFreeV2(body = {}) {
       mediaUrl,
       masterHash: persisted.masterHash,
       masterBytes: persisted.bytes,
+      thumbnailUrl: reviewAssets.thumbnailUrl,
+      thumbnailHash: reviewAssets.thumbnailHash,
+      reviewAssets,
       width: WIDTH,
       height: HEIGHT,
       fps: FPS,
