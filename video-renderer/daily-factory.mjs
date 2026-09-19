@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v16'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v17'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -163,9 +163,19 @@ export async function generateFor(date) {
 
   for (let i=0;i<3;i++) {
     const item = BANK[(seed + i*5) % BANK.length]
+    const priorRetry = reusableEntries.find((entry) =>
+      entry?.slot === slotTimes[i] && entry?.releaseStatus === 'PRODUCTION_RETRY'
+    )
+    const replacement = priorRetry?.replacement && typeof priorRetry.replacement === 'object' ? priorRetry.replacement : null
+    const effectiveItem = replacement ? {
+      title:String(replacement.title || item.title).slice(0,120),
+      ref:String(replacement.ref || item.ref).slice(0,120),
+      script:String(replacement.script || item.script).slice(0,3500),
+      caption:String(replacement.caption || item.caption).slice(0,2200),
+    } : item
     const reusable = reusableEntries.find((entry) =>
       entry?.slot === slotTimes[i] &&
-      entry?.title === item.title &&
+      entry?.title === effectiveItem.title &&
       entry?.renderQualityGate === 'PASS' &&
       entry?.professionalMasterCandidate === true &&
       typeof entry?.thumbnailUrl === 'string' && entry.thumbnailUrl.startsWith('http') &&
@@ -191,23 +201,19 @@ export async function generateFor(date) {
       console.log('DAILY_FACTORY_REUSE_PARTIAL', JSON.stringify({
         targetDate:date,
         slot:slotTimes[i],
-        title:item.title,
+        title:effectiveItem.title,
         masterHash:reusable.masterHash,
       }))
       continue
     }
 
-    const priorRetry = reusableEntries.find((entry) =>
-      entry?.slot === slotTimes[i] && entry?.title === item.title &&
-      entry?.releaseStatus === 'PRODUCTION_RETRY'
-    )
     const variationSeed = Math.max(0, Number(priorRetry?.retryAttempt || 0))
     let video
     try {
-      video = await render(item, variationSeed)
+      video = await render(effectiveItem, variationSeed)
     } catch (error) {
       const failedEntry = {
-        slot:slotTimes[i], title:item.title, scriptureReference:item.ref, caption:item.caption,
+        slot:slotTimes[i], title:effectiveItem.title, script:effectiveItem.script, scriptureReference:effectiveItem.ref, caption:effectiveItem.caption, replacement,
         publishingLocked:true, releaseStatus:'PRODUCTION_RETRY', renderQualityGate:'BLOCK',
         failureReason:error instanceof Error ? error.message : String(error),
         scheduledPublishAt:new Date(slotTimestamp(date, slotTimes[i])).toISOString(),
@@ -216,14 +222,14 @@ export async function generateFor(date) {
       entries.push(failedEntry)
       const partial = {ok:false,partial:true,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
       await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:buildingKey,Body:JSON.stringify(partial,null,2),ContentType:'application/json',CacheControl:'no-store'}))
-      console.error('DAILY_FACTORY_ITEM_QUARANTINED', JSON.stringify({targetDate:date,slot:slotTimes[i],title:item.title,error:failedEntry.failureReason}))
+      console.error('DAILY_FACTORY_ITEM_QUARANTINED', JSON.stringify({targetDate:date,slot:slotTimes[i],title:effectiveItem.title,error:failedEntry.failureReason}))
       continue
     }
     const releasePayload = {
-      title:item.title,
-      script:item.script,
-      scriptureReference:item.ref,
-      caption:item.caption,
+      title:effectiveItem.title,
+      script:effectiveItem.script,
+      scriptureReference:effectiveItem.ref,
+      caption:effectiveItem.caption,
       mediaUrl:video.mediaUrl,
       masterHash:video.masterHash,
       thumbnailUrl:video.thumbnailUrl,
@@ -235,13 +241,13 @@ export async function generateFor(date) {
       platforms:['tiktok','youtube'],
       platformPackages:{
         tiktok:{
-          caption:item.caption,
+          caption:effectiveItem.caption,
           privacyLevel:'PUBLIC_TO_EVERYONE',
           isAigc:true,
         },
         youtube:{
-          title:item.title,
-          description:item.caption,
+          title:effectiveItem.title,
+          description:effectiveItem.caption,
           privacyStatus:'public',
           madeForKids:false,
           isAiGeneratedContent:true,
@@ -251,10 +257,10 @@ export async function generateFor(date) {
     const contentHash = crypto.createHash('sha256').update(JSON.stringify(canonicalize(releasePayload))).digest('hex')
     const entry = {
       slot:slotTimes[i],
-      title:item.title,
-      script:item.script,
-      scriptureReference:item.ref,
-      caption:item.caption,
+      title:effectiveItem.title,
+      script:effectiveItem.script,
+      scriptureReference:effectiveItem.ref,
+      caption:effectiveItem.caption,
       releasePayload,
       variationSeed,
       mediaUrl:video.mediaUrl,
@@ -340,7 +346,7 @@ async function writeJsonObject(key,value){
   await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:JSON.stringify(value,null,2),ContentType:'application/json',CacheControl:'no-store'}))
 }
 
-export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='CERTIFICATION_BLOCK'}={}){
+export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='CERTIFICATION_BLOCK',replacement=null}={}){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))throw new Error('VALID_RETRY_DATE_REQUIRED')
   const slots=configuredSlots()
   if(!slots.includes(String(slot||'')))throw new Error('VALID_RETRY_SLOT_REQUIRED')
@@ -352,8 +358,16 @@ export async function requestFactoryRetry({date,slot,expectedMasterHash,reason='
   const target=entries.find((e)=>e?.slot===slot&&String(e?.masterHash||'').toLowerCase()===String(expectedMasterHash).toLowerCase())
   if(!target)throw new Error('EXACT_RETRY_MASTER_NOT_FOUND')
   const retryAttempt=Math.max(1,Number(target?.variationSeed||0)+1,Number(target?.retryAttempt||0))
+  const cleanReplacement = replacement && typeof replacement === 'object' ? {
+    title:String(replacement.title || target.title || '').slice(0,120),
+    ref:String(replacement.ref || replacement.scriptureReference || target.scriptureReference || '').slice(0,120),
+    script:String(replacement.script || target.script || '').slice(0,3500),
+    caption:String(replacement.caption || target.caption || '').slice(0,2200),
+  } : null
+  if(cleanReplacement && (!cleanReplacement.title || !cleanReplacement.script || !cleanReplacement.ref || !cleanReplacement.caption))throw new Error('REPLACEMENT_CONTENT_INCOMPLETE')
   const retryEntry={
     slot,targetDate:date,title:target.title,script:target.script,scriptureReference:target.scriptureReference,caption:target.caption,
+    replacement:cleanReplacement,
     publishingLocked:true,releaseStatus:'PRODUCTION_RETRY',renderQualityGate:'BLOCK',retryEligible:true,retryAttempt,
     failureReason:String(reason||'CERTIFICATION_BLOCK').slice(0,4000),scheduledPublishAt:target.scheduledPublishAt,failedAt:new Date().toISOString()
   }
