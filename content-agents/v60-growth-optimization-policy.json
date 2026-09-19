@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "phase": "V60_GROWTH_OPTIMIZATION",
+  "updatedAt": "2026-09-19",
+  "zeroCreditOnly": true,
+  "objective": "Improve measured viewer retention and legitimate repeat viewing while maintaining the existing certified-master release safeguards.",
+  "experimentPlanner": "content-agents/v60-retention-experiments.mjs",
+  "dataRequirements": {
+    "ownerMeasuredPostLevelWatchTime": true,
+    "acceptedFreshness": [
+      "FRESH"
+    ],
+    "minimumMaturePostAgeHours": 24,
+    "minimumObservedViews": 50,
+    "minimumComparablePosts": 2,
+    "doNotReplaceMissingMeasurementsWithZero": true,
+    "blockWithoutOwnerRetentionMeasurements": true
+  },
+  "operations": {
+    "maximumProposedExperiments": 3,
+    "oneCreativeVariablePerExperiment": true,
+    "humanApprovalRequiredForNewReusableEditTemplate": true,
+    "automaticPosting": false,
+    "generateUniqueOriginalEditPerApprovedExperiment": true,
+    "platformSpecificExperimentDesign": true,
+    "observationalComparisonDoesNotEstablishCausation": true,
+    "blockDuplicateReposts": true
+  },
+  "qualityAndRelease": {
+    "releaseAuthority": false,
+    "publishingLocked": true,
+    "sourceMusicRightsRequired": true,
+    "humanReusableTemplateReviewRequired": true,
+    "ScriptureAndFactsMustBeVerified": true,
+    "ideoAudioCaptionsRightsAndFullDecodeQARequired": true,
+    "immutableMasterHashRequired": true,
+    "standardV59FinalPublisherLastApprovalRequired": true,
+    "missedPostingSlotDoesNotOverrideQuality": true
+  },
+  "rolloutStages": [
+    "PROPOSED_NOT_RENDERED",
+    "AWAIT_TEMPLATE_REVIEW",
+    "PRODUCTION_AND_MASTER_QA",
+    "NORMAL_V59_APPROVALS",
+    "RESULT_MEASUREMENT",
+    "PROMOTE_OR_REVISE"
+  ],
+  "note": "This configuration registers the V60 research experiment planner, not a new publisher or an authorization to revise frozen masters."
+}
