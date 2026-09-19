@@ -16,7 +16,13 @@
       "thumbnail-researcher",
       "metadata-strategist",
       "content-portfolio-planner",
-      "channel-attraction-director"
+      "channel-attraction-director",
+      "growth-multiplier-director",
+      "winner-replication-engine",
+      "rescue-packaging-engine",
+      "search-gap-expander",
+      "series-cluster-builder",
+      "collaboration-scout"
     ],
     "mediaStudio": [
       "executive-producer",
@@ -88,5 +94,13 @@
     "rotationPool": 7,
     "fatigueReviewDays": 14,
     "rule": "Use draw-card franchises to create recognizable return reasons, but promote or retire them from measured platform evidence."
+  },
+  "growthMultiplier": {
+    "enabled": true,
+    "winnerExpansionMaxVariants": 5,
+    "rescueBeforeDiscard": true,
+    "controlledExperiments": true,
+    "noDuplicateReposts": true,
+    "collaborationOutreachRequiresHumanApproval": true
   }
 }
