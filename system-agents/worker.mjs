@@ -72,4 +72,8 @@ await waitReady()
 const analyticsBootstrap=await bootstrapAnalyticsSnapshotEnv()
 console.log('ANALYTICS_BOOTSTRAP',JSON.stringify(analyticsBootstrap))
 console.log('AUTONOMY_WORKER_READY',JSON.stringify({base,providerConnected:provider,failClosed:true}))
+if(process.env.REVIEW_PACKET_EXPORT_ENABLED==='true'){
+ try{await import('../content-agents/export-independent-review.mjs');console.log('INDEPENDENT_REVIEW_PACKET_EXPORT_COMPLETE')}
+ catch(error){console.error('INDEPENDENT_REVIEW_PACKET_EXPORT_FAILED',JSON.stringify({error:String(error?.message||error)}))}
+}
 for(;;){try{const e=await cycle();console.log('AUTONOMY_CYCLE_PASS',JSON.stringify(e))}catch(err){console.error('AUTONOMY_CYCLE_BLOCKED',JSON.stringify({at:new Date().toISOString(),error:String(err?.message||err)}))}await sleep(120000)}
