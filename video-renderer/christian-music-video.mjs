@@ -52,9 +52,10 @@ async function fetchMusic(){
   if(size<100000)throw new Error('LICENSED_HYMN_EMPTY')
   return Buffer.concat(chunks,size)
 }
-async function cachedMusic(s3){
+async function cachedMusic(s3,{forceRefresh=false}={}){
   const key='internal/licensed-music/v1/amazing-grace-2011-macleod.mp3'
   try{
+    if(forceRefresh)throw Object.assign(new Error('REFRESH_REQUESTED'),{name:'NotFound'})
     const obj=await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key}))
     const b=Buffer.from(await obj.Body.transformToByteArray())
     if(b.length>=100000&&b.length<=MAX_AUDIO){
@@ -81,7 +82,7 @@ async function checkedWork(file,kind,minDuration,profile=null){
   const result=await probe(file)
   const duration=Number(result?.format?.duration)
   if(!Number.isFinite(duration)||duration<minDuration)
-    throw new Error(kind+'_DURATION_INVALID')
+    throw new Error(kind+'_DURATION_INVALID: measured='+String(duration)+'s required='+String(minDuration)+'s')
   if(kind==='CHRISTIAN_MUSIC'&&!result?.streams?.some(s=>s.codec_type==='audio'))
     throw new Error('CHRISTIAN_MUSIC_AUDIO_STREAM_MISSING')
   if(kind==='MUSIC_VIDEO'){
@@ -148,9 +149,18 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       if(!preflight.readyForDraftRender)
         throw new Error('CHRISTIAN_VIDEO_FORMAT_SOURCES_BLOCKED: '+preflight.blockers.join(';'))
       const audio=path.join(work,'amazing-grace-2011.mp3')
-      const music=await cachedMusic(s3)
+      let music=await cachedMusic(s3)
       await fs.writeFile(audio,music)
-      const musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
+      let musicDuration
+      try{
+        musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
+      }catch(error){
+        if(!String(error?.message||'').startsWith('CHRISTIAN_MUSIC_DURATION_INVALID'))throw error
+        console.warn('CHRISTIAN_MUSIC_CACHE_DURATION_RECHECK',JSON.stringify({reason:error.message,sourceHash:hash(music),publishingAllowed:false}))
+        music=await cachedMusic(s3,{forceRefresh:true})
+        await fs.writeFile(audio,music)
+        musicDuration=await checkedWork(audio,'CHRISTIAN_MUSIC',profile.requiredAudioSeconds+MUSIC_START_SECONDS+0.5)
+      }
       requireChristianVideoSources(format,staged,musicDuration-MUSIC_START_SECONDS)
       const collection=format==='SHORT_59'?'BE_STILL_PEXELS_V1':'YOUTUBE_WORSHIP_LANDSCAPE_V1'
       const eligible=staged.filter(source=>{
