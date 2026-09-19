@@ -13,9 +13,9 @@ export const CAPTION_LAYOUT=Object.freeze({
 // Other titles need a reviewed 3-beat selection or actual coherent AI video.
 const CURATED_STOCK_STORYBOARDS=Object.freeze({
   'BE STILL':[
-    {stockId:'sunrise-storm-portrait',meaning:'A storm illustrates the pressure to keep striving',startSeconds:0},
-    {stockId:'pangong-lake-waves',meaning:'Water settles into a quiet rhythm as the invitation to stillness is heard',startSeconds:0},
-    {stockId:'sunrise-storm-portrait',meaning:'Return to the same sky at dawn as a visual response of trust',startSeconds:9,repriseOf:0},
+    {stockId:'shoreline-footprints-waves',meaning:'Waves slowly erase footprints in sand: release the urge to control every outcome',startSeconds:5},
+    {stockId:'pangong-lake-waves',meaning:'A close shoreline rhythm underscores the invitation to stop striving and remember God',startSeconds:0},
+    {stockId:'golden-sunset-january',meaning:'Actual golden evening light resolves the same waterside story with a hopeful response of prayer and trust',startSeconds:7},
   ],
   'DO NOT CARRY TOMORROW':[
     {stockId:'sunrise-storm-portrait',meaning:'Today begins; tomorrow is still unknown',startSeconds:0},

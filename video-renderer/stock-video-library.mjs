@@ -50,6 +50,20 @@ export const STOCK_VIDEO_LIBRARY = Object.freeze([
     rightsNote:'U.S. NOAA federal-government material; public domain as documented by Wikimedia Commons.',
   },
   {
+    id:'shoreline-footprints-waves',
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Spuren_in_den_Wellen_%28Verg%C3%A4nglichkeit%29.webm',
+    sourcePage:'https://commons.wikimedia.org/wiki/File:Spuren_in_den_Wellen_(Verg%C3%A4nglichkeit).webm',
+    license:'CC0-1.0',
+    rightsNote:'Rhetos own-work shoreline-footprint/wave video (2023), released under CC0 1.0 on Wikimedia Commons; use for a metaphor of releasing striving.',
+  },
+  {
+    id:'golden-sunset-january',
+    url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Golden_sunset_filmed_in_January.webm',
+    sourcePage:'https://commons.wikimedia.org/wiki/File:Golden_sunset_filmed_in_January.webm',
+    license:'CC0-1.0',
+    rightsNote:'Vicky Ponce stabilized golden-sunset footage, CC0 1.0 licensing independently reviewed on Wikimedia Commons in 2019.',
+  },
+  {
     id:'pangong-lake-waves',
     url:'https://commons.wikimedia.org/wiki/Special:Redirect/file/Pangong_Tso_Waves.webm',
     sourcePage:'https://commons.wikimedia.org/wiki/File:Pangong_Tso_Waves.webm',
