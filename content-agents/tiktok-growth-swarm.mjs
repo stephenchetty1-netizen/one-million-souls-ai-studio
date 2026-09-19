@@ -229,6 +229,10 @@ export async function runTikTokGrowthScan(input={}){
       contentGapReported:x.content_gap===true,
       evidenceReference:typeof x.evidence_url==='string'&&/^https:\/\/(?:www\.)?tiktok\.com\//i.test(x.evidence_url)?x.evidence_url:null,
       evidenceId:typeof x.evidence_id==='string'?x.evidence_id.slice(0,100):null,
+      sourceType:x.source_type==='OWNER_SCREENSHOT'?'OWNER_SCREENSHOT':'OTHER',
+      capturedAt:typeof x.captured_at==='string'?x.captured_at:null,
+      displayedVolume:Number.isFinite(x.displayed_volume)?x.displayed_volume:null,
+      displayedGrowthLabel:typeof x.displayed_growth_label==='string'?x.displayed_growth_label:null,
     }))
   const webSearch=(Array.isArray(searchEvidence.web_intel)?searchEvidence.web_intel:[])
     .filter(x=>x&&typeof x.query==='string'&&clean(x.query))
@@ -277,6 +281,7 @@ export async function runTikTokGrowthScan(input={}){
     searchIntelligence:{
       directTikTokStudioSession:false,
       verifiedContentGaps:0,
+      ownerScreenshotReportedContentGaps:csi.filter(x=>x.contentGapReported&&x.sourceType==='OWNER_SCREENSHOT'&&x.evidenceId).length,
       studioContentGapReportsWithReferences:csi.filter(x=>x.contentGapReported&&(x.evidenceReference||x.evidenceId)).length,
       creatorSearchInsightsEntries:csi.length,
       publicSearchTopics:webSearch.length,
