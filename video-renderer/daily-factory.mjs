@@ -9,6 +9,13 @@ const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
 const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
 // Exact-master independent creative rejection: technical PASS is insufficient.
+function isShort59(entry){
+  const seconds=Number(entry?.durationSeconds||0)
+  const width=Number(entry?.width||entry?.masterInspection?.width||0)
+  const height=Number(entry?.height||entry?.masterInspection?.height||0)
+  const fps=Number(entry?.fps||entry?.masterInspection?.fps||0)
+  return seconds>=58.7&&seconds<=59.3&&width>=1080&&height>=1920&&height>width&&fps>=29.9
+}
 const REJECTED_BE_STILL_MASTERS = new Set([
   '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e',
   'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
@@ -18,6 +25,7 @@ function stockOnly(entry) {
     entry.sceneSources.every(source => source === 'rights-cleared-stock-video')
 }
 function rejectedVisualMaster(entry) {
+  if(entry?.mediaUrl&&!isShort59(entry))return true
   const title=String(entry?.title||'').trim().toUpperCase()
   const stockIds=[...(entry?.rightsClearedStockScenes||[]),...(entry?.visualStoryboardInspection?.beats||[])]
     .map(scene=>scene?.stockId).filter(Boolean)
@@ -148,6 +156,7 @@ async function render(item, variationSeed=0) {
     })
     const data = await r.json().catch(()=>({}))
     if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
+    if(!isShort59(data))throw new Error('SHORT_59_EXPORT_PROFILE_MISSING_OR_DURATION_INVALID')
     if (data?.qualityGate !== 'passed' || data?.publishingAllowed !== false || !data?.masterHash) {
       throw new Error('render-v2 did not return a fail-closed quality-gated master')
     }
@@ -223,6 +232,7 @@ export async function generateFor(date) {
     } : item
     const reusable = recoveryCandidates.find((entry) =>
       !rejectedVisualMaster(entry) &&
+      isShort59(entry) &&
       entry?.slot === slotTimes[i] &&
       entry?.title === effectiveItem.title &&
       entry?.renderQualityGate === 'PASS' &&
@@ -253,6 +263,7 @@ export async function generateFor(date) {
     // the same weak stock scenes every five minutes. A future approved source
     // needs an exact-slot production retry to supersede this preview.
     const heldPreview = recoveryCandidates.find(entry =>
+      !rejectedVisualMaster(entry) &&
       entry?.slot === slotTimes[i] &&
       entry?.title === effectiveItem.title &&
       entry?.releaseStatus === 'CREATIVE_REVISION_REQUIRED' &&
@@ -284,6 +295,8 @@ export async function generateFor(date) {
     let video
     try {
       if (Date.now() < zeroGpuCooldownUntil && !(process.env.CURATED_STOCK_QUOTA_BYPASS === 'true' && process.env.RIGHTS_CLEARED_STOCK_FALLBACK === 'true' && planVisualStory({title:effectiveItem.title,script:effectiveItem.script,scriptureReference:effectiveItem.ref}).stockStoryboardAvailable)) throw new Error('FREE_ZEROGPU_QUOTA_COOLDOWN')
+      if(String(effectiveItem.script||'').trim().split(/\s+/).filter(Boolean).length<105)
+        throw new Error('SHORT_59_NARRATION_SCRIPT_EXPANSION_REQUIRED_BEFORE_RENDER')
       video = await render(effectiveItem, variationSeed)
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error)
