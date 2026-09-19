@@ -286,7 +286,7 @@ export function retentionActions(metrics={}){
 }
 export function subscriberActions(metrics={}){
   const gained=Number(metrics.subscribersGained||0)
-  const views=Number(metrics.views||0)
+  const views=Number(metrics.views||metrics.videoViews||0)
   const rate=views>0?(gained/views)*100:null
   return {
     subscriberConversionPercent:rate===null?null:Number(rate.toFixed(3)),
