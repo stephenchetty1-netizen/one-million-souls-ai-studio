@@ -13,7 +13,8 @@
     "yt-subscriber-conversion-bot",
     "yt-experiment-manager-bot",
     "yt-fatigue-guard-bot",
-    "yt-quality-floor-bot"
+    "yt-quality-floor-bot",
+    "channel-attraction-director"
   ],
   "cadence": {
     "researchHours": 6,
@@ -75,5 +76,13 @@
     "Every recommendation must preserve the channel's Christian identity and verified Scripture/factual standards.",
     "Every experiment must change only one major variable unless explicitly reviewed.",
     "ZERO_CREDIT_ONLY must remain true."
-  ]
+  ],
+  "attractionSystem": {
+    "library": "content-agents/channel-attraction-cards.json",
+    "selector": "content-agents/channel-attraction-selector.mjs",
+    "maxFeaturedAtOnce": 4,
+    "maxRotationAtOnce": 7,
+    "fatigueReviewDays": 14,
+    "requirePlatformSpecificPackaging": true
+  }
 }
