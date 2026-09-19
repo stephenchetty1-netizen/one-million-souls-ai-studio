@@ -5,12 +5,16 @@ on:
     paths:
       - "content-agents/growth-multiplier.mjs"
       - "content-agents/growth-multiplier.test.mjs"
+      - "content-agents/v60-retention-experiments.mjs"
+      - "content-agents/v60-retention-experiments.test.mjs"
       - "content-agents/verified-performance-evidence.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   pull_request:
     paths:
       - "content-agents/growth-multiplier.mjs"
       - "content-agents/growth-multiplier.test.mjs"
+      - "content-agents/v60-retention-experiments.mjs"
+      - "content-agents/v60-retention-experiments.test.mjs"
       - "content-agents/verified-performance-evidence.mjs"
       - ".github/workflows/growth-evidence-tests.yml"
   workflow_dispatch:
@@ -28,4 +32,4 @@ jobs:
         with:
           node-version: "22"
       - name: Test fail-closed growth classifier
-        run: node --test content-agents/growth-multiplier.test.mjs
+        run: node --test content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
