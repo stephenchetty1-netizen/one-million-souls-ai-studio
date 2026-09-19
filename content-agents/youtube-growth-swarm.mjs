@@ -377,9 +377,12 @@ export async function runYoutubeGrowthScan(input={}){
     benchmark:channelBenchmark(metrics,base),
     ownChannelFeed:{
       available:feed.ok===true,
+      source:feed.source||null,
+      degraded:feed.degraded===true,
+      capturedAt:feed.capturedAt||null,
       recentTitleCount:recentTitles.length,
       latestItems:(feed.items||[]).slice(0,12),
-      warning:feed.ok?null:feed.reason,
+      warning:feed.upstreamWarning||(!feed.ok?feed.reason:null),
     },
     opportunities,
     channelAttractions:attractions,

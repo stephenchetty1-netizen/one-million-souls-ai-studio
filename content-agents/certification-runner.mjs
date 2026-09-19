@@ -35,7 +35,7 @@ function certificateKey(contentHash,masterHash){
 }
 async function releaseReadinessSummary(){
   if(!rendererBase)throw new Error('RENDERER_BASE_URL_MISSING')
-  const summary={days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:0,allCertified:false,issues:[]}
+  const summary={days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:0,allCertified:false,issues:[],nextDayPackages:[]}
   const issue=(value)=>{if(summary.issues.length<20)summary.issues.push(value)}
   for(let day=1;day<=advanceDays;day++){
     const date=futureDate(day)
@@ -61,7 +61,20 @@ async function releaseReadinessSummary(){
         summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'CERTIFICATE_STORE_READ_FAILED',error:error instanceof Error?error.message:String(error)});continue
       }
       const exact=certificate?.contentHash===String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
-      if(exact){summary.certified++;continue}
+      if(exact){
+        summary.certified++
+        if(day===1)summary.nextDayPackages.push({
+          targetDate:date,
+          slot:entry?.slot,
+          title:entry?.title,
+          contentHash:String(entry.contentHash).toLowerCase(),
+          masterHash:String(entry.masterHash).toLowerCase(),
+          certificateId:certificate?.certificateId||null,
+          releaseStatus:certificate?.releaseStatus,
+          releasePayload:entry?.releasePayload,
+        })
+        continue
+      }
       summary.awaiting++
       const deadline=Date.parse(entry?.releaseReadyDeadline||'')
       if(Number.isFinite(deadline)&&Date.now()>=deadline){
@@ -564,6 +577,9 @@ export async function runCertificationCycle(){
     return {ok:execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED',entry:{targetDate:entry.targetDate,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash},execution}
   }
   const readiness=await releaseReadinessSummary().catch((error)=>({days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:1,allCertified:false,issues:[{reason:'READINESS_SUMMARY_FAILED',error:error instanceof Error?error.message:String(error)}]}))
-  console.log('RELEASE_BUFFER_READINESS',JSON.stringify(readiness))
+  console.log('RELEASE_BUFFER_READINESS',JSON.stringify({...readiness,nextDayPackages:undefined}))
+  if(Array.isArray(readiness.nextDayPackages)&&readiness.nextDayPackages.length){
+    console.log('RELEASE_NEXT_DAY_PACKAGES',JSON.stringify({targetDate:readiness.nextDayPackages[0]?.targetDate||null,count:readiness.nextDayPackages.length,packages:readiness.nextDayPackages}))
+  }
   return {ok:readiness.allCertified,skipped:true,reason:readiness.allCertified?'ALL_BUFFER_MASTERS_CERTIFIED':'NO_PENDING_CERTIFIABLE_MASTER',readiness}
 }
