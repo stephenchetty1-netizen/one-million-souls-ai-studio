@@ -5,10 +5,10 @@ import { loadAnalyticsSnapshot } from './growth-analytics-snapshot.mjs'
 
 const PREFIX='one-million-souls:v59:verified-performance:v1:'
 const PLATFORMS=new Set(['youtube','tiktok'])
-const SOURCES=new Set(['CONNECTED_METRICOOL','OWNER_YOUTUBE_ANALYTICS','OWNER_TIKTOK_ANALYTICS'])
+const SOURCES=new Set(['CONNECTED_METRICOOL','OWNER_YOUTUBE_ANALYTICS','OWNER_TIKTOK_ANALYTICS','YOUTUBE_DATA_API','TIKTOK_DISPLAY_API'])
 const MAX_ROWS=60
 const NUMERIC_FIELDS=[
-  'views','durationSeconds','averageWatchSeconds','likes','comments','shares',
+  'views','subscribers','followers','durationSeconds','averageWatchSeconds','likes','comments','shares',
   'interactions','subscribersGained','subscribersLost','followersAcquired',
   'followersLost','averagePercentageViewed','fullWatchRate','searchViewShare'
 ]
@@ -116,7 +116,9 @@ export async function loadVerifiedPerformance(platform){
     transport:selected===live?'DURABLE_VERIFIED_INGEST':selected===existing?'CONNECTED_METRICOOL_SNAPSHOT':selected?'DATED_BOOTSTRAP_FILE':'UNAVAILABLE',
     ...(selected||{capturedAt:null,records:[],channelMetrics:{},postCount:0,measuredPostCount:0,metricsComplete:false}),
     freshness:freshness(selected),
-    autonomousUpstreamConfigured:false,
+    autonomousUpstreamConfigured:platform==='youtube'
+      ? Boolean(process.env.YOUTUBE_API_KEY&&process.env.YOUTUBE_CHANNEL_ID)
+      : Boolean(process.env.TIKTOK_DISPLAY_ACCESS_TOKEN),
     persistenceWarning:warning,
   }
   return result
