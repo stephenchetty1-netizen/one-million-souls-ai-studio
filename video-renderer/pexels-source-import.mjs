@@ -1,5 +1,10 @@
 import crypto from 'node:crypto'
+import path from 'node:path'
+import { promises as fs } from 'node:fs'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+const execFileAsync=promisify(execFile)
 
 // Candidate footage, not approved final-master footage. All three Pexels pages
 // share the contributor Tima Miroshnichenko and have devotional subject matter.
@@ -157,4 +162,64 @@ export async function stagePexelsCollection(collection='BE_STILL_PEXELS_V1'){
         attribution:e.attribution,width:e.width,height:e.height,videoSha256:e.videoSha256}))}
   })()
   try{return await activeImport}finally{activeImport=null}
+}
+
+export async function createPexelsPreviewScene({
+ collection='BE_STILL_PEXELS_V1',beatIndex,work,seconds=6.5,
+ width=1080,height=1920,fps=30
+}={}){
+ if(collection!=='BE_STILL_PEXELS_V1'||!Object.hasOwn(PEXELS_COLLECTIONS,collection))
+   throw new Error('PEXELS_PREVIEW_COLLECTION_NOT_ALLOWLISTED')
+ if(!Number.isInteger(beatIndex)||beatIndex<0||beatIndex>2)
+   throw new Error('PEXELS_PREVIEW_BEAT_INDEX_INVALID')
+ if(!storageReady())throw new Error('PEXELS_PRIVATE_STORAGE_REQUIRED')
+ if(!Number.isFinite(seconds)||seconds<4||seconds>9)
+   throw new Error('PEXELS_PREVIEW_SCENE_DURATION_INVALID')
+ const source=PEXELS_COLLECTIONS[collection][beatIndex]
+ const s3=s3Client()
+ const metadataKey=`${STORAGE_PREFIX}/${collection}/${source.id}.json`
+ const obj=await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:metadataKey}))
+ const meta=JSON.parse(await obj.Body.transformToString())
+ if(meta.id!==source.id||meta.beat!==source.beat||meta.license!=='Pexels License'||
+    meta.sourceIsPrivate!==true||meta.reviewStatus!=='AWAITING_SOURCE_VISUAL_REVIEW'||
+    !/^internal\/pexels-source-candidates\/v1\//.test(String(meta.sourceObjectKey||'')))
+   throw new Error('PEXELS_PREVIEW_SOURCE_PROVENANCE_INVALID')
+ if(meta.width<1080||meta.height<1920||meta.height<=meta.width)
+   throw new Error('PEXELS_PREVIEW_SOURCE_PROFILE_BLOCKED')
+ const raw=await s3.send(new GetObjectCommand({
+   Bucket:process.env.BUCKET,Key:meta.sourceObjectKey
+ }))
+ const bytes=Buffer.from(await raw.Body.transformToByteArray())
+ if(bytes.length!==meta.videoBytes||sha256(bytes)!==meta.videoSha256)
+   throw new Error('PEXELS_PREVIEW_SOURCE_HASH_MISMATCH')
+ const input=path.join(work,`pexels-source-${source.id}.mp4`)
+ const output=path.join(work,`pexels-proof-scene-${beatIndex+1}.mp4`)
+ await fs.writeFile(input,bytes)
+ const {stdout}=await execFileAsync('ffprobe',[
+  '-v','error','-show_entries','stream=width,height:format=duration',
+  '-of','json',input
+ ],{timeout:30000,maxBuffer:2*1024*1024})
+ const info=JSON.parse(stdout)
+ const stream=(info.streams||[]).find(x=>Number(x.width)&&Number(x.height))
+ if(!stream||stream.width<1080||stream.height<1920||
+    stream.height<=stream.width||Number(info.format?.duration)<seconds+0.15)
+   throw new Error('PEXELS_PREVIEW_FFPROBE_PROFILE_OR_DURATION_BLOCKED')
+ await execFileAsync('ffmpeg',[
+  '-y','-i',input,'-t',String(seconds),'-an','-filter_threads','1',
+  '-vf',`scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p`,
+  '-c:v','libx264','-preset','veryfast','-crf','18','-threads','2',
+  '-movflags','+faststart',output
+ ],{timeout:180000,maxBuffer:8*1024*1024})
+ if((await fs.stat(output)).size<100000)
+   throw new Error('PEXELS_PREVIEW_SCENE_INVALID_OUTPUT')
+ return {
+  local:output,source:'rights-cleared-stock-video',
+  stockId:'pexels-'+source.id,startSeconds:0,repriseOf:null,
+  sourcePage:meta.pageUrl,license:meta.license,
+  rightsNote:meta.attribution+'; '+meta.licenseUrl+
+    '; identifiable-person release and editorial continuity must be reviewed before any posting.',
+  sourceObjectKey:meta.sourceObjectKey,sourceSha256:meta.videoSha256,
+  pexelsPreview:true,professionalMasterCandidate:false,
+  publishingAllowed:false
+ }
 }
