@@ -1,0 +1,15 @@
+{
+  "source": "Metricool connected TikTok post analytics",
+  "capturedAt": "2026-09-19",
+  "posts": [
+    {"date":"2026-09-17","topic":"Isaiah 58:9 — Here I Am","durationSeconds":20,"views":338,"likes":28,"comments":2,"shares":2,"averageWatchSeconds":6,"watchToDurationPercent":30.0},
+    {"date":"2026-09-16","topic":"Psalm 27:8 — Seek My Face","durationSeconds":23,"views":149,"likes":14,"comments":0,"shares":1,"averageWatchSeconds":5,"watchToDurationPercent":21.7},
+    {"date":"2026-09-15","topic":"Romans 12:1 — Living Sacrifice","durationSeconds":43,"views":146,"likes":13,"comments":1,"shares":0,"averageWatchSeconds":6,"watchToDurationPercent":14.0},
+    {"date":"2026-09-14","topic":"Pray Without Ceasing","durationSeconds":58,"views":121,"likes":16,"comments":1,"shares":0,"averageWatchSeconds":8,"watchToDurationPercent":13.8},
+    {"date":"2026-09-13","topic":"Believe You Have Received","durationSeconds":35,"views":198,"likes":28,"comments":0,"shares":0,"averageWatchSeconds":8,"watchToDurationPercent":22.9},
+    {"date":"2026-09-12","topic":"Be Still and Know","durationSeconds":60,"views":143,"likes":26,"comments":1,"shares":0,"averageWatchSeconds":7,"watchToDurationPercent":11.7},
+    {"date":"2026-09-11","topic":"Isaiah 40 — Eagles Wings","durationSeconds":27,"views":122,"likes":23,"comments":1,"shares":1,"averageWatchSeconds":7,"watchToDurationPercent":25.9},
+    {"date":"2026-09-10","topic":"Matthew 4:4 — Bread Alone","durationSeconds":49,"views":221,"likes":36,"comments":5,"shares":2,"averageWatchSeconds":17,"watchToDurationPercent":34.7},
+    {"date":"2026-09-09","topic":"Jeremiah 29:12 — God Heard Your Prayer","durationSeconds":17,"views":140,"likes":29,"comments":0,"shares":1,"averageWatchSeconds":7,"watchToDurationPercent":41.2}
+  ]
+}
