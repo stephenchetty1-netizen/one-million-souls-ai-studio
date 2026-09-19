@@ -10,6 +10,7 @@ import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-a
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 import { createRightsClearedStockScene } from './stock-video-library.mjs'
 import { createRightsClearedStockMusic } from './stock-music-library.mjs'
+import { createGoogleVeoScene, googleVeoEnabled } from './google-veo-provider.mjs'
 
 const execFileAsync = promisify(execFile)
 const WIDTH = Number(process.env.RENDER_WIDTH || 1080)
@@ -204,9 +205,24 @@ async function generateCloudScene(providers, prompt, index, work, seconds) {
 
 async function generateScene(providers, prompt, index, work, seconds, stockSeed = 0) {
   const allowProcedural = process.env.ALLOW_PROCEDURAL_FALLBACK === 'true'
+  const preferGoogleVeo = googleVeoEnabled() && process.env.GOOGLE_VEO_PRIMARY !== 'false'
   const stockEnabled = process.env.RIGHTS_CLEARED_STOCK_FALLBACK !== 'false'
   const stockPrimary = process.env.STOCK_VIDEO_PRIMARY === 'true'
   const authenticatedHf = Boolean(String(process.env.HF_TOKEN || '').trim())
+
+  if (preferGoogleVeo) {
+    try {
+      const veo = await createGoogleVeoScene(prompt, index, work, seconds)
+      console.log('GOOGLE_VEO_SCENE_READY', JSON.stringify({ index, model:veo.model, resolution:veo.resolution, aspectRatio:veo.aspectRatio }))
+      return veo
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn('GOOGLE_VEO_PRIMARY_FAILED', JSON.stringify({ index, error:message }))
+      if (process.env.GOOGLE_VEO_REQUIRED === 'true') {
+        throw new Error(`Google Veo required but scene generation failed: ${message}`)
+      }
+    }
+  }
 
   if (stockEnabled && stockPrimary && !authenticatedHf) {
     const stock = await createRightsClearedStockScene(index, work, seconds, stockSeed)
@@ -658,7 +674,7 @@ export async function renderFreeV2(body = {}) {
         process.env.ALLOW_PROCEDURAL_FALLBACK !== 'true') {
       throw new Error('Quality gate failed: procedural visuals are not production-approved')
     }
-    const realMotionScenes = scenes.filter((scene) => ['cloud-ai-video','rights-cleared-stock-video'].includes(scene.source)).length
+    const realMotionScenes = scenes.filter((scene) => ['google-veo-video','cloud-ai-video','rights-cleared-stock-video'].includes(scene.source)).length
     const minimumRealMotionScenes = scenes.length
     if (realMotionScenes < minimumRealMotionScenes) {
       throw new Error(`Quality gate failed: every production scene must use real motion video; required ${minimumRealMotionScenes}, got ${realMotionScenes}`)
@@ -704,7 +720,7 @@ export async function renderFreeV2(body = {}) {
       fps: FPS,
       durationSeconds: Number(composed.duration.toFixed(2)),
       sceneCount: scenes.length,
-      realMotionSceneCount: sceneSources.filter((source) => ['cloud-ai-video','rights-cleared-stock-video'].includes(source)).length,
+      realMotionSceneCount: sceneSources.filter((source) => ['google-veo-video','cloud-ai-video','rights-cleared-stock-video'].includes(source)).length,
       rightsClearedStockScenes: scenes.filter((scene) => scene.source === 'rights-cleared-stock-video').map((scene) => ({ stockId:scene.stockId, sourcePage:scene.sourcePage, license:scene.license, rightsNote:scene.rightsNote })),
       sceneSources,
       voiceProvider: voice.provider,
@@ -726,15 +742,18 @@ export async function renderFreeV2(body = {}) {
       imageProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
         ? 'not-used-stock-video-primary'
         : (sceneSources.some((source) => source === 'local-procedural-cinematic') ? 'procedural-test-only' : providers.image.name),
-      videoProvider: sceneSources.every((source) => source === 'rights-cleared-stock-video')
-        ? 'rights-cleared-stock-video'
-        : (sceneSources.some((source) => source === 'cloud-ai-video') ? 'hybrid Wan 2.2 + rights-cleared/local motion' : 'rights-cleared/local motion'),
+      videoProvider: sceneSources.some((source) => source === 'google-veo-video')
+        ? 'Google Veo 3.1 (Flow-class) + approved fallbacks'
+        : (sceneSources.every((source) => source === 'rights-cleared-stock-video')
+          ? 'rights-cleared-stock-video'
+          : (sceneSources.some((source) => source === 'cloud-ai-video') ? 'hybrid Wan 2.2 + rights-cleared/local motion' : 'rights-cleared/local motion')),
       musicProvider: music.provider || providers.music.name,
       captionsPresent: true,
       narrationPresent: true,
       musicPresent: true,
       motionScenesPresent: true,
-      paidGenerationCreditsUsed: false,
+      paidGenerationCreditsUsed: sceneSources.some((source) => source === 'google-veo-video'),
+      googleFlowClassGenerationUsed: sceneSources.some((source) => source === 'google-veo-video'),
       persistentStorage: true,
       qualityGate: 'passed',
       professionalMasterCandidate: true,
