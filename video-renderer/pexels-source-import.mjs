@@ -33,7 +33,7 @@ export function choosePortraitMp4(video){
     .filter(f=>f?.file_type==='video/mp4'&&f?.quality==='hd'&&
       Number(f.width)>=1080&&Number(f.height)>=1920&&
       Number(f.height)>Number(f.width)&&
-      (!Number.isFinite(Number(f.fps))||Number(f.fps)>=24))
+      (f.fps==null||Number(f.fps)>=24))
     .map(f=>({...f,verifiedUrl:validatedPexelsVideoUrl(f.link)}))
     .sort((a,b)=>Number(b.width)*Number(b.height)-Number(a.width)*Number(a.height))
   if(!files.length)throw new Error('PEXELS_NO_NATIVE_1080X1920_PORTRAIT_MP4')
