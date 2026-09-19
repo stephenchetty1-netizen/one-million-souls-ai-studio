@@ -1,11 +1,11 @@
 import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 
-const base=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\\/$/,'')
+const base=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
 const secret=String(process.env.VIDEO_RENDER_SECRET||'')
 const start=String(process.env.REVIEW_START_DATE||'')
 const days=Math.min(14,Math.max(1,Number(process.env.REVIEW_DAYS||7)))
-if(!base||!secret||!/^\\d{4}-\\d{2}-\\d{2}$/.test(start))throw new Error('Set renderer URL, VIDEO_RENDER_SECRET, and REVIEW_START_DATE=YYYY-MM-DD')
+if(!base||!secret||!/^\d{4}-\d{2}-\d{2}$/.test(start))throw new Error('Set renderer URL, VIDEO_RENDER_SECRET, and REVIEW_START_DATE=YYYY-MM-DD')
 const dateAt=n=>{const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 const validHash=x=>/^[a-f0-9]{64}$/i.test(String(x||''))
 const entries=[]
@@ -31,7 +31,7 @@ for(let i=0;i<days;i++){
  }
 }
 const packet={standard:'v59-independent-exact-master-v2',startDate:start,days,expected:days*3,total:entries.length,approved:0,publishingLocked:true,warning:'This is a review handoff, NOT a certificate. Review the complete exact video and audio before recording a decision.',entries}
-const json=JSON.stringify(packet,null,2)+'\\n'
+const json=JSON.stringify(packet,null,2)+'\n'
 const output=String(process.env.REVIEW_PACKET_PATH||'content-agents/independent-review-packet.json')
 await fs.writeFile(output,json)
 console.log(JSON.stringify({ok:true,path:output,slots:entries.length,approved:0,packetSha256:crypto.createHash('sha256').update(json).digest('hex')}))
