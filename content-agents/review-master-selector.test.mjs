@@ -42,3 +42,25 @@ test('other titles do not gain random stock publishing authority',()=>{
   assert.equal(selected.entry,null)
   assert.equal(selected.reason,'EXACT_MASTER_PENDING')
 })
+
+test('independently rejected revised BE STILL cut cannot be reintroduced',()=>{
+ const revised='a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
+ const result=selectExactMasterForReview({buildingEntry:master(revised)})
+ assert.equal(result.entry,null)
+ assert.equal(result.reason,'CREATIVE_REJECTION_NEW_MASTER_REQUIRED')
+})
+test('three licensed but unreviewed raw stock scenes are not professional review candidates',()=>{
+ const stock=master(B,'DO NOT CARRY TOMORROW',{sceneSources:[
+  'rights-cleared-stock-video','rights-cleared-stock-video','rights-cleared-stock-video'
+ ]})
+ assert.equal(reviewableExactMaster(stock),false)
+ assert.equal(selectExactMasterForReview({buildingEntry:stock}).reason,'CREATIVE_REJECTION_NEW_MASTER_REQUIRED')
+})
+test('original visual motion survives the raw stock-only restriction, but remains pending review',()=>{
+ const original=master(B,'BE STILL',{sceneSources:[
+  'cloud-ai-video','cloud-ai-video','cloud-ai-video'
+ ]})
+ const result=selectExactMasterForReview({buildingEntry:original})
+ assert.equal(result.entry.masterHash,B)
+ assert.equal(result.entry.releaseStatus,'AWAITING_MASTER_CERTIFICATION')
+})
