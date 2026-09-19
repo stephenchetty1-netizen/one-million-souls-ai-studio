@@ -280,6 +280,11 @@ const server = http.createServer(async (req, res) => {
       legacyRendererEnabled: false,
       productionRenderer: '/render-v2',
       v2RendererReady: true,
+      googleFlowClassVeoConfigured: Boolean(String(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '').trim()),
+      googleVeoEnabled: process.env.GOOGLE_VEO_ENABLED !== 'false' && Boolean(String(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '').trim()),
+      googleVeoPrimary: process.env.GOOGLE_VEO_PRIMARY !== 'false',
+      googleVeoModel: process.env.GOOGLE_VEO_MODEL || 'veo-3.1-generate-preview',
+      googleVeoResolution: process.env.GOOGLE_VEO_RESOLUTION || '1080p',
       persistentStorage: storageReady,
       renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
     })
