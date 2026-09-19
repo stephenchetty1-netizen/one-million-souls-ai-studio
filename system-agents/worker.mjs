@@ -73,7 +73,20 @@ const analyticsBootstrap=await bootstrapAnalyticsSnapshotEnv()
 console.log('ANALYTICS_BOOTSTRAP',JSON.stringify(analyticsBootstrap))
 console.log('AUTONOMY_WORKER_READY',JSON.stringify({base,providerConnected:provider,failClosed:true}))
 if(process.env.REVIEW_PACKET_EXPORT_ENABLED==='true'){
- try{await import('../content-agents/export-independent-review.mjs');console.log('INDEPENDENT_REVIEW_PACKET_EXPORT_COMPLETE')}
- catch(error){console.error('INDEPENDENT_REVIEW_PACKET_EXPORT_FAILED',JSON.stringify({error:String(error?.message||error)}))}
+ const reviewIntervalMs=Math.max(300000,Number(process.env.REVIEW_PACKET_REFRESH_MS||1800000))
+ let reviewRunning=false
+ async function refreshReviewPacket(){
+  if(reviewRunning)return
+  reviewRunning=true
+  try{
+   await import('../content-agents/export-independent-review.mjs?run='+Date.now())
+   console.log('INDEPENDENT_REVIEW_PACKET_EXPORT_COMPLETE')
+  }catch(error){
+   console.error('INDEPENDENT_REVIEW_PACKET_EXPORT_FAILED',JSON.stringify({error:String(error?.message||error)}))
+  }finally{reviewRunning=false}
+ }
+ void refreshReviewPacket()
+ setInterval(()=>{void refreshReviewPacket()},reviewIntervalMs)
+ console.log('INDEPENDENT_REVIEW_AUTO_REFRESH_ENABLED',JSON.stringify({intervalMs:reviewIntervalMs,publishingLocked:process.env.V59_PUBLISH_ENABLED!=='true'}))
 }
 for(;;){try{const e=await cycle();console.log('AUTONOMY_CYCLE_PASS',JSON.stringify(e))}catch(err){console.error('AUTONOMY_CYCLE_BLOCKED',JSON.stringify({at:new Date().toISOString(),error:String(err?.message||err)}))}await sleep(120000)}
