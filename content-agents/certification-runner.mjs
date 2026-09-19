@@ -65,7 +65,7 @@ async function releaseReadinessSummary(){
         summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'CERTIFICATE_STORE_READ_FAILED',error:error instanceof Error?error.message:String(error)});continue
       }
       const qaPass=CERTIFICATE_REQUIRED_GATES.every((gate)=>certificate?.qa?.[gate]==='PASS')
-      const exact=certificate?.contentHash===String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'&&qaPass
+      const exact=certificate?.reviewStandardVersion==='v59-independent-exact-master-v2'&&certificate?.contentHash=String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'&&qaPass
       if(exact){
         if(day===1){
           let approval=null
