@@ -47,8 +47,13 @@ export async function createChristianVideoTimelineScene({store,bucket,source,for
  const v=info.streams?.find(x=>x.codec_type==='video')
  const duration=Number(info.format?.duration)
  if(!v||v.width!==source.width||v.height!==source.height||
-    !Number.isFinite(duration)||duration<profile.secondsPerScene+0.25)
-   throw new Error('CHRISTIAN_VIDEO_SOURCE_REAL_DIMENSIONS_OR_LENGTH_FAILED')
+    !Number.isFinite(duration)||duration<profile.secondsPerScene+0.35)
+   throw new Error('CHRISTIAN_VIDEO_SOURCE_REAL_DIMENSIONS_OR_LENGTH_FAILED: '+
+     JSON.stringify({sourceId:source.id,sourceSlot:source.sourceSlot,
+       formatId,sceneIndex:index,advertisedWidth:source.width,
+       advertisedHeight:source.height,realWidth:v?.width||null,
+       realHeight:v?.height||null,realDurationSeconds:duration,
+       requiredSeconds:profile.secondsPerScene+0.35}))
  const vf=`scale=${profile.width}:${profile.height}:force_original_aspect_ratio=increase,crop=${profile.width}:${profile.height},fps=${profile.fps},eq=contrast=1.02:saturation=1.02`
  await execFileAsync('ffmpeg',['-y','-hide_banner','-loglevel','error',
    '-ss','0.1','-i',original,'-t',String(profile.secondsPerScene),
