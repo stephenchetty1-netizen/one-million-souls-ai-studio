@@ -1,6 +1,5 @@
 import OpenAI from 'openai'
 import crypto from 'node:crypto'
-import { evaluateMaster } from './master-evaluator.mjs'
 import { zeroCreditPreflight } from './zero-credit-review.mjs'
 import { durableRedis } from './durable-redis.mjs'
 
@@ -537,20 +536,19 @@ export async function runCertificationCycle(){
       renderer:entry.renderer,
       scheduledPublishAt:entry.scheduledPublishAt,
     }
-    const evaluation=await evaluateMaster({contentHash:entry.contentHash,masterHash:entry.masterHash,master,evidence})
-    console.log('MASTER_CERTIFICATION_49_AGENT_RESULT',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,all49Approved:evaluation.all49Approved}))
     const execution=await postJson(`${v59Base}/api/content-agents/approval-execute`,{
       contentHash:entry.contentHash,
       masterHash:entry.masterHash,
+      master,
       evidence,
-      decisions:evaluation.decisions,
     },cronSecret)
+    console.log('MASTER_CERTIFICATION_49_AGENT_RESULT',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,all49Approved:execution?.all49Approved===true,reviewEngine:execution?.reviewEngine||null}))
     console.log('MASTER_CERTIFICATION_EXECUTED',JSON.stringify({
       contentHash:entry.contentHash,masterHash:entry.masterHash,
       certification:execution?.certification,releaseStatus:execution?.releaseStatus,recorded:execution?.recorded
     }))
     if(execution?.certification!=='PROFESSIONAL_MASTER_CERTIFIED'){
-      const failedVotes=Object.entries(evaluation.decisions||{})
+      const failedVotes=Object.entries(execution?.decisions||{})
         .filter(([agentId,v])=>agentId!=='publisher'&&v?.decision!=='APPROVE')
         .map(([agentId,v])=>({agentId,decision:v?.decision,evidence:String(v?.evidence||'').slice(0,2000)}))
       if(failedVotes.length){

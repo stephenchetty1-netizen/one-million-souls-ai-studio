@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { durableRedis } from '@/content-agents/durable-redis.mjs'
+import { evaluateMaster } from '@/content-agents/master-evaluator.mjs'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -16,6 +17,12 @@ function authorized(req:Request){
 }
 async function policy(){return JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','approval-policy.json'),'utf8'))}
 function hash(v:any){return /^[a-f0-9]{64}$/i.test(String(v||''))?String(v).toLowerCase():''}
+function canonicalize(value:any):any{
+ if(Array.isArray(value))return value.map(canonicalize)
+ if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map((key)=>[key,canonicalize(value[key])]))
+ return value
+}
+function releaseHash(payload:any){return crypto.createHash('sha256').update(JSON.stringify(canonicalize(payload))).digest('hex')}
 const redis=durableRedis
 function certificateKey(contentHash:string,masterHash:string){return `one-million-souls:v59:certificate:${contentHash}:${masterHash}`}
 
@@ -33,9 +40,20 @@ export async function POST(req:Request){
  const requiredPassEvidence=requiredEvidence
  if(requiredPassEvidence.some((key)=>evidence?.[key]?.status!=='PASS'))
    return NextResponse.json({ok:false,blocked:true,error:'PROFESSIONAL_MASTER_REQUIRES_ALL_EVIDENCE_PASS',failed:requiredPassEvidence.filter((key)=>evidence?.[key]?.status!=='PASS')},{status:423})
+ const master=body.master
+ if(!master||typeof master!=='object'||!master.releasePayload||typeof master.releasePayload!=='object')
+   return NextResponse.json({ok:false,blocked:true,error:'Immutable final master bundle with releasePayload required'},{status:423})
+ if(body.decisions!==undefined)
+   return NextResponse.json({ok:false,blocked:true,error:'CALLER_DECISIONS_NOT_ACCEPTED: approval decisions are computed inside the executor from the exact master and evidence'},{status:423})
+ if(releaseHash(master.releasePayload)!==contentHash)
+   return NextResponse.json({ok:false,blocked:true,error:'contentHash does not match immutable master.releasePayload'},{status:423})
+ if(String(master.releasePayload.masterHash||'').toLowerCase()!==masterHash)
+   return NextResponse.json({ok:false,blocked:true,error:'master.releasePayload.masterHash mismatch'},{status:423})
+ const evaluation=await evaluateMaster({contentHash,masterHash,master,evidence})
+ const decisions=evaluation?.decisions
+ if(!decisions||typeof decisions!=='object')
+   return NextResponse.json({ok:false,blocked:true,error:'Internal master evaluation returned no decisions'},{status:503})
  const p=await policy(); const required:string[]=p.requiredAgents||[]
- const decisions=body.decisions
- if(!decisions||typeof decisions!=='object')return NextResponse.json({ok:false,blocked:true,error:'Explicit per-agent decisions required'},{status:423})
  const base=new URL(req.url); const endpoint=new URL('/api/content-agents/approval-record',base)
  const secret=process.env.CRON_SECRET!
  const results:any[]=[]
@@ -79,5 +97,5 @@ export async function POST(req:Request){
    }
    await redis(['SET',certificateKey(contentHash,masterHash),JSON.stringify(certificate)])
  }
- return NextResponse.json({ok:true,publishingLocked:!unanimous,contentHash,masterHash,recorded:results.length,results,masterReady:unanimous,certification:unanimous?'PROFESSIONAL_MASTER_CERTIFIED':'NOT_CERTIFIED',releaseStatus:unanimous?'APPROVED_AWAITING_POST_TIME':'RETURN_TO_PRODUCTION',certificate})
+ return NextResponse.json({ok:true,publishingLocked:!unanimous,contentHash,masterHash,recorded:results.length,results,masterReady:unanimous,all49Approved:evaluation?.all49Approved===true,reviewEngine:evaluation?.reviewEngine||null,decisions,certification:unanimous?'PROFESSIONAL_MASTER_CERTIFIED':'NOT_CERTIFIED',releaseStatus:unanimous?'APPROVED_AWAITING_POST_TIME':'RETURN_TO_PRODUCTION',certificate})
 }
