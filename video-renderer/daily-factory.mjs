@@ -183,6 +183,10 @@ export async function generateFor(date) {
     previousBuilding?.targetDate === date &&
     Array.isArray(previousBuilding?.entries)
   ) ? previousBuilding.entries : []
+  // Reuse corrected masters from either archive after an interrupted retry.
+  // The per-entry exact hash, caption, decode and storyboard checks below
+  // still reject legacy or incomplete masters.
+  const recoveryCandidates=[...reusableEntries,...(Array.isArray(existing?.entries)?existing.entries:[])]
   const entries = []
 
   for (let i=0;i<3;i++) {
@@ -197,7 +201,7 @@ export async function generateFor(date) {
       script:String(replacement.script || item.script).slice(0,3500),
       caption:String(replacement.caption || item.caption).slice(0,2200),
     } : item
-    const reusable = reusableEntries.find((entry) =>
+    const reusable = recoveryCandidates.find((entry) =>
       entry?.slot === slotTimes[i] &&
       entry?.title === effectiveItem.title &&
       entry?.renderQualityGate === 'PASS' &&
