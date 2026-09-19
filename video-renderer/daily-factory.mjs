@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v17'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -94,6 +94,10 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
     entry?.visualVarietyInspection?.passed === true &&
+    entry?.visualStoryboardInspection?.passed === true &&
+    entry?.visualStoryboardInspection?.version === 'v59-visual-coherence-v1' &&
+    entry?.captionInspection?.bottomSafeMargin >= 360 &&
+    entry?.captionInspection?.horizontalSafeMargin >= 120 &&
     Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
     typeof entry?.masterHash === 'string' &&
     entry.masterHash.length === 64 &&
@@ -113,7 +117,7 @@ async function render(item, variationSeed=0) {
   console.log('DAILY_FACTORY_RENDER_START', JSON.stringify({title:item.title,timeoutMs,variationSeed}))
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/render-v2`, {
-      method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script,variationSeed}),signal:controller.signal
+      method:'POST',headers,body:JSON.stringify({title:item.title,script:item.script,scriptureReference:item.ref,variationSeed}),signal:controller.signal
     })
     const data = await r.json().catch(()=>({}))
     if (!r.ok || !data?.ok || !data?.mediaUrl) throw new Error(data?.error || `render failed ${r.status}`)
@@ -190,6 +194,10 @@ export async function generateFor(date) {
       entry?.audioInspection?.passed === true &&
       entry?.captionInspection?.passed === true &&
       entry?.visualVarietyInspection?.passed === true &&
+      entry?.visualStoryboardInspection?.passed === true &&
+      entry?.visualStoryboardInspection?.version === 'v59-visual-coherence-v1' &&
+      entry?.captionInspection?.bottomSafeMargin >= 360 &&
+      entry?.captionInspection?.horizontalSafeMargin >= 120 &&
       Array.isArray(entry?.sceneMotionInspection) && entry.sceneMotionInspection.length >= 3 && entry.sceneMotionInspection.every(x => x?.passed === true) &&
       typeof entry?.masterHash === 'string' &&
       entry.masterHash.length === 64 &&
@@ -285,6 +293,8 @@ export async function generateFor(date) {
       audioInspection:video.audioInspection,
       captionInspection:video.captionInspection,
       visualVarietyInspection:video.visualVarietyInspection,
+      visualStoryboardInspection:video.visualStoryboardInspection,
+      storyboardVersion:video.storyboardVersion,
       sceneMotionInspection:video.sceneMotionInspection,
       sceneCount:video.sceneCount,
       sceneSources:video.sceneSources,
