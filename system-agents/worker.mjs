@@ -75,15 +75,22 @@ async function cycle(){
  // multimodal QA evidence. The runner processes at most one pending master per cycle.
  const certification=await runCertificationCycle()
  evidence.certification=certification
+ const exactMasterCertified=certification?.execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certification?.execution?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+ const bufferCertified=certification?.readiness?.allCertified===true
  evidence.releaseState={
-   publishingLocked:certification?.execution?.certification!=='PROFESSIONAL_MASTER_CERTIFIED',
+   publishingLocked:!(exactMasterCertified||bufferCertified),
    requiredApprovals:plan.requiredApprovals,
-   nextAction:certification?.execution?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+   nextAction:exactMasterCertified
      ? 'AWAIT_SCHEDULED_POST_TIME'
-     : plan.nextAction,
-   reason:certification?.execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED'
+     : bufferCertified
+       ? 'BUFFER_CERTIFIED_AWAIT_SCHEDULED_POST_TIME'
+       : plan.nextAction,
+   reason:exactMasterCertified
      ? 'EXACT_MASTER_CERTIFIED_AND_QUEUED'
-     : (certification?.reason||certification?.stage||'NO_CERTIFIED_MASTER_THIS_CYCLE')
+     : bufferCertified
+       ? 'ALL_BUFFER_MASTERS_CERTIFIED'
+       : (certification?.reason||certification?.stage||'NO_CERTIFIED_MASTER_THIS_CYCLE'),
+   bufferReadiness:certification?.readiness||null,
  }
  return evidence
 }

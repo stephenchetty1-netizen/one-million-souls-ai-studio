@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import crypto from 'node:crypto'
 import { evaluateMaster } from './master-evaluator.mjs'
 import { zeroCreditPreflight } from './zero-credit-review.mjs'
+import { durableRedis } from './durable-redis.mjs'
 
 const zeroCreditOnly=process.env.ZERO_CREDIT_ONLY!=='false'
 let client=null
@@ -27,6 +28,50 @@ const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
 const reviewBackoffUntil=new Map()
+
+
+function certificateKey(contentHash,masterHash){
+  return `one-million-souls:v59:certificate:${contentHash}:${masterHash}`
+}
+async function releaseReadinessSummary(){
+  if(!rendererBase)throw new Error('RENDERER_BASE_URL_MISSING')
+  const summary={days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:0,allCertified:false,issues:[]}
+  const issue=(value)=>{if(summary.issues.length<20)summary.issues.push(value)}
+  for(let day=1;day<=advanceDays;day++){
+    const date=futureDate(day)
+    let manifest
+    try{manifest=await fetchJson(`${rendererBase}/factory-manifest?date=${date}`,renderSecret)}
+    catch(error){summary.invalid++;issue({date,reason:'MANIFEST_UNAVAILABLE',error:error instanceof Error?error.message:String(error)});continue}
+    const entries=Array.isArray(manifest?.entries)?manifest.entries:[]
+    if(entries.length!==3){summary.invalid++;issue({date,reason:'EXPECTED_THREE_SLOTS',count:entries.length})}
+    for(const entry of entries){
+      summary.total++
+      const identityOk=validHash(entry?.contentHash)&&validHash(entry?.masterHash)&&entry?.releasePayload?.masterHash===entry?.masterHash
+      if(entry?.releaseStatus==='PRODUCTION_RETRY'||entry?.renderQualityGate!=='PASS'){
+        summary.productionRetry++;issue({date,slot:entry?.slot,title:entry?.title,reason:'PRODUCTION_RETRY_OR_RENDER_BLOCK'});continue
+      }
+      if(!identityOk){
+        summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'INVALID_RELEASE_IDENTITY'});continue
+      }
+      let certificate=null
+      try{
+        const raw=await durableRedis(['GET',certificateKey(String(entry.contentHash).toLowerCase(),String(entry.masterHash).toLowerCase())])
+        certificate=raw?JSON.parse(raw):null
+      }catch(error){
+        summary.invalid++;issue({date,slot:entry?.slot,title:entry?.title,reason:'CERTIFICATE_STORE_READ_FAILED',error:error instanceof Error?error.message:String(error)});continue
+      }
+      const exact=certificate?.contentHash===String(entry.contentHash).toLowerCase()&&certificate?.masterHash===String(entry.masterHash).toLowerCase()&&certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&certificate?.masterReady===true&&certificate?.releaseStatus==='APPROVED_AWAITING_POST_TIME'
+      if(exact){summary.certified++;continue}
+      summary.awaiting++
+      const deadline=Date.parse(entry?.releaseReadyDeadline||'')
+      if(Number.isFinite(deadline)&&Date.now()>=deadline){
+        summary.deadlineMissed++;issue({date,slot:entry?.slot,title:entry?.title,reason:'RELEASE_READY_DEADLINE_MISSED',releaseReadyDeadline:entry.releaseReadyDeadline})
+      }
+    }
+  }
+  summary.allCertified=summary.total===summary.expected&&summary.certified===summary.expected&&summary.awaiting===0&&summary.deadlineMissed===0&&summary.productionRetry===0&&summary.invalid===0
+  return summary
+}
 
 function futureDate(days=1){
   const d=new Date(Date.now()+days*24*60*60*1000)
@@ -518,5 +563,7 @@ export async function runCertificationCycle(){
     }
     return {ok:execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED',entry:{targetDate:entry.targetDate,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash},execution}
   }
-  return {ok:true,skipped:true,reason:'NO_PENDING_CERTIFIABLE_MASTER'}
+  const readiness=await releaseReadinessSummary().catch((error)=>({days:advanceDays,expected:advanceDays*3,total:0,certified:0,awaiting:0,deadlineMissed:0,productionRetry:0,invalid:1,allCertified:false,issues:[{reason:'READINESS_SUMMARY_FAILED',error:error instanceof Error?error.message:String(error)}]}))
+  console.log('RELEASE_BUFFER_READINESS',JSON.stringify(readiness))
+  return {ok:readiness.allCertified,skipped:true,reason:readiness.allCertified?'ALL_BUFFER_MASTERS_CERTIFIED':'NO_PENDING_CERTIFIABLE_MASTER',readiness}
 }
