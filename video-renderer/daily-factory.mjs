@@ -14,6 +14,7 @@ const QUOTA_COOLDOWN_MS = Number.isFinite(configuredQuotaPause)
   ? Math.max(15 * 60 * 1000, Math.min(6 * 60 * 60 * 1000, configuredQuotaPause))
   : 60 * 60 * 1000
 let zeroGpuCooldownUntil = 0
+const QUOTA_COOLDOWN_KEY = 'factory/zerogpu-quota-cooldown.json'
 
 const s3 = storageReady ? new S3Client({
   endpoint: process.env.ENDPOINT,
@@ -144,6 +145,10 @@ async function render(item, variationSeed=0) {
 
 export async function generateFor(date) {
   if (!enabled || !s3) return false
+  // The cooldown must survive restarts and redeploys: the shared bucket is authoritative.
+  // A storage read failure must not be interpreted as permission to burn more free quota.
+  const savedCooldown = await readQuotaCooldown()
+  zeroGpuCooldownUntil = Math.max(zeroGpuCooldownUntil, savedCooldown)
   if (Date.now() < zeroGpuCooldownUntil) {
     console.warn('DAILY_FACTORY_ZEROGPU_QUOTA_COOLDOWN', JSON.stringify({
       targetDate:date,retryAt:new Date(zeroGpuCooldownUntil).toISOString(),publishingLocked:true
@@ -236,6 +241,7 @@ export async function generateFor(date) {
       if (/ZeroGPU quota exceeded|exceeded your ZeroGPU quota|FREE_ZEROGPU_QUOTA_COOLDOWN/i.test(failureMessage)) {
         if (Date.now() >= zeroGpuCooldownUntil) {
           zeroGpuCooldownUntil = Date.now() + QUOTA_COOLDOWN_MS
+          await writeJsonObject(QUOTA_COOLDOWN_KEY, {until:new Date(zeroGpuCooldownUntil).toISOString(),reason:'FREE_ZEROGPU_QUOTA_EXHAUSTED',publishingLocked:true})
           console.warn('DAILY_FACTORY_ZEROGPU_QUOTA_PAUSE', JSON.stringify({
             targetDate:date,slot:slotTimes[i],cooldownMs:QUOTA_COOLDOWN_MS,
             retryAt:new Date(zeroGpuCooldownUntil).toISOString(),publishingLocked:true
@@ -372,6 +378,20 @@ export async function generateFor(date) {
   if (complete) await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:'manifests/latest.json',Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   console.log(complete ? 'DAILY_FACTORY_SUCCESS' : 'DAILY_FACTORY_PARTIAL_FAILURE', JSON.stringify({targetDate:date,pipelineVersion:PIPELINE_VERSION,publishingLocked:true,entries:entries.map(e=>({slot:e.slot,title:e.title,mediaUrl:e.mediaUrl,masterHash:e.masterHash,contentHash:e.contentHash,releaseStatus:e.releaseStatus}))}))
   return complete
+}
+
+async function readQuotaCooldown(){
+  try {
+    const result = await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:QUOTA_COOLDOWN_KEY}))
+    const payload = JSON.parse(await result.Body.transformToString())
+    const until = Date.parse(String(payload?.until || ''))
+    if (!Number.isFinite(until)) throw new Error('INVALID_QUOTA_COOLDOWN_RECORD')
+    return until
+  } catch (error) {
+    const code = error?.name || error?.Code || ''
+    if (code === 'NoSuchKey' || code === 'NotFound') return 0
+    throw new Error('QUOTA_COOLDOWN_READ_FAILED: '+String(error?.message || error))
+  }
 }
 
 async function writeJsonObject(key,value){
