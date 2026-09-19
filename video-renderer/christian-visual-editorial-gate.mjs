@@ -29,7 +29,7 @@ export function christianVisualSourceReviewed(source){
   String(source?.visualReviewedVideoSha256||'').toLowerCase()===
     String(source?.videoSha256||'').toLowerCase()&&
   source?.christianScriptureOrPrayerVisualVerified===true&&
-  source?.bookIsBibleVerified!==false&&
+  (source?.bookInScene!==true||source?.bookIsBibleVerified===true)&&
   source?.hasConflictingReligiousTextOrRitual!==true
  )
 }
