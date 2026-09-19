@@ -25,7 +25,11 @@ COPY stock-video-library.mjs ./
 COPY visual-storyboard.mjs ./
 COPY visual-storyboard.test.mjs ./
 COPY stock-music-library.mjs ./
-RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs && node --test visual-storyboard.test.mjs
+COPY pexels-source-import.mjs ./
+COPY pexels-source-import.test.mjs ./
+RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs \
+ && node --check server.mjs && node --check pexels-source-import.mjs \
+ && node --test visual-storyboard.test.mjs pexels-source-import.test.mjs
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
 
