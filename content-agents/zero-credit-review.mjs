@@ -72,7 +72,7 @@ export async function zeroCreditPreflight(entry,{technical,rights,integrity}){
     visualQuality&&audioQuality&&contentQuality&&metadataOk&&safePass&&thumbnailOk
 
   const visual={
-    creativeMaster:proExecution?pass('Zero-credit deterministic creative preflight PASS: exact curated script, stock-only real-motion visuals, measured scene/master integrity, clean mobile packaging, rights provenance, and verified technical audio all passed.'):block('Zero-credit creative preflight failed one or more measured/curated release gates.'),
+    creativeMaster:block('Deterministic metrics and curated text cannot establish a professional creative master. An independent perceptual review of the exact final video and mixed audio is required; keep in PRE_PRODUCTION and publishing locked.',{technicalProxiesPassed:proExecution}),
     thumbnailInspection:thumbnailOk?pass('Thumbnail is an immutable hash-bound frame from the exact master, with short title treatment and verified visual integrity.'):block('Thumbnail identity, visual integrity, or title economy failed.'),
     metadataInspection:metadataOk?pass('TikTok and YouTube metadata exactly match the immutable releasePayload; Scripture reference is present and platform disclosure fields are fixed.'):block('Metadata/package mismatch or required Scripture/package fields failed.'),
     theologyInspection:curated.ok?pass(`Exact curated ledger match (${curated.ledgerVersion}). ${curated.item.theologyNote}`,{ledgerVersion:curated.ledgerVersion}):block(`Content is not an exact approved curated-ledger version: ${curated.reason}`,{ledgerVersion:curated.ledgerVersion}),
@@ -82,12 +82,12 @@ export async function zeroCreditPreflight(entry,{technical,rights,integrity}){
     frameQualityInspection:frameQuality?pass('Final master and each scene passed black/freeze/motion inspection and end-to-end decode at the required export profile.'):block('Measured frame-quality requirements failed.'),
     contentQualityInspection:contentQuality?pass('Exact curated devotional package has a concise hook/theme, explicit Scripture reference, Jesus/God-centered application, bounded length, and no guaranteed-earthly-outcome language.'):block('Content structure, curated identity, or non-manipulative claim checks failed.'),
     originalityInspection:originality?pass('Exact curated original script package plus item-level visual/audio rights provenance passed. This is not a claim of a global plagiarism search.'):block('Originality/provenance release evidence is incomplete.'),
-    professionalExecutionInspection:proExecution?pass('All deterministic PROFESSIONAL_MASTER proxies passed for the exact immutable master: technical, rights, identity, stock-only motion, audio, captions, safe zones, content ledger, packaging, and thumbnail.'):block('One or more deterministic PROFESSIONAL_MASTER gates failed.'),
+    professionalExecutionInspection:block('Objective renderer proxies do not prove professional execution. Requires independent review of the exact final moving picture, voice performance, pacing, and mix.',{technicalProxiesPassed:proExecution}),
     platformPackagingInspection:platformOk?pass('Final TikTok and YouTube packages are exact immutable payload fields with AI disclosure and visibility settings locked.'):block('Platform packaging differs from immutable release payload or required settings.'),
   }
   const audio={
     audioInspection:audioTech?pass(`Final mixed master passed renderer loudness/true-peak/LRA analysis: ${JSON.stringify(entry.audioInspection)}`,{objective:entry.audioInspection}):block('Final mixed master technical audio inspection failed.',{objective:entry.audioInspection}),
-    voicePerformanceInspection:audioQuality?pass(`Kokoro narration provenance verified; measured speaking pace is ${wpm.toFixed(1)} WPM and final mix technical gates pass. Zero-credit mode does not claim human prosody review beyond these measured constraints.`,{wordsPerMinute:Number(wpm.toFixed(1)),provider:entry.voiceProvider}):block(`Narration proxy failed: provider/provenance, technical audio, or speaking pace out of range (${wpm.toFixed(1)} WPM).`,{wordsPerMinute:Number(wpm.toFixed(1)),provider:entry.voiceProvider}),
+    voicePerformanceInspection:block('Speaking rate and loudness alone cannot verify naturalness, pronunciation, or emotional delivery; independent exact-master listening is required.',{wordsPerMinute:Number(wpm.toFixed(1)),provider:entry.voiceProvider,technicalProxiesPassed:audioQuality}),
   }
   return {visual,audio,curated,summary:{visualMeasured,audioQuality,contentQuality,metadataOk,thumbnailOk,safePass,proExecution,wpm}}
 }
