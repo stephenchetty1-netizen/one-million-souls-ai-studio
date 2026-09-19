@@ -130,6 +130,54 @@ async function baseline(){
     return JSON.parse(await fs.readFile(file,'utf8'))
   }catch{return {metrics:{},audienceTiming:{}}}
 }
+async function localEvidenceSearch(topic){
+  try{
+    const [patternsRaw,trendsRaw]=await Promise.all([
+      fs.readFile(path.join(process.cwd(),'content-agents','million-view-patterns.json'),'utf8'),
+      fs.readFile(path.join(process.cwd(),'content-agents','trend-evidence.json'),'utf8'),
+    ])
+    const patterns=JSON.parse(patternsRaw)
+    const trends=JSON.parse(trendsRaw)
+    const query=normalizeWords(topic)
+    const examples=(patterns?.examples||[]).filter((x)=>{
+      const hay=normalizeWords([x.title,x.format,...(x.pattern||[])].join(' '))
+      let common=0
+      for(const word of query)if(hay.has(word))common++
+      return common>0
+    }).map((x)=>({
+      videoId:null,
+      title:x.title||'',
+      channelTitle:x.creator||'',
+      publishedAt:patterns.updatedAt?patterns.updatedAt+'T00:00:00Z':null,
+      views:Number(x.views||0),
+      likes:Number(x.likes||0),
+      comments:0,
+      duration:null,
+      source:'Cached public million-view evidence',
+      sourceUrl:x.source||null,
+      format:x.format||null,
+      patterns:x.pattern||[],
+    })).sort((a,b)=>b.views-a.views).slice(0,8)
+    const trendSignals=(trends?.externalTrendSignals||[]).filter((signal)=>{
+      const hay=normalizeWords(signal?.signal||'')
+      for(const word of query)if(hay.has(word))return true
+      return false
+    })
+    return {
+      ok:examples.length>0,
+      topic,
+      cachedEvidence:true,
+      liveSearch:false,
+      evidenceUpdatedAt:patterns.updatedAt||trends.capturedAt||null,
+      results:examples,
+      trendSignals,
+      reason:examples.length?'YOUTUBE_API_KEY_MISSING_USING_CACHED_PUBLIC_EVIDENCE':'NO_MATCHING_CACHED_EVIDENCE',
+    }
+  }catch(error){
+    return {ok:false,topic,cachedEvidence:true,liveSearch:false,reason:error instanceof Error?error.message:String(error),results:[]}
+  }
+}
+
 async function videoDetails(ids,key){
   if(!ids.length)return []
   const u=new URL(API_BASE+'/videos')
@@ -143,7 +191,7 @@ export async function searchYoutubeTopic(topic,{maxResults=8,days=120}={}){
   zeroCreditGuard()
   growthIntegrityGuard({topic})
   const key=youtubeKey()
-  if(!key)return {ok:false,skipped:true,reason:'YOUTUBE_API_KEY_MISSING',topic}
+  if(!key)return localEvidenceSearch(topic)
   const u=new URL(API_BASE+'/search')
   u.searchParams.set('part','snippet')
   u.searchParams.set('type','video')
@@ -284,7 +332,16 @@ export async function runYoutubeGrowthScan(input={}){
     catch(error){scans.push({ok:false,topic,error:error instanceof Error?error.message:String(error)})}
   }
   const opportunities=scans.filter(x=>x.ok)
-    .map(x=>opportunityFrom(x.topic,x.results||[],state,recentTitles))
+    .map(x=>{
+      const opportunity=opportunityFrom(x.topic,x.results||[],state,recentTitles)
+      const cacheCap=x.cachedEvidence?70:100
+      opportunity.opportunityScore=Math.min(opportunity.opportunityScore,cacheCap)
+      opportunity.decision=opportunity.opportunityScore>=65?'DEVELOP':opportunity.opportunityScore>=50?'RESEARCH_MORE':'HOLD'
+      opportunity.evidenceMode=x.cachedEvidence?'CACHED_PUBLIC_EVIDENCE':'LIVE_YOUTUBE_DATA_API'
+      opportunity.evidenceUpdatedAt=x.evidenceUpdatedAt||null
+      opportunity.trendSignals=x.trendSignals||[]
+      return opportunity
+    })
     .sort((a,b)=>b.opportunityScore-a.opportunityScore)
   const result={
     ok:opportunities.length>0,
@@ -293,6 +350,7 @@ export async function runYoutubeGrowthScan(input={}){
     writeActionsToYouTube:false,
     searchedAt:new Date().toISOString(),
     bots:YOUTUBE_GROWTH_BOTS,
+    researchMode:youtubeKey()?'LIVE_YOUTUBE_DATA_API':'ZERO_CREDIT_CACHED_EVIDENCE_FALLBACK',
     quotaPolicy:{maxTopicSearchesPerCycle:8,minimumHoursBetweenCycles:6},
     promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
     benchmark:channelBenchmark(metrics,base),
