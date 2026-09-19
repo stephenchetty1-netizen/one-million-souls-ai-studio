@@ -45,7 +45,7 @@ for(let i=0;i<days;i++){
    videoUrl:entry.mediaUrl,thumbnailUrl:entry.thumbnailUrl,
    audioReviewUrl:assets.audioReviewUrl,audioReviewHash:assets.audioReviewHash,firstFrameUrl:assets.firstFrameUrl,
    contactSheetUrl:assets.contactSheetUrl,lastFrameUrl:assets.lastFrameUrl,
-   measured:{renderQualityGate:entry.renderQualityGate,releaseStatus:entry.releaseStatus,fullDecodeInspection:entry.fullDecodeInspection,masterInspection:entry.masterInspection,audioInspection:entry.audioInspection,captionInspection:entry.captionInspection},
+   measured:{renderQualityGate:entry.renderQualityGate,releaseStatus:entry.releaseStatus,fullDecodeInspection:entry.fullDecodeInspection,masterInspection:entry.masterInspection,audioInspection:entry.audioInspection,captionInspection:entry.captionInspection,visualVarietyInspection:entry.visualVarietyInspection,visualStoryboardInspection:entry.visualStoryboardInspection,sceneMotionInspection:entry.sceneMotionInspection},
    independentReview:{status:'PENDING',fullWatch:'PENDING',voiceAndMix:'PENDING',visualStory:'PENDING',scriptureAndScript:'PENDING',thumbnail:'PENDING',reviewer:null,reviewedAt:null,notes:null},
    approval:'LOCKED'
   })
@@ -96,13 +96,15 @@ const integrityFailures=new Set(failed.map(item=>item.date+'|'+item.slot))
 const technicalChecks=entries.map(entry=>{
  const m=entry.measured||{}
  const failedGates=[]
- for(const gate of ['renderQualityGate','fullDecodeInspection','masterInspection','audioInspection','captionInspection']){
+ for(const gate of ['renderQualityGate','fullDecodeInspection','masterInspection','audioInspection','captionInspection','visualVarietyInspection','visualStoryboardInspection']){
   const value=m[gate]
   const passed=gate==='renderQualityGate'?(value==='PASS'||value?.passed===true):value?.passed===true
   if(!passed)failedGates.push(gate)
  }
  if(m.releaseStatus==='TECHNICAL_BLOCK_REGENERATION_PENDING'||m.releaseStatus==='PRODUCTION_RETRY')failedGates.push('regenerationPending')
  if(Number(m.captionInspection?.bottomSafeMargin)<650)failedGates.push('captionBottomSafeMargin650')
+ if(m.visualStoryboardInspection?.version!=='v59-visual-coherence-v1')failedGates.push('visualStoryboardVersion')
+ if(!Array.isArray(m.sceneMotionInspection)||m.sceneMotionInspection.length<3||m.sceneMotionInspection.some(x=>x?.passed!==true))failedGates.push('sceneMotionInspection')
  if(integrityFailures.has(entry.date+'|'+entry.slot))failedGates.push('mediaIntegrity')
  return {date:entry.date,slot:entry.slot,title:entry.title,masterHash:entry.masterHash,status:failedGates.length?'TECHNICAL_BLOCK':'TECHNICAL_PASS_CREATIVE_REVIEW_PENDING',failedGates,publishingLocked:true}
 })
