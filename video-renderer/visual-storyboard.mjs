@@ -4,7 +4,7 @@ export const STORYBOARD_VERSION='v59-visual-coherence-v1'
 export const BEAT_STAGES=Object.freeze(['TENSION','SCRIPTURE','RESPONSE'])
 export const CAPTION_LAYOUT=Object.freeze({
   width:1080,height:1920,fontSize:58,maxWords:4,maxCharacters:32,
-  leftMargin:140,rightMargin:180,bottomMargin:380,
+  leftMargin:140,rightMargin:180,bottomMargin:650,
   minimumSecondsPerPhrase:0.85,
 })
 
