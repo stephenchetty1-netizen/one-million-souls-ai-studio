@@ -1,4 +1,5 @@
 import { rememberGrowthDecisions, loadGrowthMultiplierState } from './growth-multiplier-memory.mjs'
+import { stageGrowthCandidates } from './growth-candidate-queue.mjs'
 
 function num(v){const n=Number(v);return Number.isFinite(n)?n:0}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
@@ -168,6 +169,45 @@ export async function runGrowthMultiplier({platform,records=[],baseline={},oppor
   const retired=decisions.filter(x=>x.classification==='RETIRE')
   const opportunitySeeds=(opportunities||[]).filter(x=>Number(x.opportunityScore||0)>=65).slice(0,5)
   const attractionSeeds=(attractions?.featured||[]).slice(0,4)
+  const queueCandidates=[]
+  for(const winner of winners.slice(0,3)){
+    for(const variation of (winner.variations||[]).slice(0,5)){
+      queueCandidates.push({
+        platform,
+        type:'WINNER_VARIATION_'+variation.type,
+        topic:winner.topic||winner.title,
+        sourcePostId:winner.postId,
+        brief:variation.brief,
+        reason:winner.reason,
+        classification:'WINNER',
+        priority:90,
+      })
+    }
+  }
+  for(const rescue of rescues.slice(0,3)){
+    queueCandidates.push({
+      platform,
+      type:'RESCUE_REPACKAGE',
+      topic:rescue.topic||rescue.title,
+      sourcePostId:rescue.postId,
+      brief:(rescue.rescuePlan||[]).join(' '),
+      reason:rescue.reason,
+      classification:'RESCUE',
+      priority:80,
+    })
+  }
+  for(const gap of opportunitySeeds.slice(0,2)){
+    queueCandidates.push({
+      platform,
+      type:'SEARCH_GAP',
+      topic:gap.topic,
+      brief:'Create an original search-led content brief for "'+String(gap.topic||'')+'" using verified Scripture/factual context and platform-specific packaging.',
+      reason:'HIGH_OPPORTUNITY_SEARCH_GAP',
+      classification:'OPPORTUNITY',
+      priority:70,
+    })
+  }
+  const queue=await stageGrowthCandidates(queueCandidates)
   return {
     ok:true,
     platform,
@@ -189,6 +229,7 @@ export async function runGrowthMultiplier({platform,records=[],baseline={},oppor
     retired,
     searchGapSeeds:opportunitySeeds.map(x=>({topic:x.topic,score:x.opportunityScore,action:'Build original search-led content around the unmet viewer need; do not copy competitor expression.'})),
     attractionSeeds:attractionSeeds.map(x=>({id:x.id,name:x.name,score:x.attractionScore,action:'Use as a recurring return reason only while measured performance remains healthy.'})),
+    preProductionQueue:queue,
     priorState:{
       winnersStored:(prior.winners||[]).length,
       rescuesStored:(prior.rescues||[]).length,
