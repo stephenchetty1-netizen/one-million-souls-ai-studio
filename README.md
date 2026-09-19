@@ -271,3 +271,26 @@ The system must not render or publish when discernment returns `REVISE`, `RESEAR
 ### Deployment note
 
 Install dependencies in the deployment environment before running the production build. This workspace intentionally does not vendor `node_modules`.
+
+
+## V59 — Google Flow-class Veo 3.1 Rendering
+
+The V59 video renderer can now use Google's Veo 3.1 generation API as its preferred production scene generator. This provides the programmable equivalent of the high-quality Veo generation capabilities used by Google Flow while preserving the existing V59 immutable-master and approval gates.
+
+### Renderer environment
+
+Set these variables on the video-renderer service:
+
+- `GEMINI_API_KEY` — required Google Gemini API key (or use `GOOGLE_AI_API_KEY`).
+- `GOOGLE_VEO_ENABLED=true` — enables the provider when a key exists. Setting it to `false` disables Google generation.
+- `GOOGLE_VEO_PRIMARY=true` — makes Veo the first production visual provider. Defaults to enabled when Veo is configured.
+- `GOOGLE_VEO_REQUIRED=false` — when `true`, fail closed instead of using the existing approved video fallback if Veo fails.
+- `GOOGLE_VEO_MODEL=veo-3.1-generate-preview` — default quality model.
+- `GOOGLE_VEO_RESOLUTION=1080p` — supported values are `720p`, `1080p`, and `4k`; the final V59 master is still normalized to the required vertical delivery profile.
+- `GOOGLE_VEO_ASPECT_RATIO=9:16` — default for Shorts/TikTok.
+- `GOOGLE_VEO_TIMEOUT_MS=900000` — long-running generation timeout.
+- `GOOGLE_VEO_POLL_MS=10000` — operation polling interval.
+
+The renderer records `google-veo-video` in `sceneSources`, identifies the video provider in the returned manifest, and reports whether paid generation credits were used. Google-generated scene audio is intentionally discarded during final assembly so the existing approved narration, music, caption, loudness, and master-integrity pipeline remains authoritative.
+
+The existing V59 release rules are unchanged: a Veo render is only a production candidate. It still must pass scene-motion, visual-variety, caption safe-zone, audio mastering, full-decode, export-profile, immutable-hash, 49-agent, and final Publisher approval gates before release.
