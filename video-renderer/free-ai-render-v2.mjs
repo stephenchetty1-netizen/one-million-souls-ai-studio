@@ -9,6 +9,7 @@ import { getFreeProviders } from './free-ai-providers.mjs'
 import { callGradio, collectAssetUrls, uploadRemoteFileToGradio } from './free-ai-gradio.mjs'
 import { createLocalFallbackScene, createLocalAmbientMusic, animateStillImage } from './local-media-fallback.mjs'
 import { createRightsClearedStockScene } from './stock-video-library.mjs'
+import { buildPexelsReviewStoryboard, createPexelsReviewScene } from './pexels-review-scenes.mjs'
 import { planVisualStory, stockSelectionForBeat, inspectVisualStoryboard, CAPTION_LAYOUT, STORYBOARD_VERSION } from './visual-storyboard.mjs'
 import { createRightsClearedStockMusic } from './stock-music-library.mjs'
 import { createGoogleVeoScene, googleVeoEnabled } from './google-veo-provider.mjs'
@@ -668,7 +669,14 @@ export async function renderFreeV2(body = {}) {
   const providers = getFreeProviders()
   const scriptureReference=cleanText(body?.scriptureReference||body?.ref||
     script.match(/\b(?:Matthew|Mark|Luke|John|Romans|Psalms?|Isaiah|Jeremiah|Hebrews|Philippians|Lamentations|Corinthians)\s+\d+:\d+(?:-\d+)?\b/i)?.[0]||'')
-  const storyboard=planVisualStory({title,script,scriptureReference,visualPrompts:body?.visualPrompts})
+  const pexelsReviewCollection=String(body?.pexelsReviewCollection||'').trim()
+  if(pexelsReviewCollection &&
+      (pexelsReviewCollection!=='BE_STILL_PEXELS_V1'||title.trim().toUpperCase()!=='BE STILL'))
+    throw new Error('PEXELS_REVIEW_DRAFT_NOT_AUTHORIZED')
+  const plannedStoryboard=planVisualStory({title,script,scriptureReference,visualPrompts:body?.visualPrompts})
+  const storyboard=pexelsReviewCollection
+    ? buildPexelsReviewStoryboard(plannedStoryboard,pexelsReviewCollection)
+    : plannedStoryboard
   const prompts = scenePrompts(storyboard)
   const variationSeed = Math.max(0, Number(body?.variationSeed || 0))
   const stockSeed = [...`${title}|${script}|variation:${variationSeed}`].reduce((a,ch)=>((a*31+ch.charCodeAt(0))>>>0),7)
@@ -690,7 +698,11 @@ export async function renderFreeV2(body = {}) {
     for (let index = 0; index < prompts.length; index += 1) {
       try {
         const selection=storyboard.stockStoryboardAvailable?stockSelectionForBeat(storyboard,index):null
-        const scene = await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed, selection)
+        const scene = pexelsReviewCollection
+          ? await createPexelsReviewScene({
+            collection:pexelsReviewCollection,index,work,seconds:sceneSeconds,selection
+          })
+          : await generateScene(providers, prompts[index], index, work, sceneSeconds, stockSeed, selection)
         scenes.push(scene)
         console.log('FREE_AI_SCENE_READY', JSON.stringify({ id, index: index + 1, source: scene.source || 'unknown' }))
       } catch (error) {
@@ -814,7 +826,10 @@ export async function renderFreeV2(body = {}) {
       persistentStorage: true,
       qualityGate: 'passed',
       technicalRenderPassed: true,
-      visualProductionStatus:stockOnlyPreview?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
+      visualProductionStatus:pexelsReviewCollection?'PEXELS_EDITORIAL_REVIEW_DRAFT_FULL_WATCH_REQUIRED':
+        stockOnlyPreview?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
+      pexelsReviewCollection:pexelsReviewCollection||null,
+      independentEditorialReviewRequired:true,
       creativeVisualReviewRequired: true,
       professionalMasterCandidate: !stockOnlyPreview,
       masterInspection,
