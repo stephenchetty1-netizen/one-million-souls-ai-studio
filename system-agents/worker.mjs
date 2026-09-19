@@ -2,16 +2,11 @@ import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
 import { durableRedis } from '../content-agents/durable-redis.mjs'
-import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs'
-import { runTikTokGrowthScan } from '../content-agents/tiktok-growth-swarm.mjs'
+import { runDueAutonomousGrowthBots } from './autonomous-growth-bots.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
 const provider=Boolean(process.env.OPENAI_API_KEY||process.env.ANTHROPIC_API_KEY||process.env.GEMINI_API_KEY)
-const growthIntervalMs=Math.max(6,Number(process.env.YOUTUBE_GROWTH_INTERVAL_HOURS||6))*60*60*1000
-const tiktokGrowthIntervalMs=Math.max(6,Number(process.env.TIKTOK_GROWTH_INTERVAL_HOURS||6))*60*60*1000
-let lastGrowthScanAt=0
-let lastTikTokGrowthScanAt=0
 let redisVerified=false
 
 if (process.argv.includes('--with-app')) {
@@ -45,25 +40,12 @@ async function cycle(){
  evidence.redis=await verifyRedis()
  evidence.systemAgents=await call('/api/system-agents/autonomy-status')
  evidence.contentAgents=await call('/api/content-agents/status')
- if(Date.now()-lastGrowthScanAt>=growthIntervalMs){
-   try{
-     evidence.youtubeGrowth=await runYoutubeGrowthScan()
-     lastGrowthScanAt=Date.now()
-     console.log('YOUTUBE_GROWTH_SCAN',JSON.stringify(evidence.youtubeGrowth))
-   }catch(error){
-     evidence.youtubeGrowth={ok:false,error:String(error?.message||error),zeroCreditOnly:true}
-     console.error('YOUTUBE_GROWTH_SCAN_BLOCKED',JSON.stringify(evidence.youtubeGrowth))
-   }
- }
- if(Date.now()-lastTikTokGrowthScanAt>=tiktokGrowthIntervalMs){
-   try{
-     evidence.tiktokGrowth=await runTikTokGrowthScan()
-     lastTikTokGrowthScanAt=Date.now()
-     console.log('TIKTOK_GROWTH_SCAN',JSON.stringify(evidence.tiktokGrowth))
-   }catch(error){
-     evidence.tiktokGrowth={ok:false,error:String(error?.message||error),zeroCreditOnly:true}
-     console.error('TIKTOK_GROWTH_SCAN_BLOCKED',JSON.stringify(evidence.tiktokGrowth))
-   }
+ const botCycle=await runDueAutonomousGrowthBots()
+ evidence.autonomousGrowthBots=botCycle.results
+ for(const bot of botCycle.results){
+   if(bot.status==='NOT_DUE'||bot.status==='LEASED_BY_OTHER_WORKER')continue
+   const event=bot.status==='BLOCKED'?'AUTONOMOUS_GROWTH_BOT_BLOCKED':'AUTONOMOUS_GROWTH_BOT_CYCLE'
+   console.log(event,JSON.stringify(bot))
  }
  if(!provider&&process.env.ZERO_CREDIT_ONLY!=='true') throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
  const planText=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
