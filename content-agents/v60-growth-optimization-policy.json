@@ -32,10 +32,10 @@
     "sourceMusicRightsRequired": true,
     "humanReusableTemplateReviewRequired": true,
     "ScriptureAndFactsMustBeVerified": true,
-    "ideoAudioCaptionsRightsAndFullDecodeQARequired": true,
     "immutableMasterHashRequired": true,
     "standardV59FinalPublisherLastApprovalRequired": true,
-    "missedPostingSlotDoesNotOverrideQuality": true
+    "missedPostingSlotDoesNotOverrideQuality": true,
+    "videoAudioCaptionsRightsAndFullDecodeQARequired": true
   },
   "rolloutStages": [
     "PROPOSED_NOT_RENDERED",
