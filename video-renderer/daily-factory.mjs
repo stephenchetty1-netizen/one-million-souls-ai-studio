@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v7'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v8'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -83,6 +83,7 @@ function manifestIsCurrent(manifest, date, slots) {
     entry?.reviewAssets?.firstFrameUrl &&
     entry?.reviewAssets?.lastFrameUrl &&
     entry?.masterInspection?.passed === true &&
+    entry?.fullDecodeInspection?.passed === true &&
     entry?.audioInspection?.passed === true &&
     entry?.captionInspection?.passed === true &&
     entry?.visualVarietyInspection?.passed === true &&
@@ -166,6 +167,7 @@ async function generateFor(date) {
       entry?.reviewAssets?.firstFrameUrl &&
       entry?.reviewAssets?.lastFrameUrl &&
       entry?.masterInspection?.passed === true &&
+      entry?.fullDecodeInspection?.passed === true &&
       entry?.audioInspection?.passed === true &&
       entry?.captionInspection?.passed === true &&
       entry?.visualVarietyInspection?.passed === true &&
@@ -235,6 +237,7 @@ async function generateFor(date) {
       technicalMaster:video.technicalMaster || 'PENDING',
       creativeMaster:video.creativeMaster || 'PENDING',
       masterInspection:video.masterInspection,
+      fullDecodeInspection:video.fullDecodeInspection,
       audioInspection:video.audioInspection,
       captionInspection:video.captionInspection,
       visualVarietyInspection:video.visualVarietyInspection,
