@@ -22,6 +22,9 @@ COPY free-ai-sample-v3.mjs ./
 COPY local-kokoro-smoke.mjs ./
 COPY local-media-fallback.mjs ./
 COPY stock-video-library.mjs ./
+COPY visual-storyboard.mjs ./
+COPY visual-storyboard.test.mjs ./
+RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --test visual-storyboard.test.mjs
 COPY stock-music-library.mjs ./
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
