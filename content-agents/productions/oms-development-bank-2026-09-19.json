@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-19",
+  "purpose": "Zero-credit development drafts; NOT a curated or verified ledger; never feed directly to publisher",
+  "mode": "DEVELOPMENT_ONLY",
+  "publishEnabled": false,
+  "requiresPaidModelCredits": false,
+  "source": "Original One Million Souls editorial drafts",
+  "qualityPolicy": "No quota-driven filler; channel fatigue and title collision review required before any production.",
+  "rightsPolicy": "Original scripts; all media, audio and fonts need separately recorded rights.",
+  "releasePolicy": "Actual immutable master, runtime theology/factual/rights checks, measured technical/creative gates, 49 plus Publisher #50 exact-hash approvals and certification required. This file creates none.",
+  "items": [
+    {
+      "id": "OMS-001",
+      "title": "When Everyone Else Seems Ahead",
+      "scriptureReference": "Psalm 37:7",
+      "hook": "Does it hurt watching everyone else move forward while you're still waiting?",
+      "script": "You see their success and celebrations and quietly wonder, Lord, when will it be my turn? Psalm 37 reminds us to rest in the Lord and wait patiently for Him. Your life is not a race against somebody else's blessings. Jesus, help me celebrate others without losing hope for my own journey. Teach me patience, gratitude and faithfulness while I wait. Today, take one faithful step forward.",
+      "cta": "Send this to someone who feels left behind.",
+      "visualConcepts": [
+        "phone face-down",
+        "open Bible",
+        "sunrise walk"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-20",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-002",
+      "title": "Before You Touch Your Phone",
+      "scriptureReference": "Mark 1:35",
+      "hook": "Before the world gets your attention, give Jesus your first minute.",
+      "script": "Before the messages, deadlines and noise, there is an invitation to meet with Jesus. Mark 1:35 tells us Jesus rose early and went to a solitary place to pray. You don't need perfect words. Lord Jesus, thank You for another day. Guide my thoughts, guard my words and help me reflect Your love wherever I go. Before you scroll, pray.",
+      "cta": "Will you give Jesus your first minute tomorrow?",
+      "visualConcepts": [
+        "alarm",
+        "untouched phone",
+        "Bible",
+        "morning light"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-21",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-003",
+      "title": "You Don't Have to Carry Everything Alone",
+      "scriptureReference": "Matthew 11:28",
+      "hook": "Who do you turn to when everyone thinks you're strong?",
+      "script": "Sometimes the strongest-looking person is carrying the heaviest burden. You encourage everyone else, but when the day ends, you're exhausted. Jesus invites the weary and burdened to come to Him for rest. Bring Him your worries and what you cannot explain. Lord Jesus, I surrender what I was never meant to carry without You. Teach me to rest in Your love and seek the help I need.",
+      "cta": "Someone needs this reminder today.",
+      "visualConcepts": [
+        "heavy bag",
+        "quiet room",
+        "hands resting on Bible"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-22",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-004",
+      "title": "You Can Come Home to Jesus",
+      "scriptureReference": "Luke 15:20",
+      "hook": "Have you been avoiding God because you think you've gone too far?",
+      "script": "Shame tells you to stay away. Jesus invites you to return. In the parable of the prodigal son, the father sees his returning son and runs to meet him. You do not have to clean up your entire life before turning to Christ. Come with honesty, repentance and faith. Lord Jesus, forgive me for the ways I've wandered. Help me turn away from sin and follow You with a renewed heart.",
+      "cta": "If you've been distant from God, speak to Him today.",
+      "visualConcepts": [
+        "empty road",
+        "returning footsteps",
+        "warm doorway"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-23",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-005",
+      "title": "Someone Needs Your Light Today",
+      "scriptureReference": "Matthew 5:16",
+      "hook": "What if one small act of kindness changes someone's entire day?",
+      "script": "You don't need a stage or a million followers to make a difference. Jesus calls us to let our light shine so that others may see good works and glorify our Father in heaven. Encourage someone. Pray with a friend. Help without expecting recognition. Lord, help my words and actions point others towards Jesus. One conversation. One invitation. One prayer. One soul at a time.",
+      "cta": "Who can you encourage today?",
+      "visualConcepts": [
+        "small light",
+        "acts of kindness",
+        "cross silhouette"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-24",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-006",
+      "title": "Pray Before You Panic",
+      "scriptureReference": "Philippians 4:6-7",
+      "hook": "Your mind is racing, and you don't know what to do next.",
+      "script": "When worry fills your thoughts, it can feel impossible to see beyond the problem. Philippians 4 teaches us to bring our requests to God with prayer and thanksgiving. Prayer does not mean pretending the situation is easy. Lord Jesus, give me wisdom for what I can do, courage for what I must face and peace as I trust You with what I cannot control.",
+      "cta": "Take thirty seconds to pray before your next decision.",
+      "visualConcepts": [
+        "overwhelming notifications",
+        "quiet prayer",
+        "handwritten next step"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-25",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    },
+    {
+      "id": "OMS-007",
+      "title": "One Million Souls. One Mission. One Saviour.",
+      "scriptureReference": "Matthew 28:19-20",
+      "hook": "What if your next conversation helps someone discover Jesus?",
+      "script": "You may never preach to a stadium or have a million followers. But someone in your world needs to hear about hope found in Jesus Christ. The Great Commission calls followers of Jesus to make disciples. Pray for one person. Listen to their story. Share what Christ has done for you. We cannot manufacture salvation. We can faithfully point people towards the Saviour.",
+      "cta": "Will you join the mission?",
+      "visualConcepts": [
+        "one light",
+        "multiple lights",
+        "globe",
+        "cross"
+      ],
+      "format": "SHORT",
+      "aspectRatio": "9:16",
+      "targetSeconds": 40,
+      "proposedDate": "2026-09-26",
+      "status": "DEVELOPMENT",
+      "editorialStatus": "DRAFT",
+      "releaseApprovals": [],
+      "masterHash": null,
+      "certification": null,
+      "publishEnabled": false
+    }
+  ],
+  "longForm": [
+    {
+      "title": "When God Makes You Wait",
+      "scriptures": [
+        "Psalm 27:14",
+        "Psalm 37:7"
+      ],
+      "targetMinutes": 7,
+      "status": "DEVELOPMENT",
+      "structure": [
+        "comparison",
+        "biblical waiting",
+        "faithfulness",
+        "prayer"
+      ]
+    },
+    {
+      "title": "How to Begin Your Day With Jesus",
+      "scriptures": [
+        "Mark 1:35",
+        "Matthew 6:9-13"
+      ],
+      "targetMinutes": 6,
+      "status": "DEVELOPMENT",
+      "structure": [
+        "distraction",
+        "Jesus example",
+        "prayer routine",
+        "Scripture",
+        "action"
+      ]
+    }
+  ],
+  "lyric": [
+    {
+      "title": "Jesus, Meet Me in the Waiting",
+      "status": "DEVELOPMENT",
+      "music": "Original composition and recording required; no borrowed melody or master",
+      "refrain": [
+        "Jesus, meet me in the waiting",
+        "When the road is hard to see",
+        "Teach my heart to trust Your goodness",
+        "Draw me closer, Lord, to Thee"
+      ]
+    }
+  ]
+}
