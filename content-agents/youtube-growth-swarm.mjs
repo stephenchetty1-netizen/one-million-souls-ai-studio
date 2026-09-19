@@ -57,7 +57,7 @@ function recentTopicPenalty(topic,state){
   }
   return penalty
 }
-function opportunityScore(topic,rows,state){
+function opportunityScore(topic,rows,state,recentTitles=[]){
   const totalViews=rows.reduce((a,x)=>a+Number(x.views||0),0)
   const recent=rows.filter(x=>Date.now()-Date.parse(x.publishedAt||0)<45*86400000).length
   const channels=new Set(rows.map(x=>x.channelTitle).filter(Boolean)).size
@@ -66,9 +66,41 @@ function opportunityScore(topic,rows,state){
   const freshness=Math.min(25,recent*5)
   const diversity=Math.min(20,channels*4)
   const novelty=10
-  const fatigue=recentTopicPenalty(topic,state)
-  return Math.round(clamp(demand+freshness+diversity+evidence+novelty-fatigue,0,100))
+  const historyFatigue=recentTopicPenalty(topic,state)
+  const recentTitleSimilarity=recentTitles.reduce((m,t)=>Math.max(m,similarity(topic,t)),0)
+  const channelFatigue=recentTitleSimilarity>=0.72?20:recentTitleSimilarity>=0.5?10:0
+  return Math.round(clamp(demand+freshness+diversity+evidence+novelty-historyFatigue-channelFatigue,0,100))
 }
+async function getText(url){
+  const controller=new AbortController()
+  const timer=setTimeout(()=>controller.abort(),15000)
+  try{
+    const r=await fetch(url,{signal:controller.signal,redirect:'follow',headers:{'user-agent':'OneMillionSoulsGrowthBot/1.0'}})
+    if(!r.ok)throw new Error(`HTTP_${r.status}:${url}`)
+    return await r.text()
+  }finally{clearTimeout(timer)}
+}
+function xmlDecode(value=''){
+  return String(value).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+}
+async function ownChannelFeed(){
+  const channelId=clean(process.env.YOUTUBE_CHANNEL_ID)
+  if(!channelId)return {ok:false,reason:'YOUTUBE_CHANNEL_ID_MISSING',items:[]}
+  try{
+    const xml=await getText(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`)
+    const entries=[...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map((m)=>{
+      const block=m[1]
+      const title=xmlDecode(block.match(/<title>([\s\S]*?)<\/title>/)?.[1]||'')
+      const videoId=block.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)?.[1]||''
+      const published=block.match(/<published>([^<]+)<\/published>/)?.[1]||null
+      return {title,videoId,published}
+    }).filter(x=>x.title)
+    return {ok:true,items:entries.slice(0,30)}
+  }catch(error){
+    return {ok:false,reason:error instanceof Error?error.message:String(error),items:[]}
+  }
+}
+
 async function getJson(url){
   const controller=new AbortController()
   const timer=setTimeout(()=>controller.abort(),15000)
@@ -175,7 +207,7 @@ function opportunityFrom(topic,rows,state,recentTitles=[]){
   const totalViews=rows.reduce((a,x)=>a+x.views,0)
   const recent=rows.filter(x=>Date.now()-Date.parse(x.publishedAt||0)<45*86400000).length
   const leaders=rows.slice(0,5).map(x=>({title:x.title,channelTitle:x.channelTitle,views:x.views,publishedAt:x.publishedAt,videoId:x.videoId}))
-  const score=opportunityScore(topic,rows,state)
+  const score=opportunityScore(topic,rows,state,recentTitles)
   const directions=titleDirections(topic).map(title=>({title,inspection:inspectTitlePackaging(title,recentTitles)}))
   return {
     topic,
@@ -240,7 +272,10 @@ export async function runYoutubeGrowthScan(input={}){
   const state=await loadYoutubeGrowthState()
   const base=await baseline()
   const metrics={...(base.metrics||{}),...(input.metrics||{})}
-  const recentTitles=Array.isArray(input.recentTitles)?input.recentTitles.filter(Boolean).slice(0,60):[]
+  const feed=await ownChannelFeed()
+  const recentTitles=Array.isArray(input.recentTitles)&&input.recentTitles.length
+    ? input.recentTitles.filter(Boolean).slice(0,60)
+    : (feed.items||[]).map(x=>x.title).filter(Boolean).slice(0,60)
   const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS)
     .map(clean).filter(Boolean).slice(0,8)
   const scans=[]
@@ -261,6 +296,12 @@ export async function runYoutubeGrowthScan(input={}){
     quotaPolicy:{maxTopicSearchesPerCycle:8,minimumHoursBetweenCycles:6},
     promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
     benchmark:channelBenchmark(metrics,base),
+    ownChannelFeed:{
+      available:feed.ok===true,
+      recentTitleCount:recentTitles.length,
+      latestItems:(feed.items||[]).slice(0,12),
+      warning:feed.ok?null:feed.reason,
+    },
     opportunities,
     retention:retentionActions(metrics),
     subscriberGrowth:subscriberActions(metrics),
