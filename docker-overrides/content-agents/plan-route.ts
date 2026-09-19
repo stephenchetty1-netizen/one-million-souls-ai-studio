@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { getGrowthCandidate } from '../../../../content-agents/growth-candidate-queue.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,14 +27,20 @@ export async function POST(req: Request) {
     const raw = await fs.readFile(path.join(process.cwd(), 'content-agents', 'seed-queue.json'), 'utf8')
     const queue = JSON.parse(raw)
     const bucket = mode === 'SHORT' ? queue.shorts : mode === 'LONG' ? queue.longForm : queue.lyricVideos
-    const item = body.id ? bucket.find((x:any) => x.id === body.id) : bucket[0]
+    const growthCandidate = body.growthCandidateId ? await getGrowthCandidate(String(body.growthCandidateId)) : null
+    const item = growthCandidate || (body.id ? bucket.find((x:any) => x.id === body.id) : bucket[0])
     if (!item) return NextResponse.json({ ok:false, error:'No queue item found' }, { status:404 })
+    if (growthCandidate && (growthCandidate.publishingLocked !== true || growthCandidate.requiresNormalV59Approval !== true)) {
+      return NextResponse.json({ ok:false, error:'Growth candidate policy invalid' }, { status:409 })
+    }
 
     const plan = {
       runId: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       mode,
       item,
+      source: growthCandidate ? 'GROWTH_MULTIPLIER' : 'SEED_QUEUE',
+      growthCandidateId: growthCandidate?.id || null,
       agents: [
         'trend-scout','million-view-scout','channel-strategist','competitor-mapper',
         'search-intent-analyst','audience-insight-researcher','retention-scientist','hook-lab',
