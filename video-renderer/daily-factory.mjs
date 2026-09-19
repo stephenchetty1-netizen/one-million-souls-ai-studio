@@ -9,11 +9,21 @@ const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
 const PIPELINE_VERSION = 'v59-professional-master-certified-v18'
 // Exact-master independent creative rejection: technical PASS is insufficient.
-const REJECTED_BE_STILL_MASTER = '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e'
+const REJECTED_BE_STILL_MASTERS = new Set([
+  '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e',
+  'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
+])
+function stockOnly(entry) {
+  return Array.isArray(entry?.sceneSources) && entry.sceneSources.length > 0 &&
+    entry.sceneSources.every(source => source === 'rights-cleared-stock-video')
+}
 function rejectedVisualMaster(entry) {
+  if (REJECTED_BE_STILL_MASTERS.has(String(entry?.masterHash || '').toLowerCase())) return true
+  // All automated raw stock-only montages require creative revision; bitrate,
+  // rights and an intentional storyboard are NOT visual professional approval.
+  if (stockOnly(entry)) return true
   if (String(entry?.title || '').trim().toUpperCase() !== 'BE STILL') return false
-  return String(entry?.masterHash || '').toLowerCase() === REJECTED_BE_STILL_MASTER ||
-    (entry?.rightsClearedStockScenes || []).some(scene => scene?.stockId === 'sunrise-storm-portrait') ||
+  return (entry?.rightsClearedStockScenes || []).some(scene => scene?.stockId === 'sunrise-storm-portrait') ||
     (entry?.visualStoryboardInspection?.beats || []).some(beat => beat?.stockId === 'sunrise-storm-portrait')
 }
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
@@ -238,6 +248,26 @@ export async function generateFor(date) {
       entry?.mediaUrl
     )
 
+    // Preserve preview-only montage metadata for review instead of re-rendering
+    // the same weak stock scenes every five minutes. A future approved source
+    // needs an exact-slot production retry to supersede this preview.
+    const heldPreview = recoveryCandidates.find(entry =>
+      entry?.slot === slotTimes[i] &&
+      entry?.title === effectiveItem.title &&
+      entry?.releaseStatus === 'CREATIVE_REVISION_REQUIRED' &&
+      entry?.professionalMasterCandidate === false &&
+      stockOnly(entry) && typeof entry?.mediaUrl === 'string' &&
+      /^[a-f0-9]{64}$/i.test(String(entry?.masterHash || ''))
+    )
+    if (heldPreview) {
+      entries.push(heldPreview)
+      console.warn('DAILY_FACTORY_CREATIVE_HOLD_REUSED',JSON.stringify({
+        targetDate:date,slot:slotTimes[i],title:effectiveItem.title,
+        masterHash:heldPreview.masterHash,publishingLocked:true
+      }))
+      continue
+    }
+
     if (reusable) {
       entries.push(reusable)
       console.log('DAILY_FACTORY_REUSE_PARTIAL', JSON.stringify({
@@ -309,6 +339,9 @@ export async function generateFor(date) {
       },
     }
     const contentHash = crypto.createHash('sha256').update(JSON.stringify(canonicalize(releasePayload))).digest('hex')
+    const previewOnly = video.professionalMasterCandidate !== true ||
+      (Array.isArray(video.sceneSources) && video.sceneSources.length > 0 &&
+        video.sceneSources.every(source => source === 'rights-cleared-stock-video'))
     const entry = {
       slot:slotTimes[i],
       title:effectiveItem.title,
@@ -329,8 +362,10 @@ export async function generateFor(date) {
       thumbnailHash:video.thumbnailHash,
       reviewAssets:video.reviewAssets,
       contentHash,
-      renderQualityGate:'PASS',
-      professionalMasterCandidate:video.professionalMasterCandidate === true,
+      renderQualityGate:previewOnly?'BLOCK':'PASS',
+      technicalRenderPassed:video.technicalRenderPassed === true,
+      visualProductionStatus:previewOnly?'STOCK_MONTAGE_CREATIVE_REVISION_REQUIRED':'INDEPENDENT_CREATIVE_REVIEW_PENDING',
+      professionalMasterCandidate:!previewOnly,
       masterReady:false,
       technicalMaster:'PENDING',
       creativeMaster:'PENDING',
@@ -354,12 +389,17 @@ export async function generateFor(date) {
       releaseStandard:'PROFESSIONAL_MASTER',
       requiredApprovals:50,
       publishingLocked:true,
-      releaseStatus:'AWAITING_MASTER_CERTIFICATION',
+      releaseStatus:previewOnly?'CREATIVE_REVISION_REQUIRED':'AWAITING_MASTER_CERTIFICATION',
+      retryEligible:!previewOnly,
       scheduledPublishAt:releasePayload.scheduledPublishAt,
       releaseReadyDeadline:new Date(slotTimestamp(date, slotTimes[i]) - RELEASE_READY_BUFFER_MS).toISOString(),
       minimumReleaseReadyBufferHours:2,
     }
     entries.push(entry)
+    if(previewOnly) console.warn('DAILY_FACTORY_CREATIVE_REVISION_REQUIRED',JSON.stringify({
+      targetDate:date,slot:slotTimes[i],title:effectiveItem.title,
+      masterHash:video.masterHash,reason:'AUTOMATED_STOCK_ONLY_MONTAGE',publishingLocked:true
+    }))
 
     const partial = {
       ok:true,
@@ -389,7 +429,9 @@ export async function generateFor(date) {
       masterHash:entry.masterHash,
     }))
   }
-  const complete = entries.length === slotTimes.length && entries.every(e => e?.renderQualityGate === 'PASS')
+  const complete = entries.length === slotTimes.length &&
+    entries.every(e => e?.renderQualityGate === 'PASS' && e?.professionalMasterCandidate === true &&
+      !rejectedVisualMaster(e))
   const manifest = {ok:complete,mission:'ONE MILLION SOULS • ONE MISSION • ONE SAVIOUR',pipelineVersion:PIPELINE_VERSION,targetDate:date,timezone:TIMEZONE,generatedAt:new Date().toISOString(),publishingLocked:true,releaseStandard:'PROFESSIONAL_MASTER',requiredApprovals:50,entries}
   // Preserve accessible old exact masters in the public review manifest while
   // the building manifest retains PRODUCTION_RETRY for autonomous repair.
@@ -418,7 +460,9 @@ export async function generateFor(date) {
     // Correct public review archive immediately if it still exposes a rejected
     // creative master. Preserve other good exact masters even on partial retry.
     if(existing?.entries?.some(rejectedVisualMaster))
-      console.warn('DAILY_FACTORY_REJECTED_VISUAL_MASTER_REMOVED',JSON.stringify({targetDate:date,title:'BE STILL',masterHash:REJECTED_BE_STILL_MASTER,publishingLocked:true}))
+      console.warn('DAILY_FACTORY_REJECTED_VISUAL_MASTER_REMOVED',JSON.stringify({
+        targetDate:date,reason:'REJECTED_MASTER_OR_AUTOMATED_STOCK_MONTAGE',publishingLocked:true
+      }))
     await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:body,ContentType:'application/json',CacheControl:'no-store'}))
   }else{
     console.warn('DAILY_FACTORY_PUBLIC_MANIFEST_PRESERVED',JSON.stringify({
