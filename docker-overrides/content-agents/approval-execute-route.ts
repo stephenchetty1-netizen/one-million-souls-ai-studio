@@ -33,7 +33,7 @@ export async function POST(req:Request){
  if(!contentHash||!masterHash)return NextResponse.json({ok:false,error:'Valid contentHash and masterHash required'},{status:400})
  const evidence=body.evidence
  if(!evidence||typeof evidence!=='object')return NextResponse.json({ok:false,blocked:true,error:'Measured evidence bundle required; executor will not synthesize approvals'},{status:423})
- const requiredEvidence=['fullWatch','technicalMaster','creativeMaster','rightsManifest','thumbnailInspection','metadataInspection','theologyInspection','factualInspection','safeZoneInspection','exportInspection','masterIntegrityInspection','captionInspection','audioInspection','visualQualityInspection','contentQualityInspection','originalityInspection','professionalExecutionInspection','lyricInspection']
+ const requiredEvidence=['fullWatch','technicalMaster','creativeMaster','rightsManifest','thumbnailInspection','metadataInspection','theologyInspection','factualInspection','scriptureContextInspection','safeZoneInspection','exportInspection','masterIntegrityInspection','captionInspection','audioInspection','voicePerformanceInspection','visualQualityInspection','frameQualityInspection','contentQualityInspection','originalityInspection','professionalExecutionInspection','platformPackagingInspection','lyricInspection']
  const missingEvidence=requiredEvidence.filter((key)=>!evidence?.[key])
  if(missingEvidence.length)return NextResponse.json({ok:false,blocked:true,error:'MASTER_READY_EVIDENCE_MISSING',missingEvidence},{status:423})
  const requiredPassEvidence=requiredEvidence
