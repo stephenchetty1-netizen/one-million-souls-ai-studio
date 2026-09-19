@@ -209,6 +209,10 @@ export async function generateFor(date) {
       entry?.fullDecodeInspection?.passed === true &&
       entry?.audioInspection?.passed === true &&
       entry?.captionInspection?.passed === true &&
+      // Reject old cached masters whose captions fail the current mobile safe zone.
+      // Never recycle a technically blocked master just to save free generation quota.
+      Number(entry?.captionInspection?.bottomSafeMargin) >= 650 &&
+      Number(entry?.captionInspection?.horizontalSafeMargin) >= 120 &&
       entry?.visualVarietyInspection?.passed === true &&
       entry?.visualStoryboardInspection?.passed === true &&
       entry?.visualStoryboardInspection?.version === 'v59-visual-coherence-v1' &&
