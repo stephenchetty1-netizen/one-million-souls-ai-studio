@@ -1,8 +1,14 @@
 import OpenAI from 'openai'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { evaluateZeroCreditAgents } from './zero-credit-review.mjs'
 
-const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY})
+const zeroCreditOnly=process.env.ZERO_CREDIT_ONLY!=='false'
+let client=null
+function openaiClient(){
+ if(!client)client=new OpenAI({apiKey:process.env.OPENAI_API_KEY})
+ return client
+}
 const model=process.env.AUTONOMY_MODEL||'gpt-5-mini'
 const audioModel=process.env.AUDIO_REVIEW_MODEL||'gpt-audio-1.5'
 
@@ -43,7 +49,7 @@ function promptFor(agentId,contentHash,masterHash,master,evidence){
 }
 
 async function textVote(agentId,payload){
- const r=await client.responses.create({model,input:JSON.stringify(payload),max_output_tokens:500})
+ const r=await openaiClient().responses.create({model,input:JSON.stringify(payload),max_output_tokens:500})
  return String(r.output_text||'').trim()
 }
 async function visualVote(agentId,payload,master){
@@ -58,11 +64,11 @@ async function visualVote(agentId,payload,master){
   {type:'input_text',text:JSON.stringify(payload)},
   ...urls.map((image_url)=>({type:'input_image',image_url})),
  ]
- const r=await client.responses.create({model,input:[{role:'user',content}],max_output_tokens:650})
+ const r=await openaiClient().responses.create({model,input:[{role:'user',content}],max_output_tokens:650})
  return String(r.output_text||'').trim()
 }
 async function audioVote(agentId,payload,bytes){
- const r=await client.chat.completions.create({
+ const r=await openaiClient().chat.completions.create({
   model:audioModel,
   messages:[{role:'user',content:[
    {type:'text',text:JSON.stringify(payload)},
@@ -74,8 +80,7 @@ async function audioVote(agentId,payload,bytes){
 }
 
 export async function evaluateMaster({contentHash,masterHash,master,evidence}){
- if(process.env.ZERO_CREDIT_ONLY==='true')throw new Error('ZERO_CREDIT_POLICY_ACTIVE_PAID_AI_DISABLED')
- if(!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
+ if(!zeroCreditOnly&&!process.env.OPENAI_API_KEY)throw new Error('OPENAI_API_KEY_MISSING')
  if(!/^[a-f0-9]{64}$/i.test(contentHash)||!/^[a-f0-9]{64}$/i.test(masterHash))throw new Error('INVALID_MASTER_IDENTITY')
  if(!master||!evidence)throw new Error('REAL_MASTER_AND_MEASURED_EVIDENCE_REQUIRED')
  const missingEvidence=REQUIRED_EVIDENCE.filter((key)=>!evidence?.[key])
@@ -84,6 +89,7 @@ export async function evaluateMaster({contentHash,masterHash,master,evidence}){
  if(failedEvidence.length)throw new Error('PROFESSIONAL_MASTER_EVIDENCE_NOT_PASS:'+failedEvidence.join(','))
 
  const policy=JSON.parse(await fs.readFile(path.join(process.cwd(),'content-agents','approval-policy.json'),'utf8'))
+ if(zeroCreditOnly)return evaluateZeroCreditAgents({contentHash,masterHash,evidence,requiredAgents:policy.requiredAgents||[]})
  const decisions={}
  let audio=null
  for(const agentId of policy.requiredAgents){
