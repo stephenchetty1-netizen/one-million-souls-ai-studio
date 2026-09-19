@@ -398,8 +398,7 @@ export async function runCertificationCycle(){
       continue
     }
     if(hasAnyRecordedVotes(state)){
-      console.warn('MASTER_CERTIFICATION_PARTIAL_APPROVALS_LOCKED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash}))
-      continue
+      console.warn('MASTER_CERTIFICATION_PARTIAL_APPROVALS_RECOVERY',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,reason:'Existing non-terminal approvals will be re-evaluated on the same immutable hash to complete durable certification.'}))
     }
 
     console.log('MASTER_CERTIFICATION_CANDIDATE',JSON.stringify({targetDate:entry.targetDate,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash}))
@@ -467,6 +466,30 @@ export async function runCertificationCycle(){
       contentHash:entry.contentHash,masterHash:entry.masterHash,
       certification:execution?.certification,releaseStatus:execution?.releaseStatus,recorded:execution?.recorded
     }))
+    if(execution?.certification!=='PROFESSIONAL_MASTER_CERTIFIED'){
+      const failedVotes=Object.entries(evaluation.decisions||{})
+        .filter(([agentId,v])=>agentId!=='publisher'&&v?.decision!=='APPROVE')
+        .map(([agentId,v])=>({agentId,decision:v?.decision,evidence:String(v?.evidence||'').slice(0,2000)}))
+      if(failedVotes.length){
+        const contentAgents=new Set([
+          'theology-guard','script-writer','content-director','metadata-strategist','platform-packaging-producer',
+          'scripture-context-auditor','factual-verification-auditor','devotional-punchup-editor','story-arc-writer',
+          'concept-architect','channel-strategist','hook-lab'
+        ])
+        const needsContentRevision=failedVotes.some((x)=>contentAgents.has(x.agentId))
+        if(needsContentRevision){
+          try{
+            const replacement=await reviseContent(entry,failedVotes)
+            await requestProductionRetry(entry,`AGENT_RELEASE_REVIEW_CONTENT_REVISION: ${JSON.stringify(failedVotes)}`,replacement)
+            console.warn('MASTER_CERTIFICATION_AGENT_REVISION_QUEUED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,newTitle:replacement.title,failedAgents:failedVotes.map((x)=>x.agentId)}))
+          }catch(error){
+            console.error('MASTER_CERTIFICATION_AGENT_REVISION_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error),failedAgents:failedVotes.map((x)=>x.agentId)}))
+          }
+        }else{
+          await requestProductionRetry(entry,`AGENT_RELEASE_REVIEW_MEDIA_REVISION: ${JSON.stringify(failedVotes)}`)
+        }
+      }
+    }
     return {ok:execution?.certification==='PROFESSIONAL_MASTER_CERTIFIED',entry:{targetDate:entry.targetDate,slot:entry.slot,title:entry.title,contentHash:entry.contentHash,masterHash:entry.masterHash},execution}
   }
   return {ok:true,skipped:true,reason:'NO_PENDING_CERTIFIABLE_MASTER'}
