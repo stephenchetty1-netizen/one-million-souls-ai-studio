@@ -1,10 +1,13 @@
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
+import { runYoutubeGrowthScan } from '../content-agents/youtube-growth-swarm.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
 const provider=Boolean(process.env.OPENAI_API_KEY||process.env.ANTHROPIC_API_KEY||process.env.GEMINI_API_KEY)
+const growthIntervalMs=Math.max(6,Number(process.env.YOUTUBE_GROWTH_INTERVAL_HOURS||6))*60*60*1000
+let lastGrowthScanAt=0
 
 if (process.argv.includes('--with-app')) {
   console.log('V59_AUTONOMY_SUPERVISOR '+JSON.stringify({mode:'24X7',failClosed:true,worker:'enabled',entrypoint:'npm-start'}))
@@ -23,6 +26,16 @@ async function cycle(){
  const evidence={at:new Date().toISOString(),providerConnected:provider}
  evidence.systemAgents=await call('/api/system-agents/autonomy-status')
  evidence.contentAgents=await call('/api/content-agents/status')
+ if(Date.now()-lastGrowthScanAt>=growthIntervalMs){
+   try{
+     evidence.youtubeGrowth=await runYoutubeGrowthScan()
+     lastGrowthScanAt=Date.now()
+     console.log('YOUTUBE_GROWTH_SCAN',JSON.stringify(evidence.youtubeGrowth))
+   }catch(error){
+     evidence.youtubeGrowth={ok:false,error:String(error?.message||error),zeroCreditOnly:true}
+     console.error('YOUTUBE_GROWTH_SCAN_BLOCKED',JSON.stringify(evidence.youtubeGrowth))
+   }
+ }
  if(!provider) throw new Error('AUTONOMY_REASONING_PROVIDER_MISSING')
  const planText=await call('/api/content-agents/plan','POST',{mode:'SHORT'})
  evidence.plan=planText
