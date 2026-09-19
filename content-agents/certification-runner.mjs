@@ -15,6 +15,7 @@ const rendererBase=String(
 const cronSecret=process.env.CRON_SECRET||''
 const renderSecret=process.env.VIDEO_RENDER_SECRET||''
 const advanceDays=Math.max(2,Number(process.env.CONTENT_BUFFER_DAYS||7))
+const reviewBackoffUntil=new Map()
 
 function futureDate(days=1){
   const d=new Date(Date.now()+days*24*60*60*1000)
@@ -278,6 +279,23 @@ async function approvalState(entry){
   const url=`${v59Base}/api/content-agents/approval-record?contentHash=${encodeURIComponent(entry.contentHash)}&masterHash=${encodeURIComponent(entry.masterHash)}`
   return fetchJson(url,cronSecret)
 }
+async function requestProductionRetry(entry,reason){
+  try{
+    const result=await postJson(`${rendererBase}/factory-retry`,{
+      date:entry.targetDate,slot:entry.slot,expectedMasterHash:entry.masterHash,reason
+    },renderSecret)
+    console.warn('MASTER_CERTIFICATION_RETURNED_TO_PRODUCTION',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,targetDate:entry.targetDate,slot:entry.slot,retryAttempt:result?.retryAttempt}))
+    return result
+  }catch(error){
+    console.error('MASTER_CERTIFICATION_RETRY_REQUEST_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error)}))
+    return null
+  }
+}
+function contentLevelFailures(failed){
+  const contentGates=new Set(['theologyInspection','factualInspection','scriptureContextInspection','metadataInspection','contentQualityInspection','originalityInspection','platformPackagingInspection'])
+  return failed.filter((x)=>contentGates.has(x.gate))
+}
+
 async function recordQaBlock(entry,stage,details){
   const evidence=`BLOCK - ${stage}: ${typeof details==='string'?details:JSON.stringify(details)}`.slice(0,12000)
   try{
@@ -333,6 +351,11 @@ export async function runCertificationCycle(){
       continue
     }
     if(state?.certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&state?.certificate?.masterHash===entry.masterHash)continue
+    const reviewKey=`${entry.contentHash}:${entry.masterHash}`
+    if(Number(reviewBackoffUntil.get(reviewKey)||0)>Date.now()){
+      console.warn('MASTER_CERTIFICATION_REVIEW_BACKOFF',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,retryAt:new Date(reviewBackoffUntil.get(reviewKey)).toISOString()}))
+      continue
+    }
     if(hasPriorTerminalVotes(state)){
       console.warn('MASTER_CERTIFICATION_REQUIRES_NEW_VERSION',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,reason:'EXISTING_REVISE_OR_BLOCK'}))
       continue
@@ -350,6 +373,7 @@ export async function runCertificationCycle(){
       const block={technical:technical.status,rights:rights.status,integrity:integrity.status,technicalNotes:technical.notes,rightsNotes:rights.notes,integrityNotes:integrity.notes}
       console.error('MASTER_CERTIFICATION_OBJECTIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,...block}))
       await recordQaBlock(entry,'OBJECTIVE_PREFLIGHT',block)
+      if(technical.status!=='PASS'||integrity.status!=='PASS')await requestProductionRetry(entry,`OBJECTIVE_PREFLIGHT: ${JSON.stringify(block)}`)
       return {ok:false,blocked:true,stage:'OBJECTIVE_PREFLIGHT',contentHash:entry.contentHash,masterHash:entry.masterHash}
     }
 
@@ -362,15 +386,18 @@ export async function runCertificationCycle(){
     }catch(error){
       const message=error instanceof Error?error.message:String(error)
       console.error('MASTER_CERTIFICATION_REVIEW_EXECUTION_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}))
-      await recordQaBlock(entry,'MULTIMODAL_REVIEW_EXECUTION_FAILED',message)
-      return {ok:false,blocked:true,stage:'MULTIMODAL_REVIEW',contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}
+      reviewBackoffUntil.set(reviewKey,Date.now()+30*60*1000)
+      return {ok:false,blocked:true,transient:true,stage:'MULTIMODAL_REVIEW',contentHash:entry.contentHash,masterHash:entry.masterHash,error:message}
     }
     const evidence=aggregateEvidence(entry,technical,rights,integrity,visual,audio)
     if(!allEvidencePass(evidence)){
       const failed=Object.entries(evidence).filter(([,v])=>v?.status!=='PASS').map(([k,v])=>({gate:k,status:v?.status,notes:v?.notes}))
       console.error('MASTER_CERTIFICATION_CREATIVE_BLOCK',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed}))
       await recordQaBlock(entry,'PROFESSIONAL_MASTER_PREFLIGHT',failed)
-      return {ok:false,blocked:true,stage:'PROFESSIONAL_MASTER_PREFLIGHT',contentHash:entry.contentHash,masterHash:entry.masterHash,evidence}
+      const contentFailures=contentLevelFailures(failed)
+      if(!contentFailures.length)await requestProductionRetry(entry,`PROFESSIONAL_MASTER_PREFLIGHT: ${JSON.stringify(failed)}`)
+      else console.error('MASTER_CERTIFICATION_CONTENT_REVISION_REQUIRED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,failed:contentFailures}))
+      return {ok:false,blocked:true,stage:'PROFESSIONAL_MASTER_PREFLIGHT',contentRevisionRequired:contentFailures.length>0,contentHash:entry.contentHash,masterHash:entry.masterHash,evidence}
     }
 
     const master={
