@@ -74,6 +74,23 @@ for(let i=0;i<entries.length;i+=3){
  }))
  for(const outcome of outcomes)mediaChecks.push(...outcome)
 }
+const integrityFailures=new Set(failed.map(item=>item.date+'|'+item.slot))
+const technicalChecks=entries.map(entry=>{
+ const m=entry.measured||{}
+ const failedGates=[]
+ for(const gate of ['renderQualityGate','fullDecodeInspection','masterInspection','audioInspection','captionInspection']){
+  const value=m[gate]
+  const passed=gate==='renderQualityGate'?(value==='PASS'||value?.passed===true):value?.passed===true
+  if(!passed)failedGates.push(gate)
+ }
+ if(Number(m.captionInspection?.bottomSafeMargin)<650)failedGates.push('captionBottomSafeMargin650')
+ if(integrityFailures.has(entry.date+'|'+entry.slot))failedGates.push('mediaIntegrity')
+ return {date:entry.date,slot:entry.slot,title:entry.title,masterHash:entry.masterHash,status:failedGates.length?'TECHNICAL_BLOCK':'TECHNICAL_PASS_CREATIVE_REVIEW_PENDING',failedGates,publishingLocked:true}
+})
+const technicalSummary={expected:days*3,available:entries.length,technicalPassed:technicalChecks.filter(x=>x.status==='TECHNICAL_PASS_CREATIVE_REVIEW_PENDING').length,technicalBlocked:technicalChecks.filter(x=>x.status==='TECHNICAL_BLOCK').length,missing:days*3-entries.length,independentlyApproved:0,publishingLocked:true,checks:technicalChecks,at:new Date().toISOString()}
+const technicalKey=redisKey+':autonomous-technical-review'
+if(await durableRedis(['SET',technicalKey,JSON.stringify(technicalSummary)])!=='OK')throw new Error('AUTONOMOUS_TECHNICAL_REVIEW_WRITE_FAILED')
+console.log('AUTONOMOUS_TECHNICAL_REVIEW_SUMMARY '+JSON.stringify(technicalSummary))
 const verification={startDate:start,days,expected:entries.length*2,verified:mediaChecks.length,failed,publishingLocked:true,reviewStatus:'NOT_INDEPENDENTLY_APPROVED',at:new Date().toISOString()}
 const verificationKey=redisKey+':media-integrity'
 if(await durableRedis(['SET',verificationKey,JSON.stringify(verification)])!=='OK')throw new Error('MEDIA_INTEGRITY_RESULT_DURABLE_WRITE_FAILED')
