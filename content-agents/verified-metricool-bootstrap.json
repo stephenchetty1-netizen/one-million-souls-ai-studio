@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "description": "Read-only analytics snapshot obtained from the account owner's connected Metricool account. This is a dated bootstrap, not an autonomous Metricool API connection.",
-  "capturedAt": "2026-09-19T11:35:00.000Z",
+  "description": "Dated read-only snapshots from the connected Metricool account. Per-platform capturedAt is authoritative. This is a bootstrap, not an autonomous Metricool API connection.",
+  "capturedAt": "2026-09-19T12:00:56.689Z",
   "snapshots": {
     "tiktok": {
       "platform": "tiktok",
       "source": "CONNECTED_METRICOOL",
-      "capturedAt": "2026-09-19T11:35:00.000Z",
+      "capturedAt": "2026-09-19T12:00:56.689Z",
       "metricNames": [
         "views",
         "likes",
@@ -26,8 +26,7 @@
           "likes": 23,
           "comments": 3,
           "shares": 1,
-          "averageWatchSeconds": 6,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7687002827645930759"
+          "averageWatchSeconds": 6
         },
         {
           "postId": "7686634937579080978",
@@ -38,8 +37,7 @@
           "likes": 28,
           "comments": 2,
           "shares": 2,
-          "averageWatchSeconds": 6,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7686634937579080978"
+          "averageWatchSeconds": 6
         },
         {
           "postId": "7686261392588016903",
@@ -50,8 +48,7 @@
           "likes": 14,
           "comments": 0,
           "shares": 1,
-          "averageWatchSeconds": 5,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7686261392588016903"
+          "averageWatchSeconds": 5
         },
         {
           "postId": "7685885904065432850",
@@ -62,8 +59,7 @@
           "likes": 13,
           "comments": 1,
           "shares": 0,
-          "averageWatchSeconds": 6,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7685885904065432850"
+          "averageWatchSeconds": 6
         },
         {
           "postId": "7685523920270806279",
@@ -74,8 +70,7 @@
           "likes": 16,
           "comments": 1,
           "shares": 0,
-          "averageWatchSeconds": 8,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7685523920270806279"
+          "averageWatchSeconds": 8
         },
         {
           "postId": "7685145323144154386",
@@ -86,8 +81,7 @@
           "likes": 28,
           "comments": 0,
           "shares": 0,
-          "averageWatchSeconds": 8,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7685145323144154386"
+          "averageWatchSeconds": 8
         },
         {
           "postId": "7684790341001563410",
@@ -98,8 +92,7 @@
           "likes": 26,
           "comments": 1,
           "shares": 0,
-          "averageWatchSeconds": 7,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7684790341001563410"
+          "averageWatchSeconds": 7
         },
         {
           "postId": "7684401667541912840",
@@ -110,8 +103,7 @@
           "likes": 23,
           "comments": 1,
           "shares": 1,
-          "averageWatchSeconds": 7,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7684401667541912840"
+          "averageWatchSeconds": 7
         },
         {
           "postId": "7684058041024630024",
@@ -122,8 +114,7 @@
           "likes": 36,
           "comments": 5,
           "shares": 2,
-          "averageWatchSeconds": 17,
-          "sourceUrl": "https://www.tiktok.com/@stephen_chetty/video/7684058041024630024"
+          "averageWatchSeconds": 17
         }
       ]
     },
