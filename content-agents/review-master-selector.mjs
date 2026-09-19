@@ -5,7 +5,15 @@ const REJECTED_BE_STILL_SHAS=new Set([
   'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
 ])
 const validHash=value=>/^[a-f0-9]{64}$/i.test(String(value||''))
+function short59Valid(entry){
+  const seconds=Number(entry?.durationSeconds||0)
+  const width=Number(entry?.width||entry?.masterInspection?.width||0)
+  const height=Number(entry?.height||entry?.masterInspection?.height||0)
+  const fps=Number(entry?.fps||entry?.masterInspection?.fps||0)
+  return seconds>=58.7&&seconds<=59.3&&width>=1080&&height>=1920&&height>width&&fps>=29.9
+}
 export function creativelyRejected(entry){
+  if(entry?.mediaUrl&&!short59Valid(entry))return true
   if(REJECTED_BE_STILL_SHAS.has(String(entry?.masterHash||'').toLowerCase()))return true
   if(Array.isArray(entry?.sceneSources)&&entry.sceneSources.length>0&&
     entry.sceneSources.every(source=>source==='rights-cleared-stock-video'))return true
