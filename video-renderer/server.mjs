@@ -376,4 +376,18 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`One Million Souls video renderer listening on ${PORT}`)
+  // Trigger a single authenticated-provider import on explicit operator opt-in.
+  // S3 per-source cache is durable, so a restart does not duplicate downloads.
+  // Source clips are NOT made public or promoted to approved video masters.
+  if (process.env.PEXELS_STAGE_ON_BOOT === 'true') {
+    console.log('PEXELS_BOOT_STAGE_REQUESTED',JSON.stringify({
+      collection:'BE_STILL_PEXELS_V1',publishingLocked:true
+    }))
+    void stagePexelsCollection('BE_STILL_PEXELS_V1')
+      .then(result=>console.log('PEXELS_BOOT_STAGE_RESULT',JSON.stringify(result)))
+      .catch(error=>console.error('PEXELS_BOOT_STAGE_FAILED',JSON.stringify({
+        error:error instanceof Error?error.message:String(error),
+        publishingLocked:true
+      })))
+  }
 })
