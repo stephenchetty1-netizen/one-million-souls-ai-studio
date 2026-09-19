@@ -1,21 +1,15 @@
 import { NextResponse } from 'next/server'
 import crypto from 'node:crypto'
 import { POST as campaignPOST } from '@/app/api/campaign/execute/route'
+import { durableRedis } from '@/content-agents/durable-redis.mjs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const redisUrl = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '').replace(/\/$/, '')
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''
 const LOCK_TTL_SECONDS = 36 * 60 * 60
 
-async function redis(command:any[]) {
-  if (!redisUrl || !redisToken) throw new Error('DURABLE_IDEMPOTENCY_STORE_NOT_CONFIGURED')
-  const response = await fetch(redisUrl,{method:'POST',headers:{authorization:`Bearer ${redisToken}`,'content-type':'application/json'},body:JSON.stringify(command),cache:'no-store'})
-  if(!response.ok) throw new Error(`IDEMPOTENCY_STORE_HTTP_${response.status}`)
-  return (await response.json())?.result
-}
+const redis=durableRedis
 
 async function claim(key:string) {
   try { const result=await redis(['SET',key,new Date().toISOString(),'NX','EX',LOCK_TTL_SECONDS]); return result==='OK'?{ok:true}:{ok:false,reason:'ALREADY_EXECUTED_OR_IN_PROGRESS'} }
