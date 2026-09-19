@@ -7,7 +7,7 @@ export const PEXELS_COLLECTIONS=Object.freeze({
   'BE_STILL_PEXELS_V1':Object.freeze([
     {id:5206028,beat:'TENSION',intent:'Person stops striving and sits in quiet prayer'},
     {id:5206029,beat:'SCRIPTURE',intent:'Bible study and page turn in the same home environment'},
-    {id:5206032,beat:'RESPONSE',intent:'Personal prayer at a Bible, not unrelated scenic filler'},
+    {id:5206136,beat:'RESPONSE',intent:'Man prays over a Bible in a matching dim indoor setting; choose native portrait video'},
   ]),
 })
 const STORAGE_PREFIX='internal/pexels-source-candidates/v1'
