@@ -3,6 +3,7 @@ import { setTimeout as sleep } from 'node:timers/promises'
 import { runCertificationCycle } from '../content-agents/certification-runner.mjs'
 import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runDueAutonomousGrowthBots } from './autonomous-growth-bots.mjs'
+import { bootstrapAnalyticsSnapshotEnv } from '../content-agents/growth-analytics-snapshot.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
@@ -77,5 +78,7 @@ async function cycle(){
  return evidence
 }
 await waitReady()
+const analyticsBootstrap=await bootstrapAnalyticsSnapshotEnv()
+console.log('ANALYTICS_BOOTSTRAP',JSON.stringify(analyticsBootstrap))
 console.log('AUTONOMY_WORKER_READY',JSON.stringify({base,providerConnected:provider,failClosed:true}))
 for(;;){try{const e=await cycle();console.log('AUTONOMY_CYCLE_PASS',JSON.stringify(e))}catch(err){console.error('AUTONOMY_CYCLE_BLOCKED',JSON.stringify({at:new Date().toISOString(),error:String(err?.message||err)}))}await sleep(120000)}
