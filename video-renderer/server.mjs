@@ -307,6 +307,7 @@ const server = http.createServer(async (req, res) => {
         slot:body?.slot,
         expectedMasterHash:body?.expectedMasterHash,
         reason:body?.reason,
+        replacement:body?.replacement,
       })
       return sendJson(res, 202, result)
     } catch (error) {
