@@ -37,7 +37,11 @@ function short59Valid(entry){
 }
 const REJECTED_BE_STILL_MASTERS=new Set([
   '1051326a9a05f2912096b5c2e18bf59595b01b0bbca289b7833c12192c68767e',
-  'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea'
+  'a7896243ecab6a778ac39ca61147c26dd575fe9612d5f7e3fc2f9db76812e6ea',
+  // Rejected Amazing Grace Pexels visuals: 59s portrait, 4m landscape, and 18s proof of concept.
+  '9ce6a7c24f91f24c11d0e4ce20210712ec5a82b050a9b4960607d1e7ecd064e0',
+  '7c83f42184d5df46cdb9f86ba066e84c7354b02114c9e60fa9a434b6d3d4105b',
+  '26e66db356fd15971b59d2084bd6d9fc14854a8da6490c2b56076951937ba2d3'
 ])
 function rejectedVisualMaster(entry){
   if(entry?.mediaUrl&&!short59Valid(entry))return true
