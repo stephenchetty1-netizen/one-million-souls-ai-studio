@@ -484,7 +484,11 @@ export async function runCertificationCycle(){
       console.warn('MASTER_CERTIFICATION_APPROVAL_STATE_FAILED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,error:error instanceof Error?error.message:String(error)}))
       continue
     }
-    if(state?.certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&state?.certificate?.masterHash===entry.masterHash)continue
+    if(state?.certificate?.certification==='PROFESSIONAL_MASTER_CERTIFIED'&&state?.certificate?.masterHash===entry.masterHash){
+      if(state.certificate.reviewStandardVersion==='v59-independent-exact-master-v2')continue
+      console.warn('MASTER_CERTIFICATION_LEGACY_CERTIFICATE_REJECTED',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,reason:'Legacy proxy-only certificate is not independent exact-master evidence; requires a new curated production version and independent review.'}))
+      continue
+    }
     const reviewKey=`${entry.contentHash}:${entry.masterHash}`
     if(Number(reviewBackoffUntil.get(reviewKey)||0)>Date.now()){
       console.warn('MASTER_CERTIFICATION_REVIEW_BACKOFF',JSON.stringify({contentHash:entry.contentHash,masterHash:entry.masterHash,retryAt:new Date(reviewBackoffUntil.get(reviewKey)).toISOString()}))
