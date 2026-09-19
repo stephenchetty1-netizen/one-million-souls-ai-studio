@@ -6,7 +6,7 @@ const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const SECRET = process.env.VIDEO_RENDER_SECRET || ''
 const enabled = process.env.DAILY_FACTORY_ENABLED !== 'false'
 const storageReady = Boolean(process.env.ENDPOINT && process.env.BUCKET && process.env.REGION && process.env.ACCESS_KEY_ID && process.env.SECRET_ACCESS_KEY)
-const PIPELINE_VERSION = 'v59-professional-master-certified-v8'
+const PIPELINE_VERSION = 'v59-professional-master-certified-v9'
 const RELEASE_READY_BUFFER_MS = 2 * 60 * 60 * 1000
 const ADVANCE_DAYS = Math.max(2, Number(process.env.CONTENT_BUFFER_DAYS || 7))
 
@@ -211,6 +211,7 @@ async function generateFor(date) {
       scriptureReference:item.ref,
       caption:item.caption,
       mediaMasterHash:video.masterHash,
+      thumbnailHash:video.thumbnailHash,
       slot:slotTimes[i],
       targetDate:date,
     })).digest('hex')
