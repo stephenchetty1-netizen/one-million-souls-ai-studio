@@ -9,7 +9,7 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
  && test -f package.json \
  && test -d app
 
-RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute app/api/content-agents/youtube-growth app/api/content-agents/tiktok-growth app/api/content-agents/autonomous-bots app/api/content-agents/growth-metrics app/api/content-agents/analytics-ingest
+RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute app/api/content-agents/youtube-growth app/api/content-agents/tiktok-growth app/api/content-agents/autonomous-bots app/api/content-agents/growth-metrics app/api/content-agents/analytics-ingest app/api/content-agents/v60-experiments
 COPY content-agents /workspace/content-agents
 COPY docker-overrides/content-agents/status-route.ts /workspace/app/api/content-agents/status/route.ts
 COPY docker-overrides/content-agents/queue-route.ts /workspace/app/api/content-agents/queue/route.ts
@@ -19,6 +19,7 @@ COPY docker-overrides/content-agents/approval-execute-route.ts /workspace/app/ap
 COPY docker-overrides/content-agents/youtube-growth-route.ts /workspace/app/api/content-agents/youtube-growth/route.ts
 COPY docker-overrides/content-agents/tiktok-growth-route.ts /workspace/app/api/content-agents/tiktok-growth/route.ts
 COPY docker-overrides/content-agents/autonomous-bots-route.ts /workspace/app/api/content-agents/autonomous-bots/route.ts
+COPY docker-overrides/content-agents/v60-experiments-route.ts /workspace/app/api/content-agents/v60-experiments/route.ts
 COPY docker-overrides/content-agents/growth-metrics-route.ts /workspace/app/api/content-agents/growth-metrics/route.ts
 COPY docker-overrides/content-agents/analytics-ingest-route.ts /workspace/app/api/content-agents/analytics-ingest/route.ts
 RUN mkdir -p app/api/system-agents/status app/api/system-agents/plan
