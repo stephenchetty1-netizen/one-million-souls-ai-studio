@@ -3,6 +3,7 @@ import path from 'node:path'
 import { loadTikTokGrowthState, rememberTikTokGrowthScan } from './tiktok-growth-memory.mjs'
 import { recommendChannelAttractions } from './channel-attraction-selector.mjs'
 import { loadVerifiedPerformance } from './verified-performance-evidence.mjs'
+import { planRetentionExperiments } from './v60-retention-experiments.mjs'
 import { runGrowthMultiplier } from './growth-multiplier.mjs'
 
 export const TIKTOK_GROWTH_BOTS=Object.freeze([
@@ -266,6 +267,7 @@ export async function runTikTokGrowthScan(input={}){
     recentPerformance:posts.slice(0,12),
     opportunities,
     channelAttractions:attractions,
+    v60RetentionExperimentPlan:planRetentionExperiments({platform:'tiktok',evidence:verifiedPerformance}),
     verifiedPerformance:{source:verifiedPerformance.source||null,transport:verifiedPerformance.transport,capturedAt:verifiedPerformance.capturedAt,freshness:verifiedPerformance.freshness,postCount:verifiedPerformance.postCount,measuredPostCount:verifiedPerformance.measuredPostCount,measuredRecordsUsed:measuredRecords.length,autonomousUpstreamConfigured:verifiedPerformance.autonomousUpstreamConfigured,warning:verifiedPerformance.warning||verifiedPerformance.persistenceWarning||null},
     growthMultiplier:multiplier,
     retention:retentionActions(input.metrics?.durationSeconds?input.metrics:(posts[0]||base?.recentPostSignal||{})),
