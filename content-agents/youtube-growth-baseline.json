@@ -1,23 +1,23 @@
 {
   "source": "Metricool connected YouTube analytics",
-  "capturedAt": "2026-09-19",
+  "capturedAt": "2026-09-20",
   "window": {
-    "from": "2026-08-20",
-    "to": "2026-09-19"
+    "from": "2026-08-22",
+    "to": "2026-09-20 (partial day)"
   },
   "metrics": {
-    "videoViews": 9749,
-    "uploads": 39,
-    "subscribersGained": 23,
+    "videoViews": 9203,
+    "uploads": 34,
+    "subscribersGained": 21,
     "subscribersLost": 4,
-    "netSubscribers": 19,
-    "viewsPerUpload": 249.97,
-    "latestObservedSubscribers": 184
+    "netSubscribers": 17,
+    "viewsPerUpload": 270.68,
+    "latestObservedSubscribers": 186
   },
   "audienceTiming": {
     "timezone": "Africa/Johannesburg",
     "strongestRecurringHour": 16,
-    "note": "Metricool audience-availability values were strongest around 16:00 on most observed days, especially midweek."
+    "note": "Metricool YouTube audience-availability forecast for 21–27 September is strongest around 16h00 SAST on most weekdays. This is an audience-availability indicator, not a guarantee of increased views."
   },
-  "purpose": "Initial zero-credit benchmark only. Replace with fresher measured channel analytics as they become available."
+  "purpose": "Measured zero-credit benchmark for 30 calendar dates, including a partial final day; use fresher actual per-video retention and reach signals before treating any format as a winner."
 }
