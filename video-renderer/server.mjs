@@ -72,7 +72,7 @@ function reviewSessionValid(req){
  if(!raw)return false
  const token=raw.slice('oms_christian_review='.length)
  const [time,signature]=token.split('.')
- if(!/^\\d{13}$/.test(time)||!/^[a-f0-9]{64}$/.test(signature||''))return false
+ if(!/^\d{13}$/.test(time)||!/^[a-f0-9]{64}$/.test(signature||''))return false
  if(Date.now()-Number(time)>2*60*60*1000||Number(time)>Date.now()+60000)return false
  const expected=crypto.createHmac('sha256',SECRET).update('christian-review:'+time).digest('hex')
  return crypto.timingSafeEqual(Buffer.from(signature,'hex'),Buffer.from(expected,'hex'))
