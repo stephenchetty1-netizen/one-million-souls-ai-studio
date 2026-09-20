@@ -16,12 +16,12 @@ const metadata={
  hasConflictingReligiousTextOrRitual:false,
 }
 test('user rejected 59s, long form and inherited 18s exact masters',()=>{
- assert.equal(REVOKED_WORSHIP_MASTERS.length,3)
+ assert.equal(REVOKED_WORSHIP_MASTERS.length,4)
  for(const master of REVOKED_WORSHIP_MASTERS)assert.equal(worshipMasterRevoked(master),true)
  assert.equal(worshipMasterRevoked('not-rejected'),false)
 })
 test('public rejected video and contact sheet links are withdrawn',()=>{
- assert.equal(REVOKED_WORSHIP_MEDIA_KEYS.length,6)
+ assert.equal(REVOKED_WORSHIP_MEDIA_KEYS.length,11)
  for(const key of REVOKED_WORSHIP_MEDIA_KEYS)assert.equal(worshipMediaRevoked(key),true)
  assert.equal(worshipMediaRevoked('music-video-review-v1/SHORT_59/NEW.mp4'),false)
 })
@@ -49,4 +49,10 @@ test('review readiness is editorially blocked despite physically downloaded clip
  assert.equal(report.totalClips,2)
  assert.equal(report.pending.length,1)
  assert.equal(report.publishingAllowed,false)
+})
+
+test('the earlier BE STILL scene-proof draft cannot survive editorial revocation',()=>{
+ assert.equal(worshipMasterRevoked('b2e593bbea508c0941aa38dad56454832f06ab8c711ef88c45b67da35f769157'),true)
+ assert.equal(worshipMediaRevoked('renders-v2/2026-09-19/b8fda554-9723-4a73-81af-e5b72cfeef36.mp4'),true)
+ assert.equal(worshipMediaRevoked('review-v2/2026-09-19/b8fda554-9723-4a73-81af-e5b72cfeef36-contact.jpg'),true)
 })

@@ -670,9 +670,10 @@ export async function renderFreeV2(body = {}) {
   const scriptureReference=cleanText(body?.scriptureReference||body?.ref||
     script.match(/\b(?:Matthew|Mark|Luke|John|Romans|Psalms?|Isaiah|Jeremiah|Hebrews|Philippians|Lamentations|Corinthians)\s+\d+:\d+(?:-\d+)?\b/i)?.[0]||'')
   const pexelsReviewCollection=String(body?.pexelsReviewCollection||'').trim()
-  if(pexelsReviewCollection &&
-      (pexelsReviewCollection!=='BE_STILL_PEXELS_V1'||title.trim().toUpperCase()!=='BE STILL'))
-    throw new Error('PEXELS_REVIEW_DRAFT_NOT_AUTHORIZED')
+  // The legacy 3-clip Pexels editorial preview reused imagery the user rejected.
+  // No new render may resurrect it under a new hash or public URL.
+  if(pexelsReviewCollection)
+    throw new Error('PEXELS_LEGACY_REVIEW_COLLECTION_EDITORIALLY_REVOKED')
   const plannedStoryboard=planVisualStory({title,script,scriptureReference,visualPrompts:body?.visualPrompts})
   const storyboard=pexelsReviewCollection
     ? buildPexelsReviewStoryboard(plannedStoryboard,pexelsReviewCollection)

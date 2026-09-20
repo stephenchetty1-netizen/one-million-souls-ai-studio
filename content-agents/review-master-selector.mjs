@@ -6,7 +6,9 @@ const REJECTED_BE_STILL_SHAS=new Set([
   // Rejected Amazing Grace Pexels visuals: 59s portrait, 4m landscape, and 18s proof of concept.
   '9ce6a7c24f91f24c11d0e4ce20210712ec5a82b050a9b4960607d1e7ecd064e0',
   '7c83f42184d5df46cdb9f86ba066e84c7354b02114c9e60fa9a434b6d3d4105b',
-  '26e66db356fd15971b59d2084bd6d9fc14854a8da6490c2b56076951937ba2d3'
+  '26e66db356fd15971b59d2084bd6d9fc14854a8da6490c2b56076951937ba2d3',
+  // Reused same three editorially rejected clips in the 19.73s BE STILL render.
+  'b2e593bbea508c0941aa38dad56454832f06ab8c711ef88c45b67da35f769157'
 ])
 const validHash=value=>/^[a-f0-9]{64}$/i.test(String(value||''))
 function short59Valid(entry){
