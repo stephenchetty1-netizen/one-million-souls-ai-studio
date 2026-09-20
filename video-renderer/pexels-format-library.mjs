@@ -358,6 +358,18 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
    failures,invalidSources,publishingLocked:true,noPaidGenerationCredits:true,
    assets,generatedAt:new Date().toISOString()
  }
+ // Source reviewers may write a new exact-SHA decision while staging is
+ // downloading and decoding clips. Do not overwrite that decision with the
+ // stale inventory read at the beginning of this run. Fail closed and let the
+ // next stage run consume the newer reviewed manifest.
+ const latest=await readJson(store,manifestKey)
+ if(JSON.stringify(latest)!==JSON.stringify(old)){
+   console.warn('PEXELS_MANIFEST_CHANGED_DURING_STAGE',JSON.stringify({
+     format,collection:plan.collection,reason:'CONCURRENT_SOURCE_REVIEW_OR_STAGE',
+     publishingAllowed:false
+   }))
+   throw new Error('PEXELS_MANIFEST_CONCURRENT_REVIEW_RETRY_REQUIRED')
+ }
  await store.send(new PutObjectCommand({Bucket:process.env.BUCKET,
    Key:manifestKey,Body:JSON.stringify(manifest,null,2),
    ContentType:'application/json',CacheControl:'private, no-store'}))
