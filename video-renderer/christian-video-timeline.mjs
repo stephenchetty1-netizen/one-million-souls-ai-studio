@@ -5,6 +5,7 @@ import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {GetObjectCommand} from '@aws-sdk/client-s3'
 import {requireChristianVideoFormat} from './christian-video-formats.mjs'
+import {christianVisualSourceReviewed} from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync=promisify(execFile)
 const LIMIT=180*1024*1024
@@ -19,7 +20,8 @@ export function verifyChristianVideoSceneMetadata(source,formatId,collection){
     source.license!=='Pexels License'||
     !/^https:\/\/www\.pexels\.com\/video\//.test(String(source.pageUrl||''))||
     !/^[a-f0-9]{64}$/i.test(String(source.videoSha256||''))||
-    source.reviewStatus!=='AWAITING_SOURCE_VISUAL_REVIEW'||
+    !['AWAITING_SOURCE_VISUAL_REVIEW','APPROVED_CHRISTIAN_STORY_FIT'].includes(source.reviewStatus)||
+    (source.reviewStatus==='APPROVED_CHRISTIAN_STORY_FIT'&&!christianVisualSourceReviewed(source))||
     !String(source.sourceObjectKey).split('/').pop().startsWith(String(source.id)+'-')||
     Number(source.width)<profile.width||Number(source.height)<profile.height||
     (portrait?Number(source.height)<=Number(source.width):Number(source.width)<=Number(source.height))||
