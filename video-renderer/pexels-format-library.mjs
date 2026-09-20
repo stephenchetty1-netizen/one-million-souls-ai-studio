@@ -14,37 +14,50 @@ const ROOT='internal/pexels-source-candidates/v1'
 const MAX_BYTES=95*1024*1024
 const REQUEST_TIMEOUT=22000
 const VIDEO_TIMEOUT=140000
+// Search terms discover candidates; they NEVER establish Christian story fit.
+// Avoid generic prayer gestures, generic books, or unrelated faith imagery.
+// The full exact MP4 still needs explicit Christian human editorial approval.
 export const CHRISTIAN_PEXELS_STORY=Object.freeze({
  SHORT_59:Object.freeze({
    collection:'BE_STILL_PEXELS_V1',orientation:'portrait',
    base:PEXELS_COLLECTIONS.BE_STILL_PEXELS_V1.map(x=>x.id),
    searches:Object.freeze([
-     {query:'man praying with bible',intent:'Prayer at Scripture anchors the emotional opening'},
-     {query:'woman reading bible',intent:'Independent second perspective of a person receiving Scripture'},
-     {query:'hands praying close up',intent:'Close-up prayer action for visual detail'},
-     {query:'christian worship church',intent:'Communal worship connects personal faith with the church'},
-     {query:'church stained glass sunlight',intent:'Calm sacred light conveys grace'},
-     {query:'open bible turning pages',intent:'Scripture close-up resolves the message of grace'},
+     {query:'holy bible gospel readable pages',intent:'Verify Bible text and devotional focus'},
+     {query:'church cross altar',intent:'Christian altar cross establishes unmistakable setting'},
+     {query:'jesus christ church crucifix',intent:'Clearly Christian cross or Christ-centred imagery'},
+     {query:'christian church worship cross',intent:'Christian worship with visible Christian context'},
+     {query:'bible reading church cross',intent:'Bible reading with corroborating Christian context'},
+     {query:'church stained glass crucifix',intent:'Recognizable Christian sacred setting'},
    ]),
  }),
  YOUTUBE_LONG:Object.freeze({
    collection:'YOUTUBE_WORSHIP_LANDSCAPE_V1',orientation:'landscape',base:[],
    searches:Object.freeze([
-     {query:'bible reading',intent:'Opening Scripture study',count:2},
-     {query:'christian prayer',intent:'Individual prayer',count:2},
-     {query:'hands praying',intent:'Intimate close-up worship detail',count:2},
-     {query:'church worship',intent:'Communal worship',count:2},
-     {query:'church stained glass',intent:'Sacred architectural light',count:2},
-     {query:'open holy bible',intent:'Scripture close-up',count:2},
-     {query:'sunrise mountains',intent:'New morning and grace',count:2},
-     {query:'cross church',intent:'Cross and faith imagery',count:2},
-     {query:'church candles',intent:'Quiet contemplation',count:2},
-     {query:'hands raised worship',intent:'Embodied praise',count:2},
-     {query:'forest sunlight',intent:'Peaceful creation without weather-map imagery',count:2},
-     {query:'prayer book',intent:'Return to personal prayer and Scripture',count:2},
+     {query:'church altar cross',intent:'Christian altar with visible cross',count:2},
+     {query:'holy bible gospel pages',intent:'Verified New Testament or Bible close-up',count:2},
+     {query:'jesus cross church interior',intent:'Christ-centred architecture and symbols',count:2},
+     {query:'church stained glass crucifix',intent:'Visible Christian stained-glass subject',count:2},
+     {query:'holy bible turning pages',intent:'Bible scripture visually confirmed, not a generic religious book',count:2},
+     {query:'christian worship visible cross',intent:'Worship context with explicitly Christian signs',count:2},
+     {query:'church steeple cross',intent:'Christian church architecture',count:2},
+     {query:'chapel altar cross',intent:'Cross-centred Christian chapel',count:2},
+     {query:'holy bible candle cross',intent:'Christian prayer still life, not an unverified ritual',count:2},
+     {query:'jesus crucifix stained glass',intent:'Christian iconography',count:2},
+     {query:'cross scripture church',intent:'Scripture and cross together',count:2},
+     {query:'bible cross devotional',intent:'Christian devotional close-up',count:2},
    ]),
  }),
 })
+// Only use explicit source-description and page-slug clues to avoid known
+// conflicting religions. Never infer the depicted person's faith from a cap,
+// orange clothing, skin tone, name, ethnicity, or appearance.
+const OTHER_FAITH_SOURCE_TERMS=/(?:^|[\s_\/-])(qur'?an|koran|quran|mosque|islamic|muslim|ramadan|hinduism|hindu|mandir|puja|veda|buddhist|buddha|prayer[\s_-]mat)(?=$|[\s_\/-])/i
+export function conflictingFaithSourceMetadata(video){
+  const sourceText=[video?.url,video?.title,video?.description]
+    .filter(x=>typeof x==='string').join(' ')
+  return OTHER_FAITH_SOURCE_TERMS.test(sourceText)
+}
+
 export function requireFormatPlan(format){
  const profile=requireChristianVideoFormat(format)
  const plan=CHRISTIAN_PEXELS_STORY[format]
@@ -210,7 +223,7 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
  let staged=0
  const slots=[...searchSlots(format),...missingBase.map((id,index)=>({
    id:'replacement-base:'+id,query:[
-     'church altar cross','open holy bible','christian worship church'
+     'church altar cross','holy bible gospel pages','christian worship visible cross'
    ][index%3],intent:'Replace rejected source with a new distinctly reviewed Christian video',rank:0
  }))]
  const searches=new Map()
@@ -224,7 +237,7 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
      let added=false
      for(const candidate of results){
        const id=Number(candidate?.id)
-       if(!Number.isInteger(id)||used.has(id)||Number(candidate?.duration||0)<profile.secondsPerScene+0.6)continue
+       if(!Number.isInteger(id)||used.has(id)||conflictingFaithSourceMetadata(candidate)||Number(candidate?.duration||0)<profile.secondsPerScene+0.6)continue
        let file,pageUrl
        try{
          file=selectPexelsRendition(candidate,format)

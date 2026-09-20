@@ -1,13 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {CHRISTIAN_PEXELS_STORY,requireFormatPlan,
-  selectPexelsRendition,searchSlots,validateMeasuredPexelsVideo} from './pexels-format-library.mjs'
+  selectPexelsRendition,searchSlots,validateMeasuredPexelsVideo,conflictingFaithSourceMetadata} from './pexels-format-library.mjs'
 const videoFiles=(items)=>({video_files:items.map((x,i)=>({
   id:100+i,file_type:'video/mp4',quality:'hd',
   width:x[0],height:x[1],fps:30,
   link:'https://videos.pexels.com/video-files/100/100-hd.mp4'
 }))})
-test('59s portrait plan adds six story beats to three previously verified shots',()=>{
+test('59s plan adds six source searches to three legacy unapproved candidate IDs',()=>{
  const plan=requireFormatPlan('SHORT_59')
  assert.deepEqual(plan.plan.base,[5206028,5206029,5206136])
  assert.equal(searchSlots('SHORT_59').length,6)
@@ -65,4 +65,19 @@ test('landscape MP4 real probe must meet 1920x1080 and 10.35 playable seconds',(
    /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
  assert.throws(()=>validateMeasuredPexelsVideo({...full,streams:[{codec_type:'video',width:1280,height:720}]},'YOUTUBE_LONG'),
    /PEXELS_MP4_MEASURED_PROFILE_MISMATCH/)
+})
+
+test('both discovery formats prefer specific Christian symbols over generic prayer or generic books',()=>{
+ const all=[...searchSlots('SHORT_59'),...searchSlots('YOUTUBE_LONG')]
+ assert.equal(all.length,30)
+ assert.ok(all.every(x=>/cross|crucifix|church|bible|gospel|jesus|chapel|scripture/.test(x.query)))
+ assert.ok(all.every(x=>!/^(hands praying|prayer book|christian prayer|bible reading|sunrise mountains|forest sunlight)$/.test(x.query)))
+})
+test('obvious contradictory page metadata is skipped but appearance and attire never determine religion',()=>{
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/a-mosque-worship-12345/'}),true)
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/hindu-puja-12345/'}),true)
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/a-quran-reading-12345/'}),true)
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/church-cross-12345/'}),false)
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/man-white-cap-orange-shirt-12345/'}),false)
+ assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/praying-12345/'}),false)
 })
