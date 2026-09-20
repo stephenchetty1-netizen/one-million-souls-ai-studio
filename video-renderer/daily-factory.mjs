@@ -239,6 +239,16 @@ export async function generateFor(date) {
       isShort59(entry) &&
       entry?.slot === slotTimes[i] &&
       entry?.title === effectiveItem.title &&
+      // A title match alone is not content identity. Never reuse an old master
+      // after a script, Scripture reference, or caption revision.
+      entry?.script === effectiveItem.script &&
+      entry?.scriptureReference === effectiveItem.ref &&
+      entry?.caption === effectiveItem.caption &&
+      entry?.releasePayload?.title === effectiveItem.title &&
+      entry?.releasePayload?.script === effectiveItem.script &&
+      entry?.releasePayload?.scriptureReference === effectiveItem.ref &&
+      entry?.releasePayload?.caption === effectiveItem.caption &&
+      entry?.releasePayload?.masterHash === entry?.masterHash &&
       entry?.renderQualityGate === 'PASS' &&
       entry?.professionalMasterCandidate === true &&
       typeof entry?.thumbnailUrl === 'string' && entry.thumbnailUrl.startsWith('http') &&
