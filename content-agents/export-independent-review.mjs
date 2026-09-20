@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import crypto from 'node:crypto'
 import { durableRedis } from './durable-redis.mjs'
 import { selectExactMasterForReview } from './review-master-selector.mjs'
+import { scanChristianHandoffs } from './christian-master-handoff.mjs'
 
 const rendererAddress=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
 const base=rendererAddress && !/^https?:\/\//i.test(rendererAddress)?'https://'+rendererAddress:rendererAddress
@@ -121,65 +122,20 @@ console.log('INDEPENDENT_REVIEW_PACKET_READINESS '+JSON.stringify({expected:days
 console.log('INDEPENDENT_REVIEW_MEDIA_INDEX '+JSON.stringify(entries.map(e=>({date:e.date,slot:e.slot,title:e.title,masterHash:e.masterHash,videoUrl:e.videoUrl,audioReviewUrl:e.audioReviewUrl,contactSheetUrl:e.contactSheetUrl}))))
 
 
-// The Christian narrated Shorts renderer is a separate, source-reviewed path;
-// it does not write legacy factory-manifest entries. Make its exact finished
-// draft visible to V59's regular independent-review workflow without falsely
-// presenting it as a certified/publication-ready legacy factory master.
-async function exportChristianNarratedReviewHandoff(){
- const statusKey='one-million-souls:v59:christian-narrated-review-handoff'
- const checkedAt=new Date().toISOString()
- const url=base+'/christian-reviewed-draft-latest'
- let response
- try{
-  response=await fetch(url,{headers:{authorization:'Bearer '+secret},
-   cache:'no-store',signal:AbortSignal.timeout(30000)})
- }catch(error){
-  const state={status:'RENDERER_REVIEW_LOOKUP_UNAVAILABLE',checkedAt,
-   reason:String(error?.message||error).slice(0,230),publishingLocked:true}
-  await durableRedis(['SET',statusKey,JSON.stringify(state)])
-  console.warn('CHRISTIAN_NARRATED_REVIEW_HANDOFF '+JSON.stringify(state))
-  return state
- }
- if(response.status===404){
-  const state={status:'AWAITING_NINE_EXACT_SOURCE_APPROVALS_OR_RENDER',checkedAt,
-   publishingLocked:true,certified:false}
-  await durableRedis(['SET',statusKey,JSON.stringify(state)])
-  console.log('CHRISTIAN_NARRATED_REVIEW_HANDOFF '+JSON.stringify(state))
-  return state
- }
- if(!response.ok)throw new Error('CHRISTIAN_NARRATED_DRAFT_HTTP_'+response.status)
- const draft=await response.json()
- const expected=String(draft?.masterHash||'').toLowerCase()
- const media=new URL(String(draft?.mediaUrl||''))
- if(!draft?.ok||draft.sourceClips!==9||draft.voiceover!==true||
-    draft.captionsPresent!==true||!validHash(expected)||
-    media.origin!==new URL(base).origin||
-    !media.pathname.startsWith('/media/narrated-short-review-v1/'))
-  throw new Error('CHRISTIAN_NARRATED_DRAFT_EXACT_SOURCE_OR_MASTER_INVALID')
- const video=await fetch(media.href,{cache:'no-store',
-   signal:AbortSignal.timeout(180000)})
- if(!video.ok||!video.body)
-  throw new Error('CHRISTIAN_NARRATED_MASTER_MEDIA_ACCESS_'+video.status)
- const digest=crypto.createHash('sha256');let bytes=0
- for await(const part of video.body){digest.update(part);bytes+=part.length}
- if(bytes<1000000||digest.digest('hex')!==expected)
-  throw new Error('CHRISTIAN_NARRATED_MASTER_EXACT_MP4_HASH_MISMATCH')
- const state={
-  status:'AWAITING_FINAL_MASTER_HUMAN_AUDIOVISUAL_AND_RIGHTS_REVIEW',
-  standard:'v59-christian-source-reviewed-exact-master-handoff-v1',
-  checkedAt,masterHash:expected,id:draft.id,title:draft.title,
-  mediaUrl:media.href,contactSheetUrl:draft.contactSheetUrl,
-  sourceClips:9,voiceover:true,captionsPresent:true,videoBytes:bytes,
-  visualAudioReview:'PENDING',rightsReview:'PENDING',publishingLocked:true,
-  certified:false,releaseStatus:'NOT_CERTIFIED',
-  note:'Full exact MP4 hash verified. Source approval is not final audiovisual master certification.'
- }
- if(await durableRedis(['SET',statusKey,JSON.stringify(state)])!=='OK')
-  throw new Error('CHRISTIAN_NARRATED_REVIEW_HANDOFF_STORE_FAILED')
- console.log('CHRISTIAN_NARRATED_REVIEW_HANDOFF '+JSON.stringify(state))
- return state
+// Independent, hash-verified handoff for BOTH reviewed-source Christian formats.
+// The disabled legacy daily-factory manifests cannot represent these masters.
+// No source/draft handoff can create fifty approvals or permit publication.
+try{
+ const bridge=await scanChristianHandoffs({
+  base,secret,
+  persist:async(key,value)=>{
+   if(await durableRedis(['SET',key,value])!=='OK')
+    throw new Error('CHRISTIAN_HANDOFF_DURABLE_WRITE_FAILED')
+  }
+ })
+ console.log('CHRISTIAN_TWO_FORMAT_REVIEW_HANDOFF '+JSON.stringify(bridge))
+}catch(error){
+ console.error('CHRISTIAN_TWO_FORMAT_REVIEW_HANDOFF_BLOCKED '+
+  JSON.stringify({error:String(error?.message||error).slice(0,400),
+   certified:false,publishingLocked:true}))
 }
-try{await exportChristianNarratedReviewHandoff()}
-catch(error){console.error('CHRISTIAN_NARRATED_REVIEW_HANDOFF_BLOCKED '+
- JSON.stringify({error:String(error?.message||error).slice(0,500),
-  certified:false,publishingLocked:true}))}
