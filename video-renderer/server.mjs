@@ -15,7 +15,7 @@ import { renderChristianNarratedShortDraft } from './christian-narrated-short.mj
 import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
-import { inspectCurrentReviewedShortDraft } from './christian-reviewed-draft-integrity.mjs'
+import { inspectCurrentReviewedShortDraft, inspectCurrentPrivatePreview } from './christian-reviewed-draft-integrity.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -510,6 +510,9 @@ const server = http.createServer(async (req, res) => {
     if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
+      const currentSources=await readStoredJson('internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json')
+      if(!inspectCurrentPrivatePreview(latest,currentSources).ready)
+        throw new Error('PRIVATE_PREVIEW_REJECTED_OR_REPLACED_SOURCE')
       return sendJson(res,200,{ok:true,id:latest.id,masterHash:latest.masterHash,
         mediaUrl:'/christian-private-preview?kind=video&id='+latest.id,
         contactSheetUrl:'/christian-private-preview?kind=contact&id='+latest.id,
@@ -552,6 +555,9 @@ const server = http.createServer(async (req, res) => {
     try{
       const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
       if(latest?.id!==id)return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_FOUND'})
+      const currentSources=await readStoredJson('internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json')
+      if(!inspectCurrentPrivatePreview(latest,currentSources).ready)
+        return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_REJECTED_OR_REPLACED_SOURCE'})
       const range=req.headers.range
       if(range&&!/^bytes=\d{1,12}-\d{0,12}$/.test(range))
         return sendJson(res,416,{ok:false,error:'INVALID_PREVIEW_BYTE_RANGE'})

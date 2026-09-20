@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {inspectCurrentReviewedShortDraft} from './christian-reviewed-draft-integrity.mjs'
+import {inspectCurrentReviewedShortDraft,inspectCurrentPrivatePreview} from './christian-reviewed-draft-integrity.mjs'
 const hash=i=>i.toString(16).padStart(64,'0')
 const source=i=>({id:i,videoSha256:hash(i),visualReviewedVideoSha256:hash(i),
  visualChristianEditorialStatus:'APPROVED_CHRISTIAN_STORY_FIT',
@@ -42,4 +42,20 @@ test('missing source, forged approval, duplicate or unreviewed preview cannot pa
  assert.equal(inspectCurrentReviewedShortDraft({...d,sourceScenes:[...d.sourceScenes.slice(0,8),d.sourceScenes[0]]},m).ready,false)
  m.assets[5].visualReviewBasis='STOCK_METADATA_ONLY'
  assert.equal(inspectCurrentReviewedShortDraft(d,m).ready,false)
+})
+
+test('private preview is still reviewable before any visual decisions',()=>{
+ const m=manifest(),p={...draft(m),unreviewedSourcePreview:true,sourceReviewRequired:true}
+ assert.equal(inspectCurrentPrivatePreview(p,m).ready,true)
+})
+test('rejecting a scene immediately quarantines its older private preview',()=>{
+ const m=manifest(),p={...draft(m),unreviewedSourcePreview:true,sourceReviewRequired:true}
+ m.assets[2].reviewStatus='REJECTED_CHRISTIAN_STORY_FIT'
+ assert.equal(inspectCurrentPrivatePreview(p,m).ready,false)
+})
+test('replaced source or missing scene invalidates private preview',()=>{
+ const m=manifest(),p={...draft(m),unreviewedSourcePreview:true,sourceReviewRequired:true}
+ m.assets[0].videoSha256=hash(456)
+ assert.equal(inspectCurrentPrivatePreview(p,m).ready,false)
+ assert.equal(inspectCurrentPrivatePreview({...p,sourceScenes:p.sourceScenes.slice(1)},manifest()).ready,false)
 })

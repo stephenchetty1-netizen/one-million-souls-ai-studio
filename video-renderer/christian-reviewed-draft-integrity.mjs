@@ -1,5 +1,33 @@
 import { christianVisualSourceReviewed } from './christian-visual-editorial-gate.mjs'
 
+// Unreviewed previews are private, but must not keep resurfacing footage that
+// has since been rejected or replaced by a different exact MP4.
+export function inspectCurrentPrivatePreview(preview,manifest){
+ const blockers=[]
+ if(!preview||preview.unreviewedSourcePreview!==true||preview.sourceReviewRequired!==true||
+    !HASH.test(String(preview.masterHash||''))||
+    manifest?.collection!=='BE_STILL_PEXELS_V1'||manifest?.formatId!=='SHORT_59')
+   blockers.push('PRIVATE_PREVIEW_OR_SOURCE_BANK_INVALID')
+ const all=Array.isArray(manifest?.assets)?manifest.assets:[]
+ const scenes=Array.isArray(preview?.sourceScenes)?preview.sourceScenes:[]
+ if(scenes.length!==9)blockers.push('PRIVATE_PREVIEW_REQUIRES_NINE_SOURCE_SCENES')
+ const seen=new Set()
+ for(let i=0;i<scenes.length;i++){
+  const scene=scenes[i]
+  const id=String(scene?.id||'')
+  const identity=id+':'+String(scene?.sourceVideoHash||'').toLowerCase()
+  if(seen.has(identity))blockers.push('PRIVATE_PREVIEW_DUPLICATE_SOURCE_'+i)
+  seen.add(identity)
+  const source=all.find(x=>String(x?.id)===id)
+  if(!source||!HASH.test(String(scene?.sourceVideoHash||''))||
+     String(source.videoSha256||'').toLowerCase()!==String(scene?.sourceVideoHash||'').toLowerCase()||
+     source.reviewStatus==='REJECTED_CHRISTIAN_STORY_FIT'||
+     source.visualChristianEditorialStatus==='REJECTED_CHRISTIAN_STORY_FIT')
+   blockers.push('PRIVATE_PREVIEW_REJECTED_OR_REPLACED_SOURCE_'+i)
+ }
+ return {ready:blockers.length===0,blockers,publishingAllowed:false,certified:false}
+}
+
 // Never expose an older approved-source draft as the current reviewed edit
 // after any source is rejected, replaced, reordered or rehashed.
 // This is a review gate only; it neither certifies nor authorizes publication.
