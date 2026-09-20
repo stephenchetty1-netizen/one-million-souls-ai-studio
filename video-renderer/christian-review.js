@@ -84,13 +84,29 @@ async function loadFullPreview(){
    '. The nine source videos can still be reviewed individually below.';
  }
 }
+async function loadReviewedDraft(){
+ const status=$('reviewed-draft-status');
+ status.textContent='Checking for the new reviewed-source draft…';
+ try{
+  const data=await request('/christian-reviewed-draft-latest');
+  $('reviewed-draft').src=data.mediaUrl;
+  $('reviewed-draft').load();
+  status.textContent='REVIEWED SOURCE VIDEO — '+data.sourceClips+
+   ' individually approved source clips, voice-over and captions. Final MP4 SHA-256: '+
+   data.masterHash+'. NOT CERTIFIED. Do not post until final audiovisual and rights review passes.';
+ }catch(e){
+  status.textContent='Not ready: '+e.message+
+   '. Complete all nine source approvals; the renderer automatically creates the next draft.';
+ }
+}
+$('load-reviewed-draft').onclick=()=>loadReviewedDraft();
 $('load-full-preview').onclick=()=>loadFullPreview();
 $('sign-in').onclick=async()=>{
  try{
   const secret=$('secret').value;
   await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({secret})});
-  $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();
+  $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();await loadReviewedDraft();
  }catch(e){message(e.message)}
 };
 $('format').onchange=()=>load().catch(e=>message(e.message));
@@ -113,7 +129,7 @@ async function decide(decision){
   reviewStatus('Saving exact-source '+decision.toLowerCase()+' decision…',true);
   const result=await request('/christian-review-decision',{method:'POST',
    headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-  await load();message('Recorded '+decision+' for exact source '+result.id+
+  await load();if(result.sourceBankReady)void loadReviewedDraft();message('Recorded '+decision+' for exact source '+result.id+
    '. '+result.reviewed+'/'+result.required+' clips approved. Publishing remains locked.',true);
   reviewStatus('Decision recorded successfully. Select the next clip.',true);
  }catch(e){message(e.message);reviewStatus('Decision not saved: '+e.message);$('approve').disabled=false;$('reject').disabled=false;valid()}
@@ -121,5 +137,5 @@ async function decide(decision){
 $('approve').onclick=()=>decide('APPROVE');
 $('reject').onclick=()=>decide('REJECT');
 request('/christian-review-queue?format=SHORT_59').then(async()=>{
- $('login').hidden=true;$('review').hidden=false;await load();return loadFullPreview();
+ $('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();return loadReviewedDraft();
 }).catch(()=>{});
