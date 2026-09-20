@@ -16,6 +16,7 @@ import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
 import { inspectCurrentReviewedShortDraft, inspectCurrentReviewedLongDraft, inspectCurrentPrivatePreview } from './christian-reviewed-draft-integrity.mjs'
+import { planRejectedSourceRecovery, SOURCE_REPLACEMENT_MAX_ATTEMPTS } from './christian-source-recovery.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -115,6 +116,56 @@ function queueReviewedChristianDraft(format,trigger,attempt=1){
      }
    }finally{
      reviewedDraftJobs.delete(format)
+   }
+ })()
+}
+
+// Rejections must produce a replacement and a fresh PRIVATE review preview,
+// not a dead queue or an old preview containing the rejected exact MP4.
+// A replacement is always unreviewed; nothing here certifies or publishes it.
+const rejectedSourceRecoveryJobs=new Set()
+function queueRejectedChristianSourceRecovery(format,trigger,attempt=1){
+ if(!['SHORT_59','YOUTUBE_LONG'].includes(format))return
+ if(rejectedSourceRecoveryJobs.has(format)){
+   console.log('CHRISTIAN_REPLACEMENT_ALREADY_RUNNING',JSON.stringify({format,trigger,publishingAllowed:false}))
+   return
+ }
+ rejectedSourceRecoveryJobs.add(format)
+ void (async()=>{
+   let retry=false
+   try{
+     const staged=await stageChristianPexelsFormat(format)
+     const plan=planRejectedSourceRecovery(format,staged,{
+       privatePreviewEnabled:process.env.CHRISTIAN_UNREVIEWED_DRAFT_ENABLED==='true'
+     })
+     console.log('CHRISTIAN_REJECTED_SOURCE_RECOVERY',JSON.stringify({
+       format,trigger,attempt,staged:staged.staged,sourceClips:staged.sourceClips,
+       reviewed:staged.christianVisualReviewedClips,technicalSourceReady:staged.technicalSourceReady,
+       replacementBankComplete:plan.bankComplete,publishingAllowed:false
+     }))
+     retry=plan.retry
+     if(plan.regeneratePrivatePreview){
+       const preview=await renderChristianNarratedShortDraft({reviewPreview:true})
+       console.log('CHRISTIAN_REPLACEMENT_PRIVATE_PREVIEW_READY',JSON.stringify({
+         format,id:preview.id,masterHash:preview.masterHash,
+         certification:'NOT_CERTIFIED',publishingAllowed:false
+       }))
+     }
+   }catch(error){
+     retry=true
+     console.error('CHRISTIAN_REJECTED_SOURCE_RECOVERY_FAILED',JSON.stringify({
+       format,trigger,attempt,reason:String(error?.message||error).slice(0,700),
+       publishingAllowed:false
+     }))
+   }finally{
+     rejectedSourceRecoveryJobs.delete(format)
+     if(retry&&attempt<SOURCE_REPLACEMENT_MAX_ATTEMPTS){
+       const delayMs=attempt*120000
+       console.log('CHRISTIAN_REJECTED_SOURCE_RECOVERY_RETRY',JSON.stringify({
+         format,nextAttempt:attempt+1,delayMs,publishingAllowed:false
+       }))
+       setTimeout(()=>queueRejectedChristianSourceRecovery(format,'AUTONOMOUS_RETRY',attempt+1),delayMs)
+     }
    }
  })()
 }
@@ -447,18 +498,9 @@ const server = http.createServer(async (req, res) => {
       const result=await recordChristianSourceReview(body?.format||'SHORT_59',body)
       // A fully reviewed source bank automatically starts a zero-credit FFmpeg
       // draft; independent exact-master certification still remains mandatory.
-      sendJson(res,200,result)
+      sendJson(res,200,{...result,replacementQueued:result.decision==='REJECT'})
       if(result.decision==='REJECT'){
-        // Replace rejected originals automatically; replacement is a NEW
-        // unreviewed candidate and cannot inherit the old source's approval.
-        void stageChristianPexelsFormat(result.format)
-          .then(staged=>console.log('CHRISTIAN_REJECTED_SOURCE_REPLACEMENT',JSON.stringify({
-            format:result.format,staged:staged.staged,sourceClips:staged.sourceClips,
-            reviewed:staged.christianVisualReviewedClips,publishingAllowed:false
-          })))
-          .catch(error=>console.error('CHRISTIAN_REJECTED_SOURCE_REPLACEMENT_FAILED',
-            JSON.stringify({format:result.format,error:String(error?.message||error),
-              publishingAllowed:false})))
+        queueRejectedChristianSourceRecovery(result.format,'EXACT_SOURCE_REJECTED')
       }
       if(result.sourceBankReady&&result.decision==='APPROVE'){
         queueReviewedChristianDraft(result.format,'LAST_SOURCE_APPROVED')

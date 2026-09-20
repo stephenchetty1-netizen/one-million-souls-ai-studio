@@ -58,9 +58,8 @@ function selectSource(id){
  message('Review source '+selected.id+' in full before recording a decision.');
  valid();
 }
-async function load(){
- const data=await request('/christian-review-queue?format='+encodeURIComponent(format()));
- sourceList=data.assets;selected=null;$('clip').removeAttribute('src');$('clip').load();clearReview();
+function drawQueue(data){
+ sourceList=data.assets;
  $('summary').textContent=data.reviewed+'/'+data.required+' Christian source videos approved; '+data.total+' staged.';
  const sources=$('sources');sources.replaceChildren();
  for(const source of sourceList){
@@ -69,7 +68,39 @@ async function load(){
    ' — '+source.reviewStatus.replaceAll('_',' ');
   b.addEventListener('click',()=>selectSource(source.id));sources.append(b);
  }
+ if(selected)document.querySelectorAll('button.source').forEach(b=>
+   b.classList.toggle('active',b.dataset.id===String(selected.id)));
+}
+async function load(){
+ const data=await request('/christian-review-queue?format='+encodeURIComponent(format()));
+ selected=null;$('clip').removeAttribute('src');$('clip').load();clearReview();
+ drawQueue(data);
  message('Video source review queue loaded.',true);
+}
+let replacementMonitorToken=0;
+function monitorReplacement(rejectedId,reviewFormat){
+ const token=++replacementMonitorToken;
+ const poll=async(attempt)=>{
+  if(token!==replacementMonitorToken||format()!==reviewFormat)return;
+  try{
+   const data=await request('/christian-review-queue?format='+encodeURIComponent(reviewFormat));
+   if(!data.assets.some(x=>String(x.id)===String(rejectedId))&&data.total>=data.required){
+     // Update buttons without interrupting playback of another exact source.
+     drawQueue(data);
+     if(!selected){
+       const next=sourceList.find(x=>x.reviewStatus!=='APPROVED_CHRISTIAN_STORY_FIT'&&
+         x.reviewStatus!=='REJECTED_CHRISTIAN_STORY_FIT');
+       if(next)selectSource(next.id);
+     }
+     if(reviewFormat==='SHORT_59')void loadFullPreview();
+     message('Replacement footage is staged. Review its NEW exact video; no prior approval was reused.',true);
+     return;
+   }
+  }catch(error){message('Replacement check: '+error.message)}
+  if(attempt<24)setTimeout(()=>void poll(attempt+1),10000);
+  else message('Replacement footage is not ready. No video will be published without review.');
+ };
+ setTimeout(()=>void poll(0),5000);
 }
 async function loadFullPreview(){
  const status=$('full-preview-status');
@@ -113,7 +144,7 @@ $('sign-in').onclick=async()=>{
   $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();await loadReviewedDraft();
  }catch(e){message(e.message)}
 };
-$('format').onchange=()=>{load().then(loadReviewedDraft).catch(e=>message(e.message))};
+$('format').onchange=()=>{replacementMonitorToken++;load().then(loadReviewedDraft).catch(e=>message(e.message))};
 // Android video players sometimes omit 'ended'. Validate actual played ranges,
 // not a seek-to-end or a checked declaration, and accept complete playback on
 // either timeupdate or ended without reusing another source's history.
@@ -158,6 +189,7 @@ async function decide(decision){
   const result=await request('/christian-review-decision',{method:'POST',
    headers:{'content-type':'application/json'},body:JSON.stringify(body)});
   await load();
+  if(result.replacementQueued===true)monitorReplacement(result.id,result.format);
   if(result.sourceBankReady){
    // The exact-source review gate completed; the renderer is now building its
    // separate final draft. Do not treat this as a final master approval.
