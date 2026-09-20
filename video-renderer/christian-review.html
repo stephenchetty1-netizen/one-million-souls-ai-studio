@@ -31,6 +31,12 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <label for="secret">Reviewer credential</label><input id="secret" type="password" autocomplete="off">
 <button id="sign-in">Sign in</button></section>
 <main id="review" hidden>
+<section><h2>Complete 59-second narrated preview</h2>
+<p>Review the full edited video here before approving any individual source. This private draft may contain unreviewed footage; it is NOT a certified master and cannot be posted. Reject any incorrect religious imagery, weak storytelling, caption problems or poor voice/music balance.</p>
+<button type="button" id="load-full-preview">Load latest finished preview</button>
+<p id="full-preview-status" aria-live="polite">Private preview not loaded.</p>
+<video id="full-preview" controls preload="metadata" playsinline></video>
+</section>
 <section><label for="format">Review format</label><select id="format"><option value="SHORT_59">Shorts — 59 seconds</option><option value="YOUTUBE_LONG">YouTube — long form</option></select>
 <div id="summary" aria-live="polite"></div><div id="sources"></div></section>
 <section><h2 id="clip-title">Select a source video</h2><p id="purpose"></p>
