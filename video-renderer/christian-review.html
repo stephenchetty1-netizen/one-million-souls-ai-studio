@@ -3,7 +3,7 @@
 <title>V59 Christian Footage Review</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#09152d;color:#ecf2ff}
-*{box-sizing:border-box}body{margin:0;padding:20px;max-width:1180px;margin:auto}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;padding:20px;max-width:1180px;margin:auto}
 h1{font-size:clamp(27px,4vw,42px);margin:.5em 0}h2{font-size:21px}p{line-height:1.45;color:#c7d5ed}
 header{display:flex;gap:18px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #4b6087;padding-bottom:16px}
 .pill{border:1px solid #f5b942;border-radius:40px;color:#ffd775;padding:7px 13px;font-size:13px}
@@ -11,11 +11,11 @@ main{display:grid;grid-template-columns:minmax(220px,350px) minmax(280px,1fr);ga
 @media(max-width:770px){main{grid-template-columns:1fr}}
 section,.card{background:#152340;border:1px solid #344b75;border-radius:13px;padding:18px}
 input,select,textarea,button{font:inherit;border-radius:7px;padding:10px;color:#f6f8ff;background:#0b1731;border:1px solid #5673a6}
-input:not([type=checkbox]),textarea,select{width:100%;margin:6px 0 13px}
+input:not([type=checkbox]):not([type=radio]),textarea,select{width:100%;margin:6px 0 13px}
 button{background:#1e51aa;border-color:#5b92fd;cursor:pointer;font-weight:650;margin:4px 4px 4px 0}
 button:disabled{opacity:.4;cursor:not-allowed}.reject{background:#803035;border-color:#cd6975}
 button.source{width:100%;display:block;text-align:left;background:#162a50}
-button.source.active{border-color:#eabb65;background:#254070}
+button.source.active{border-color:#eabb65;background:#254070}#clip-title{scroll-margin-top:20px}#confirmation-status{background:#0b1731;border:1px solid #486b9e;border-radius:8px;padding:12px;line-height:1.45;margin:13px 0}.actions{display:flex;flex-wrap:wrap;gap:8px}.actions button{flex:1;min-height:54px;margin:0}
 video{width:100%;max-height:540px;background:#000;border:1px solid #5377ac}
 small,.fine{font-size:12px;color:#b3c7e4}label{display:block;margin:5px 0 8px}
 details{margin-top:14px}a{color:#a6d5ff}#sources{max-height:590px;overflow-y:auto}
@@ -36,8 +36,8 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <section><h2 id="clip-title">Select a source video</h2><p id="purpose"></p>
 <video id="clip" controls preload="metadata" playsinline></video>
 <p id="source-info" class="fine"></p><p><a id="pexels-page" href="#" target="_blank" rel="noopener noreferrer">Open original Pexels page</a></p>
-<fieldset><legend>Full source verification</legend>
-<label><input type="checkbox" id="watched"> I watched this exact video in full</label>
+<fieldset><legend>Full source verification — both actions stay available</legend>
+<label><input type="checkbox" id="watched"> I confirm I personally watched the entire exact source video above, including its beginning and end.</label><p class="fine">If your Android browser does not fire the video-ended event, your honest full-watch confirmation is still accepted. Do not tick this before finishing the footage.</p>
 <label for="reviewer">Reviewer name</label><input id="reviewer" autocomplete="name" placeholder="Your name">
 <label for="notes">Specific visual review notes (minimum 12 characters)</label>
 <textarea id="notes" rows="3" placeholder="Describe the actual Christian content and anything concerning."></textarea>
@@ -48,7 +48,7 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <label><input type="checkbox" id="christian"> Christian prayer, Scripture or worship content verified</label>
 <label><input type="checkbox" id="conflict"> Conflicting religious text or ritual appears</label>
 </fieldset>
-<button id="approve" disabled>Approve exact source</button><button id="reject" class="reject" disabled>Reject exact source</button>
+<p id="confirmation-status" role="status" aria-live="polite">Select a video to start.</p><div class="actions"><button type="button" id="approve">Approve exact source</button><button type="button" id="reject" class="reject">Reject exact source</button></div>
 <p class="fine">Source approval is NOT certification of the finished video. The final 59-second or long-form master still requires an independent review and exact-master hash checks.</p>
 </section></main><div id="message" aria-live="polite"></div>
 <script src="/christian-review.js" defer></script>
