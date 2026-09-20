@@ -120,6 +120,6 @@ async function decide(decision){
 }
 $('approve').onclick=()=>decide('APPROVE');
 $('reject').onclick=()=>decide('REJECT');
-request('/christian-review-queue?format=SHORT_59').then(()=>{
+request('/christian-review-queue?format=SHORT_59').then(async()=>{
  $('login').hidden=true;$('review').hidden=false;await load();return loadFullPreview();
 }).catch(()=>{});
