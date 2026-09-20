@@ -1,0 +1,51 @@
+name: V59 Full Recovery Regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - "video-renderer/**"
+      - "system-agents/**"
+      - "content-agents/**"
+      - ".github/workflows/v59-full-recovery.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v59-full-recovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  application-and-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate recovery, scheduler, autonomy and exact-master syntax
+        run: |
+          node --check system-agents/worker.mjs
+          node --check system-agents/production-recovery-scan.mjs
+          node --check system-agents/system-agent-team.mjs
+          node --check system-agents/release-readiness.mjs
+          node --check content-agents/certification-runner.mjs
+          node --check video-renderer/schedule-loop.mjs
+          node --check video-renderer/christian-source-review-workflow.mjs
+      - name: Test fail-closed release, content and growth regressions
+        run: |
+          node --test system-agents/release-readiness.test.mjs content-agents/review-disposition.test.mjs content-agents/review-master-selector.test.mjs content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
+  renderer-offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: video-renderer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install renderer test dependencies without paid AI services
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Test rendering, human-review integrity and source replacement
+        run: node --test *.test.mjs
