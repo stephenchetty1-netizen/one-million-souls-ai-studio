@@ -57,14 +57,33 @@ export async function createChristianVideoTimelineScene({store,bucket,source,for
        realHeight:v?.height||null,realDurationSeconds:duration,
        requiredSeconds:profile.secondsPerScene+0.35}))
  const vf=`scale=${profile.width}:${profile.height}:force_original_aspect_ratio=increase,crop=${profile.width}:${profile.height},fps=${profile.fps},eq=contrast=1.02:saturation=1.02`
- await execFileAsync('ffmpeg',['-y','-hide_banner','-loglevel','error',
-   '-ss','0.1','-i',original,'-t',String(profile.secondsPerScene),
-   '-an','-filter_threads','1','-vf',vf,
-   '-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
-   '-pix_fmt','yuv420p','-movflags','+faststart',output],
-   {timeout:150000,maxBuffer:5*1024*1024})
- if((await fs.stat(output)).size<100000)
-   throw new Error('CHRISTIAN_VIDEO_TIMELINE_SCENE_TOO_SMALL')
+ // Limit per-scene encoder threads and release the original MP4 from
+ // scratch storage immediately. Do not accumulate nine portrait inputs (or
+ // 24 landscape inputs) alongside their transcoded scene outputs.
+ try{
+   await execFileAsync('ffmpeg',['-y','-hide_banner','-loglevel','error',
+     '-ss','0.1','-i',original,'-t',String(profile.secondsPerScene),
+     '-an','-filter_threads','1','-filter_complex_threads','1','-vf',vf,
+     '-c:v','libx264','-threads','1','-preset','veryfast','-crf','18',
+     '-pix_fmt','yuv420p','-movflags','+faststart',output],
+     {timeout:180000,maxBuffer:5*1024*1024})
+   if((await fs.stat(output)).size<100000)
+     throw new Error('CHRISTIAN_VIDEO_TIMELINE_SCENE_TOO_SMALL')
+ }catch(error){
+   console.error('CHRISTIAN_SCENE_TRANSCODE_FAILED',JSON.stringify({
+     formatId,sceneIndex:index,sourceId:source.id,sourceSha256:source.videoSha256,
+     code:error?.code||null,signal:error?.signal||null,
+     stderr:String(error?.stderr||'').slice(-1500),
+     reason:String(error?.message||error).slice(0,350),
+     publishingAllowed:false
+   }))
+   await fs.rm(output,{force:true}).catch(()=>{})
+   throw new Error('CHRISTIAN_SCENE_TRANSCODE_FAILED: '+formatId+
+     ': scene='+index+': source='+source.id+
+     ': '+String(error?.stderr||error?.message||error).slice(-550))
+ }finally{
+   await fs.rm(original,{force:true}).catch(()=>{})
+ }
  return {local:output,source:'rights-cleared-stock-video',
    stockId:'pexels-'+source.id,sourcePage:source.pageUrl,
    license:source.license,sourceVideoHash:source.videoSha256,
