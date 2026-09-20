@@ -716,14 +716,32 @@ server.listen(PORT, '0.0.0.0', () => {
         if(short&&result.technicalSourceReady&&
           process.env.CHRISTIAN_UNREVIEWED_DRAFT_ON_BOOT==='true'&&
           process.env.CHRISTIAN_UNREVIEWED_DRAFT_ENABLED==='true'){
-          void renderChristianNarratedShortDraft({reviewPreview:true})
-            .then(draft=>console.log('CHRISTIAN_PRIVATE_PREVIEW_BOOT_RESULT',
-              JSON.stringify({id:draft.id,mediaUrl:draft.mediaUrl,
+          // Retry a transient zero-credit FFmpeg failure without another manual
+          // Railway redeploy. A render is still private, unreviewed and unable
+          // to enter the publisher regardless of retry outcome.
+          const tryPrivatePreview=async(attempt=1)=>{
+            try{
+              const draft=await renderChristianNarratedShortDraft({reviewPreview:true})
+              console.log('CHRISTIAN_PRIVATE_PREVIEW_BOOT_RESULT',JSON.stringify({
+                attempt,id:draft.id,mediaUrl:draft.mediaUrl,
                 masterHash:draft.masterHash,certification:'NOT_CERTIFIED',
-                sourceReviewRequired:true,publishingAllowed:false})))
-            .catch(error=>console.error('CHRISTIAN_PRIVATE_PREVIEW_BOOT_FAILED',
-              JSON.stringify({error:String(error?.message||error),
-                publishingAllowed:false})))
+                sourceReviewRequired:true,publishingAllowed:false
+              }))
+            }catch(error){
+              console.error('CHRISTIAN_PRIVATE_PREVIEW_BOOT_FAILED',JSON.stringify({
+                attempt,maxAttempts:3,error:String(error?.message||error).slice(0,1100),
+                publishingAllowed:false
+              }))
+              if(attempt<3){
+                const waitMs=attempt*90000
+                console.log('CHRISTIAN_PRIVATE_PREVIEW_AUTO_RETRY',JSON.stringify({
+                  nextAttempt:attempt+1,waitMs,publishingAllowed:false
+                }))
+                setTimeout(()=>{void tryPrivatePreview(attempt+1)},waitMs)
+              }
+            }
+          }
+          void tryPrivatePreview()
         }
         if(!result.ok||process.env[renderOnBoot]!=='true')return
         const preview=await renderChristianMusicVideoDraft({format})
