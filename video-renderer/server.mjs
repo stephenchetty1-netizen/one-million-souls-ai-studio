@@ -12,6 +12,7 @@ import { stagePexelsCollection } from './pexels-source-import.mjs'
 import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
 import { renderChristianNarratedShortDraft } from './christian-narrated-short.mjs'
+import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
@@ -442,6 +443,26 @@ const server = http.createServer(async (req, res) => {
     }catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
   }
 
+  // Read-only archive audit for any previously certified exact MP4. A
+  // matching R2 JSON alone is insufficient: this endpoint rehashes the file
+  // and explicitly withholds any 50-agent Redis release certification.
+  if(req.method==='GET'&&url.pathname==='/christian-master-search'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const report=await searchStoredMasterCandidates({
+        endpoint:process.env.ENDPOINT,region:process.env.REGION,
+        bucket:process.env.BUCKET,accessKeyId:process.env.ACCESS_KEY_ID,
+        secretAccessKey:process.env.SECRET_ACCESS_KEY,
+        rendererHost:process.env.RAILWAY_PUBLIC_DOMAIN||
+          new URL(publicBase()).host
+      })
+      return sendJson(res,200,report)
+    }catch(error){
+      return sendJson(res,503,{ok:false,error:String(error?.message||error),
+        certifiedMasterClaimAllowed:false,publishingAllowed:false})
+    }
+  }
+
   if (req.method === 'GET' && url.pathname === '/christian-video-formats') {
     if (!authorized(req)) return sendJson(res,401,{ok:false,error:'Unauthorized'})
     try{
@@ -564,6 +585,21 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`One Million Souls video renderer listening on ${PORT}`)
+  if(process.env.CHRISTIAN_MASTER_ARCHIVE_AUDIT_ON_BOOT==='true'){
+    setTimeout(()=>{
+      void searchStoredMasterCandidates({
+        endpoint:process.env.ENDPOINT,region:process.env.REGION,
+        bucket:process.env.BUCKET,accessKeyId:process.env.ACCESS_KEY_ID,
+        secretAccessKey:process.env.SECRET_ACCESS_KEY,
+        rendererHost:process.env.RAILWAY_PUBLIC_DOMAIN||
+          new URL(publicBase()).host
+      }).then(report=>console.log('CHRISTIAN_CERTIFIED_ARCHIVE_SEARCH_RESULT',
+        JSON.stringify(report)))
+        .catch(error=>console.error('CHRISTIAN_CERTIFIED_ARCHIVE_SEARCH_FAILED',
+          JSON.stringify({error:String(error?.message||error),
+            publishingAllowed:false,certifiedMasterClaimAllowed:false})))
+    },10000)
+  }
   // Remove the rejected public previews and contact sheets. Keep private
   // provenance records so the rejected exact master is not certified later.
   if(s3){
