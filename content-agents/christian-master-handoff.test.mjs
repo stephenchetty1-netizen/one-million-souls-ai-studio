@@ -32,6 +32,11 @@ function fixture(format='SHORT_59',opts={}){
  }
  const fetchImpl=async (url)=>{
   const u=String(url)
+  if(u.includes('christian-final-review-status'))return json({
+   ok:true,format,id:draft.id,masterHash:draft.masterHash,
+   reviewStatus:opts.finalReview||'PENDING_FINAL_EXACT_VIDEO_REVIEW',
+   fullWatch:opts.finalReview==='APPROVE',certification:'NOT_CERTIFIED',
+   publishingAllowed:false,publishingLocked:true})
   if(u.includes('christian-review-queue'))return json(queue(count,opts.approved))
   if(u.includes('christian-reviewed-'))return opts.noDraft?json({},404):json({...draft,...opts.draft})
   if(u.endsWith('.mp4'))return media(VIDEO)
@@ -99,4 +104,18 @@ test('Measured export and contact-sheet SHA must match exact master metadata',as
   draft:{contactSheetHash:'f'.repeat(64)}
  }))
  assert.equal(sheet.status,'EXACT_MASTER_MEDIA_HASH_MISMATCH')
+})
+
+test('Recorded full-watch final editorial decision reaches handoff, NOT a certificate',async()=>{
+ const x=await inspectChristianHandoff('SHORT_59',fixture('SHORT_59',{finalReview:'APPROVE'}))
+ assert.equal(x.status,'EDITORIALLY_APPROVED_AWAITING_INDEPENDENT_RELEASE_CERTIFICATION')
+ assert.equal(x.finalHumanAudiovisualReview,'APPROVED')
+ assert.equal(x.certified,false)
+ assert.equal(x.publishingLocked,true)
+})
+test('Final video rejection never becomes an approved release candidate',async()=>{
+ const x=await inspectChristianHandoff('YOUTUBE_LONG',fixture('YOUTUBE_LONG',{finalReview:'REJECT'}))
+ assert.equal(x.status,'FINISHED_VIDEO_EDITORIALLY_REJECTED')
+ assert.equal(x.finalHumanAudiovisualReview,'REJECTED')
+ assert.equal(x.publicationPermissionGranted,false)
 })
