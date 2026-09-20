@@ -86,13 +86,33 @@ export async function inspectChristianHandoff(format,{base,secret,fetchImpl=fetc
     sheet.sha256!==String(draft.contactSheetHash).toLowerCase())
   return status(format,'EXACT_MASTER_MEDIA_HASH_MISMATCH',{
    masterHash:expected,measuredHash:media.sha256})
- return status(format,'AWAITING_INDEPENDENT_FINAL_MASTER_REVIEW',{
+ let editorial=null
+ try{
+  editorial=(await requestJson(fetchImpl,
+   origin+'/christian-final-review-status?format='+format,secret)).value
+ }catch(error){
+  return status(format,'FINAL_EDITORIAL_STATUS_UNAVAILABLE',{
+   masterHash:expected,exactMp4Verified:true,
+   reason:String(error?.message||error).slice(0,200)})
+ }
+ if(!editorial||editorial.ok!==true||editorial.masterHash!==expected||
+    String(editorial.id)!==String(draft.id)||
+    editorial.certification!=='NOT_CERTIFIED'||editorial.publishingAllowed!==false)
+   return status(format,'FINAL_EDITORIAL_RECORD_INVALID',{
+    masterHash:expected,exactMp4Verified:true})
+ const finalApproval=editorial.reviewStatus==='APPROVE'&&editorial.fullWatch===true
+ const finalRejection=editorial.reviewStatus==='REJECT'
+ return status(format,finalApproval?
+   'EDITORIALLY_APPROVED_AWAITING_INDEPENDENT_RELEASE_CERTIFICATION':
+   finalRejection?'FINISHED_VIDEO_EDITORIALLY_REJECTED':
+   'AWAITING_INDEPENDENT_FINAL_MASTER_REVIEW',{
   masterHash:expected,title:draft.title,id:draft.id,
   mediaUrl:url.href,contactSheetUrl:contact.href,
   fullMasterBytes:media.bytes,contactSheetHash:sheet.sha256,
   exactMp4Verified:true,approvedSourceClips:plan.count,
   narrationAndCaptionsReported:true,
-  finalHumanAudiovisualReview:'PENDING',rightsReview:'PENDING',
+  finalHumanAudiovisualReview:finalApproval?'APPROVED':finalRejection?'REJECTED':'PENDING',
+  rightsReview:finalApproval?'REVIEWER_VERIFIED':'PENDING',
   durable50AgentCertificate:'NOT_PRESENT',releaseStatus:'NOT_CERTIFIED'})
 }
 export async function scanChristianHandoffs({base,secret,fetchImpl=fetch,persist=async()=>{}}={}){
