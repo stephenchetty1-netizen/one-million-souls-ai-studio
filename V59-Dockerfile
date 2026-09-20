@@ -29,6 +29,8 @@ COPY docker-overrides/content-agents/growth-metrics-route.ts /workspace/app/api/
 COPY docker-overrides/content-agents/analytics-ingest-route.ts /workspace/app/api/content-agents/analytics-ingest/route.ts
 RUN mkdir -p app/api/system-agents/status app/api/system-agents/plan
 COPY system-agents /workspace/system-agents
+RUN node --check system-agents/worker.mjs \
+ && node --check system-agents/production-recovery-scan.mjs
 COPY docker-overrides/system-agents/status-route.ts /workspace/app/api/system-agents/status/route.ts
 COPY docker-overrides/system-agents/plan-route.ts /workspace/app/api/system-agents/plan/route.ts
 RUN mkdir -p v59-core \
