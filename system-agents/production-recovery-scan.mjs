@@ -4,8 +4,8 @@ import { runSystemRepairTeam } from './system-agent-team.mjs'
 const TIMEZONE = process.env.APP_TIMEZONE || 'Africa/Johannesburg'
 const appBase = process.env.AUTONOMY_BASE_URL || 'http://127.0.0.1:' + (process.env.PORT || 3000)
 function normalizeBase(raw) {
-  const value = String(raw || '').trim().replace(/\\/$/, '')
-  return !value ? '' : /^https?:\\/\\//i.test(value) ? value : 'https://' + value
+  const value = String(raw || '').trim().replace(/\/$/, '')
+  return !value ? '' : /^https?:\/\//i.test(value) ? value : 'https://' + value
 }
 const rendererBase = normalizeBase(
   process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL ||
