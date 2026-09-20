@@ -127,7 +127,7 @@ async function getJson(url){
   try{
     const r=await fetch(url,{signal:controller.signal,redirect:'follow'})
     const data=await r.json().catch(()=>null)
-    if(!r.ok)throw new Error(`YOUTUBE_API_${r.status}:${data?.error?.message||url}`)
+    if(!r.ok)throw new Error(`YOUTUBE_API_${r.status}:${String(data?.error?.message||new URL(url).pathname).slice(0,160)}`)
     return data
   }finally{clearTimeout(timer)}
 }
@@ -236,7 +236,7 @@ export async function searchYoutubeTopic(topic,{maxResults=8,days=120}={}){
     duration:v?.contentDetails?.duration||null,
     source:'YouTube Data API',
   })).sort((a,b)=>b.views-a.views)
-  return {ok:true,topic,results:rows}
+  return {ok:true,topic,results:rows,liveSearch:true,cachedEvidence:false}
 }
 function titlePatterns(rows){
   const words=new Map()
@@ -349,9 +349,21 @@ export async function runYoutubeGrowthScan(input={}){
   const topics=(Array.isArray(input.topics)&&input.topics.length?input.topics:DEFAULT_TOPICS)
     .map(clean).filter(Boolean).slice(0,8)
   const scans=[]
+  let publicApiFailure=null
   for(const topic of topics){
+    if(publicApiFailure){
+      const cached=await localEvidenceSearch(topic)
+      scans.push({...cached,apiWarning:publicApiFailure})
+      continue
+    }
     try{scans.push(await searchYoutubeTopic(topic,{maxResults:input.maxResults||8,days:input.days||120}))}
-    catch(error){scans.push({ok:false,topic,error:error instanceof Error?error.message:String(error)})}
+    catch(error){
+      // Stop repeated failed upstream calls in one cycle; never leak an API
+      // credential in a diagnostics object or falsely label cache as live.
+      publicApiFailure=String(error?.message||error).replace(/key=[^&\s]+/gi,'key=[REDACTED]').slice(0,200)
+      const cached=await localEvidenceSearch(topic)
+      scans.push({...cached,apiWarning:publicApiFailure})
+    }
   }
   const opportunities=scans.filter(x=>x.ok)
     .map(x=>{
@@ -370,6 +382,12 @@ export async function runYoutubeGrowthScan(input={}){
     ? (verifiedPerformance.records||[]).filter(x=>Number.isFinite(x.views))
     : []
   const multiplier=await runGrowthMultiplier({platform:'youtube',records:measuredRecords,baseline:channelBenchmark(metrics,base),opportunities,attractions})
+  const liveCount=scans.filter(x=>x.ok&&x.liveSearch===true).length
+  const cachedCount=scans.filter(x=>x.ok&&x.cachedEvidence===true).length
+  const researchMode=liveCount&&cachedCount?'MIXED_LIVE_AND_CACHED'
+    :liveCount?'LIVE_YOUTUBE_DATA_API'
+    :cachedCount?'ZERO_CREDIT_CACHED_EVIDENCE_FALLBACK'
+    :'UNAVAILABLE'
   const result={
     ok:opportunities.length>0,
     zeroCreditOnly:true,
@@ -377,7 +395,9 @@ export async function runYoutubeGrowthScan(input={}){
     writeActionsToYouTube:false,
     searchedAt:new Date().toISOString(),
     bots:YOUTUBE_GROWTH_BOTS,
-    researchMode:youtubeKey()?'LIVE_YOUTUBE_DATA_API':'ZERO_CREDIT_CACHED_EVIDENCE_FALLBACK',
+    researchMode,
+    publicApiConfigured:Boolean(youtubeKey()),
+    publicApiWarning:publicApiFailure,
     quotaPolicy:{maxTopicSearchesPerCycle:8,minimumHoursBetweenCycles:6},
     promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
     benchmark:channelBenchmark(metrics,base),
