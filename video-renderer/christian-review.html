@@ -37,6 +37,12 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <p id="full-preview-status" aria-live="polite">Private preview not loaded.</p>
 <video id="full-preview" controls preload="metadata" playsinline></video>
 </section>
+<section><h2>New draft after all source videos are approved</h2>
+<p>After the last exact source passes review, V59 automatically renders a new narrated 59-second draft. It survives Railway restarts and is kept separate from the unreviewed preview. Play the whole new video to check pacing, Christian context, voice/music balance, captions and actual story quality. A rendered draft is NOT a certified master and cannot be posted.</p>
+<button type="button" id="load-reviewed-draft">Check newly reviewed-source draft</button>
+<p id="reviewed-draft-status" aria-live="polite">Waiting for all nine Shorts source approvals.</p>
+<video id="reviewed-draft" controls preload="metadata" playsinline></video>
+</section>
 <section><label for="format">Review format</label><select id="format"><option value="SHORT_59">Shorts — 59 seconds</option><option value="YOUTUBE_LONG">YouTube — long form</option></select>
 <div id="summary" aria-live="polite"></div><div id="sources"></div></section>
 <section><h2 id="clip-title">Select a source video</h2><p id="purpose"></p>
