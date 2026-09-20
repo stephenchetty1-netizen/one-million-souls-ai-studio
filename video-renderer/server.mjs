@@ -426,13 +426,18 @@ const server = http.createServer(async (req, res) => {
             JSON.stringify({format:result.format,error:String(error?.message||error),
               publishingAllowed:false})))
       }
-      if(result.sourceBankReady&&result.decision==='APPROVE'&&result.format==='SHORT_59'){
-        // The user rejected instrumental-only reels: the first Shorts master
-        // MUST feature narrated Scripture, readable captions and voice/music balance.
-        void renderChristianNarratedShortDraft()
+      if(result.sourceBankReady&&result.decision==='APPROVE'){
+        // An exact, fully reviewed source bank starts its format-specific
+        // zero-paid-credit narrated draft without a second manual command.
+        // Neither source review nor successful draft rendering certifies a
+        // professional master or releases anything to social publishing.
+        const production=result.format==='SHORT_59'
+          ?renderChristianNarratedShortDraft()
+          :renderChristianMusicVideoDraft({format:'YOUTUBE_LONG'})
+        void production
           .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_READY',JSON.stringify({
             format:result.format,masterHash:draft.masterHash,mediaUrl:draft.mediaUrl,
-            voiceover:draft.voiceover,captionsPresent:draft.captionsPresent,
+            voiceover:draft.voiceover,captionsPresent:draft.captionsPresent??draft.onScreenWords,
             editorialStatus:draft.editorialStatus,publishingAllowed:false
           })))
           .catch(error=>console.error('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_FAILED',JSON.stringify({
