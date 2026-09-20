@@ -31,6 +31,8 @@ COPY pexels-review-scenes.mjs ./
 COPY pexels-review-scenes.test.mjs ./
 COPY christian-music-video.mjs ./
 COPY christian-music-video.test.mjs ./
+COPY christian-narrative-story.mjs ./
+COPY christian-narrative-story.test.mjs ./
 COPY christian-video-formats.mjs ./
 COPY christian-video-formats.test.mjs ./
 COPY christian-video-timeline.mjs ./
@@ -48,8 +50,8 @@ COPY christian-narrated-short.test.mjs ./
 COPY christian-review.html ./
 COPY christian-review.js ./
 RUN node --check free-ai-render-v2.mjs && node --check daily-factory.mjs && node --check stock-music-library.mjs \
- && node --check server.mjs && node --check pexels-source-import.mjs && node --check pexels-review-scenes.mjs && node --check christian-music-video.mjs && node --check christian-video-formats.mjs && node --check christian-video-timeline.mjs && node --check pexels-format-library.mjs && node --check christian-visual-editorial-gate.mjs && node --check christian-source-review-workflow.mjs && node --check christian-review.js && node --check master-archive-search.mjs && node --check christian-narrated-short.mjs \
- && node --test christian-visual-editorial-gate.test.mjs visual-storyboard.test.mjs pexels-source-import.test.mjs pexels-review-scenes.test.mjs christian-music-video.test.mjs christian-video-formats.test.mjs christian-video-timeline.test.mjs pexels-format-library.test.mjs christian-source-review-workflow.test.mjs master-archive-search.test.mjs christian-narrated-short.test.mjs
+ && node --check server.mjs && node --check pexels-source-import.mjs && node --check pexels-review-scenes.mjs && node --check christian-music-video.mjs && node --check christian-narrative-story.mjs && node --check christian-video-formats.mjs && node --check christian-video-timeline.mjs && node --check pexels-format-library.mjs && node --check christian-visual-editorial-gate.mjs && node --check christian-source-review-workflow.mjs && node --check christian-review.js && node --check master-archive-search.mjs && node --check christian-narrated-short.mjs \
+ && node --test christian-visual-editorial-gate.test.mjs visual-storyboard.test.mjs pexels-source-import.test.mjs pexels-review-scenes.test.mjs christian-music-video.test.mjs christian-narrative-story.test.mjs christian-video-formats.test.mjs christian-video-timeline.test.mjs pexels-format-library.test.mjs christian-source-review-workflow.test.mjs master-archive-search.test.mjs christian-narrated-short.test.mjs
 COPY google-veo-provider.mjs ./
 COPY bootstrap.mjs ./
 
