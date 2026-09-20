@@ -90,7 +90,8 @@ export async function POST(req:Request){
      creativeMaster:evidence.creativeMaster.status,
    }
    certificate={
-     certificateId:crypto.randomUUID(),contentHash,masterHash,masterReady:true,
+     certificateId:crypto.randomUUID(),reviewStandardVersion:'v59-independent-exact-master-v2',
+     contentHash,masterHash,masterReady:true,
      certification:'PROFESSIONAL_MASTER_CERTIFIED',releaseStatus:'APPROVED_AWAITING_POST_TIME',
      releaseReadyAt,issuedAt:releaseReadyAt,requiredApprovals:required.length,qa,
      evidenceDigest:crypto.createHash('sha256').update(JSON.stringify(evidence)).digest('hex')
