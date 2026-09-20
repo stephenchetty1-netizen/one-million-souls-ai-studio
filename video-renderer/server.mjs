@@ -581,6 +581,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{
         ok:true,id:latest.id,title:latest.title,masterHash:latest.masterHash,
         mediaUrl:latest.mediaUrl,contactSheetUrl:latest.contactSheetUrl,
+        contactSheetHash:latest.contactSheetHash,measured:latest.measured,
         sourceClips:latest.sourceScenes.length,voiceover:latest.voiceover===true,
         captionsPresent:latest.captionsPresent===true,
         editorialStatus:latest.editorialStatus,
@@ -599,7 +600,8 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{
         ok:true,format:'YOUTUBE_LONG',id:latest.id,title:latest.title,
         masterHash:latest.masterHash,mediaUrl:latest.mediaUrl,
-        contactSheetUrl:latest.contactSheetUrl,sourceClips:latest.sourceScenes.length,
+        contactSheetUrl:latest.contactSheetUrl,contactSheetHash:latest.contactSheetHash,
+        measured:latest.measured,sourceClips:latest.sourceScenes.length,
         voiceover:true,captionsPresent:latest.onScreenWords===true,
         durationSeconds:latest.measured.durationSeconds,
         editorialStatus:latest.editorialStatus,
