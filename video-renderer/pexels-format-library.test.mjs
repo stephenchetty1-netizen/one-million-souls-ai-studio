@@ -90,9 +90,18 @@ test('real FFmpeg blackdetect rejects predominantly blank preview scene, not bri
   '[blackdetect @ 0x12] black_start:0 black_end:0.5 black_duration:0.5',59/9),
   {ok:true,blankOrFreezeRejected:false})
 })
-test('real FFmpeg freezedetect rejects frozen footage with no moving scene',()=>{
+test('real FFmpeg freezedetect rejects completed long frozen footage',()=>{
  assert.throws(()=>rejectUnusableOpeningScene(
-  '[freezedetect @ 0x9] freeze_start: 0\n' +
-  '[freezedetect @ 0x9] freeze_end: 6 | freeze_duration: 6',59/9),
+  '[freezedetect @ 0x9] lavfi.freezedetect.freeze_start: 0\n' +
+  '[freezedetect @ 0x9] lavfi.freezedetect.freeze_duration: 6\n' +
+  '[freezedetect @ 0x9] lavfi.freezedetect.freeze_end: 6',59/9),
   /PEXELS_SOURCE_FROZEN_OPENING_SCENE/)
+})
+test('real FFmpeg freezedetect rejects scene frozen through the end of the clip',()=>{
+ assert.throws(()=>rejectUnusableOpeningScene(
+  '[freezedetect @ 0x9] lavfi.freezedetect.freeze_start: 0',59/9),
+  /PEXELS_SOURCE_FROZEN_OPENING_SCENE/)
+ assert.deepEqual(rejectUnusableOpeningScene(
+  '[freezedetect @ 0x9] lavfi.freezedetect.freeze_start: 5.9',59/9),
+  {ok:true,blankOrFreezeRejected:false})
 })
