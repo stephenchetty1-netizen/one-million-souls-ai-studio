@@ -129,9 +129,25 @@ async function decide(decision){
   reviewStatus('Saving exact-source '+decision.toLowerCase()+' decision…',true);
   const result=await request('/christian-review-decision',{method:'POST',
    headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-  await load();if(result.sourceBankReady)void loadReviewedDraft();message('Recorded '+decision+' for exact source '+result.id+
-   '. '+result.reviewed+'/'+result.required+' clips approved. Publishing remains locked.',true);
-  reviewStatus('Decision recorded successfully. Select the next clip.',true);
+  await load();
+  if(result.sourceBankReady){
+   // The exact-source review gate completed; the renderer is now building its
+   // separate final draft. Do not treat this as a final master approval.
+   $('reviewed-draft-status').textContent=
+    'All nine sources approved. Rendering the final narrated draft now; use Check newly reviewed-source draft to refresh.';
+   void loadReviewedDraft();
+  }else{
+   // Mobile workflow: advance to the next unreviewed exact MP4, never approve
+   // it by implication or reuse the previous full-watch attestation.
+   const next=sourceList.find(x=>x.reviewStatus!=='APPROVED_CHRISTIAN_STORY_FIT'&&
+    x.reviewStatus!=='REJECTED_CHRISTIAN_STORY_FIT');
+   if(next)selectSource(next.id);
+  }
+  message('Saved '+decision+' on exact source '+result.id+
+   '. '+result.reviewed+'/'+result.required+' approved. Publishing remains locked.',true);
+  reviewStatus(result.sourceBankReady
+   ?'All exact sources passed. The final narrated draft will appear above when rendered.'
+   :'Saved. Watch the NEXT source from beginning before recording another decision.',true);
  }catch(e){message(e.message);reviewStatus('Decision not saved: '+e.message);$('approve').disabled=false;$('reject').disabled=false;valid()}
 }
 $('approve').onclick=()=>decide('APPROVE');
