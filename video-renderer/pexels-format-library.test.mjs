@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {CHRISTIAN_PEXELS_STORY,requireFormatPlan,
-  selectPexelsRendition,searchSlots,validateMeasuredPexelsVideo,conflictingFaithSourceMetadata} from './pexels-format-library.mjs'
+  selectPexelsRendition,searchSlots,validateMeasuredPexelsVideo,conflictingFaithSourceMetadata,rejectUnusableOpeningScene} from './pexels-format-library.mjs'
 const videoFiles=(items)=>({video_files:items.map((x,i)=>({
   id:100+i,file_type:'video/mp4',quality:'hd',
   width:x[0],height:x[1],fps:30,
@@ -80,4 +80,19 @@ test('obvious contradictory page metadata is skipped but appearance and attire n
  assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/church-cross-12345/'}),false)
  assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/man-white-cap-orange-shirt-12345/'}),false)
  assert.equal(conflictingFaithSourceMetadata({url:'https://www.pexels.com/video/praying-12345/'}),false)
+})
+
+test('real FFmpeg blackdetect rejects predominantly blank preview scene, not brief fades',()=>{
+ assert.throws(()=>rejectUnusableOpeningScene(
+  '[blackdetect @ 0x12] black_start:0 black_end:5.8 black_duration:5.8',59/9),
+  /PEXELS_SOURCE_BLANK_OPENING_SCENE/)
+ assert.deepEqual(rejectUnusableOpeningScene(
+  '[blackdetect @ 0x12] black_start:0 black_end:0.5 black_duration:0.5',59/9),
+  {ok:true,blankOrFreezeRejected:false})
+})
+test('real FFmpeg freezedetect rejects frozen footage with no moving scene',()=>{
+ assert.throws(()=>rejectUnusableOpeningScene(
+  '[freezedetect @ 0x9] freeze_start: 0\n' +
+  '[freezedetect @ 0x9] freeze_end: 6 | freeze_duration: 6',59/9),
+  /PEXELS_SOURCE_FROZEN_OPENING_SCENE/)
 })
