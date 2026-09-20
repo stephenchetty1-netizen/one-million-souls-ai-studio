@@ -890,4 +890,49 @@ server.listen(PORT, '0.0.0.0', () => {
       })))
   }
 
+  // Recover a fully reviewed Christian source bank even if the original
+  // three render attempts failed after the last approval. An existing,
+  // source-hash-valid finished draft is never re-rendered or reapproved.
+  // Nothing in this loop changes publishing permission or certification.
+  if(process.env.CHRISTIAN_PEXELS_STAGE_ON_BOOT==='true'){
+    let reviewRecoveryRunning=false
+    async function recoverReviewedSourceDrafts(){
+      if(reviewRecoveryRunning)return
+      reviewRecoveryRunning=true
+      try{
+        const plans=[['SHORT_59','BE_STILL_PEXELS_V1',
+          'internal/narrated-short-reviews/v1/latest.json',inspectCurrentReviewedShortDraft]]
+        if(process.env.CHRISTIAN_PEXELS_STAGE_LONG_ON_BOOT==='true')
+          plans.push(['YOUTUBE_LONG','YOUTUBE_WORSHIP_LANDSCAPE_V1',
+            'internal/music-video-reviews/v1/YOUTUBE_LONG/latest.json',inspectCurrentReviewedLongDraft])
+        for(const [format,collection,draftKey,inspect] of plans){
+          try{
+            const current=await readStoredJson(
+              'internal/pexels-source-candidates/v1/'+collection+'/manifest.json')
+            if(current?.sourceBankReady!==true||
+               current?.christianVisualEditorialReady!==true)continue
+            let old=null
+            try{old=await readStoredJson(draftKey)}catch{}
+            if(inspect(old,current).ready)continue
+            if(reviewedDraftJobs.has(format))continue
+            console.log('CHRISTIAN_APPROVED_SOURCE_DRAFT_RECOVERY',JSON.stringify({
+              format,reason:'MISSING_OR_STALE_REVIEWED_SOURCE_DRAFT',
+              publishingAllowed:false,certification:'NOT_CERTIFIED'
+            }))
+            queueReviewedChristianDraft(format,'PERIODIC_REVIEWED_BANK_RECOVERY')
+          }catch(error){
+            console.error('CHRISTIAN_APPROVED_SOURCE_DRAFT_RECOVERY_BLOCKED',
+              JSON.stringify({format,error:String(error?.message||error).slice(0,250),
+                publishingAllowed:false}))
+          }
+        }
+      }finally{reviewRecoveryRunning=false}
+    }
+    setTimeout(()=>void recoverReviewedSourceDrafts().catch(e=>
+      console.error('CHRISTIAN_DRAFT_RECOVERY_LOOP_ERROR',String(e?.message||e))),5*60*1000)
+    setInterval(()=>void recoverReviewedSourceDrafts().catch(e=>
+      console.error('CHRISTIAN_DRAFT_RECOVERY_LOOP_ERROR',String(e?.message||e))),30*60*1000)
+  }
+
+
 })
