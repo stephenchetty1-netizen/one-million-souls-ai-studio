@@ -408,7 +408,21 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const body=await readJson(req)
-      return sendJson(res,200,await recordChristianSourceReview(body?.format||'SHORT_59',body))
+      const result=await recordChristianSourceReview(body?.format||'SHORT_59',body)
+      // A fully reviewed source bank automatically starts a zero-credit FFmpeg
+      // draft; independent exact-master certification still remains mandatory.
+      sendJson(res,200,result)
+      if(result.sourceBankReady&&result.decision==='APPROVE'){
+        void renderChristianMusicVideoDraft({format:result.format})
+          .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_DRAFT_READY',JSON.stringify({
+            format:result.format,masterHash:draft.masterHash,mediaUrl:draft.mediaUrl,
+            editorialStatus:draft.editorialStatus,publishingAllowed:false
+          })))
+          .catch(error=>console.error('CHRISTIAN_FULL_SOURCE_REVIEW_DRAFT_FAILED',JSON.stringify({
+            format:result.format,error:String(error?.message||error),publishingAllowed:false
+          })))
+      }
+      return
     }catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
   }
 
