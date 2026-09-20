@@ -5,6 +5,7 @@ import { durableRedis } from '../content-agents/durable-redis.mjs'
 import { runDueAutonomousGrowthBots } from './autonomous-growth-bots.mjs'
 import { evaluateReleaseReadiness } from './release-readiness.mjs'
 import { bootstrapAnalyticsSnapshotEnv } from '../content-agents/growth-analytics-snapshot.mjs'
+import { runProductionRecoveryScan } from './production-recovery-scan.mjs'
 
 const base=process.env.AUTONOMY_BASE_URL||'http://127.0.0.1:'+(process.env.PORT||3000)
 const secret=process.env.CRON_SECRET||''
@@ -72,6 +73,7 @@ await waitReady()
 const analyticsBootstrap=await bootstrapAnalyticsSnapshotEnv()
 console.log('ANALYTICS_BOOTSTRAP',JSON.stringify(analyticsBootstrap))
 console.log('AUTONOMY_WORKER_READY',JSON.stringify({base,providerConnected:provider,failClosed:true}))
+void runProductionRecoveryScan().then(r=>console.log('V59_RECOVERY_AGENT_TEAM',JSON.stringify(r))).catch(e=>console.error('V59_RECOVERY_AGENT_TEAM_BLOCKED',String(e?.message||e)))
 if(process.env.REVIEW_PACKET_EXPORT_ENABLED==='true'){
  const reviewIntervalMs=Math.max(300000,Number(process.env.REVIEW_PACKET_REFRESH_MS||1800000))
  let reviewRunning=false
