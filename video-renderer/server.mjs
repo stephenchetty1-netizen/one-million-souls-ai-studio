@@ -11,6 +11,7 @@ import { requestFactoryRetry } from './daily-factory.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
 import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
+import { renderChristianNarratedShortDraft } from './christian-narrated-short.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
@@ -424,13 +425,16 @@ const server = http.createServer(async (req, res) => {
             JSON.stringify({format:result.format,error:String(error?.message||error),
               publishingAllowed:false})))
       }
-      if(result.sourceBankReady&&result.decision==='APPROVE'){
-        void renderChristianMusicVideoDraft({format:result.format})
-          .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_DRAFT_READY',JSON.stringify({
+      if(result.sourceBankReady&&result.decision==='APPROVE'&&result.format==='SHORT_59'){
+        // The user rejected instrumental-only reels: the first Shorts master
+        // MUST feature narrated Scripture, readable captions and voice/music balance.
+        void renderChristianNarratedShortDraft()
+          .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_READY',JSON.stringify({
             format:result.format,masterHash:draft.masterHash,mediaUrl:draft.mediaUrl,
+            voiceover:draft.voiceover,captionsPresent:draft.captionsPresent,
             editorialStatus:draft.editorialStatus,publishingAllowed:false
           })))
-          .catch(error=>console.error('CHRISTIAN_FULL_SOURCE_REVIEW_DRAFT_FAILED',JSON.stringify({
+          .catch(error=>console.error('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_FAILED',JSON.stringify({
             format:result.format,error:String(error?.message||error),publishingAllowed:false
           })))
       }
@@ -451,6 +455,25 @@ const server = http.createServer(async (req, res) => {
     }catch(error){
       return sendJson(res,503,{ok:false,error:String(error?.message||error),
         publishingAllowed:false})
+    }
+  }
+
+  if(req.method==='POST'&&url.pathname==='/christian-narrated-short-draft'){
+    if(!authorized(req))return sendJson(res,401,{ok:false,error:'Unauthorized'})
+    try{
+      const draft=await renderChristianNarratedShortDraft()
+      return sendJson(res,200,{ok:true,mediaUrl:draft.mediaUrl,
+        masterHash:draft.masterHash,contactSheetUrl:draft.contactSheetUrl,
+        script:draft.script,scriptureReference:draft.scriptureReference,
+        voiceover:draft.voiceover,captionsPresent:draft.captionsPresent,
+        editorialStatus:draft.editorialStatus,certification:draft.certification,
+        publishingAllowed:false})
+    }catch(error){
+      const code=String(error?.message||error)
+      console.error('CHRISTIAN_NARRATED_59_SECOND_DRAFT_FAILED',JSON.stringify({
+        error:code,publishingAllowed:false}))
+      return sendJson(res,/REQUIRES_NINE_REVIEWED|NARRATED_SHORT_ALREADY_RENDERING/.test(code)?409:502,
+        {ok:false,error:code,publishingAllowed:false})
     }
   }
 
