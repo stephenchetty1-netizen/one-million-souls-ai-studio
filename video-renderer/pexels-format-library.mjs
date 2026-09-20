@@ -125,6 +125,19 @@ async function probeRealPexelsVideo(bytes,formatId){
   // Verify that FFmpeg can decode actual frames, not just read metadata.
   await execFileAsync('ffmpeg',['-v','error','-i',file,'-vf','fps=1/4,scale=32:32',
     '-frames:v','3','-f','null','-'],{timeout:45000,maxBuffer:2*1024*1024})
+  // Inspect the actual opening story beat for black/blank footage. A technically
+  // decodable clip can still display a black screen in the review player.
+  // A full-scene black interval is rejected; short fades are permitted.
+  const sceneSeconds=requireFormatPlan(formatId).profile.secondsPerScene
+  const {stderr:blackLog}=await execFileAsync('ffmpeg',[
+    '-hide_banner','-nostats','-i',file,'-t',String(sceneSeconds),
+    '-vf','blackdetect=d=1:pix_th=0.10:pic_th=0.98',
+    '-an','-f','null','-'
+  ],{timeout:45000,maxBuffer:2*1024*1024})
+  for(const match of blackLog.matchAll(/black_start:([\\d.]+)\\s+black_end:([\\d.]+)\\s+black_duration:([\\d.]+)/g)){
+    if(Number(match[3])>=sceneSeconds*0.8)
+      throw new Error('PEXELS_SOURCE_BLANK_OPENING_SCENE')
+  }
   return measured
  }finally{await fs.rm(file,{force:true}).catch(()=>{})}
 }
