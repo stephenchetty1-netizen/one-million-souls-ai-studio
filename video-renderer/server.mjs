@@ -481,31 +481,32 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('CHRISTIAN_PEXELS_SOURCE_BOOT_START',JSON.stringify({
       format:'SHORT_59',publishingAllowed:false
     }))
-    void (async()=>{
-      const shorts=await stageChristianPexelsFormat('SHORT_59')
-      console.log('CHRISTIAN_PEXELS_SHORTS_STAGED',JSON.stringify(shorts))
-      if(shorts.ok&&process.env.CHRISTIAN_PEXELS_RENDER_SHORT_ON_BOOT==='true'){
-        const preview=await renderChristianMusicVideoDraft({format:'SHORT_59'})
-        console.log('CHRISTIAN_PEXELS_59S_DRAFT_RESULT',JSON.stringify({
+    // Stage the two output formats independently: an invalid Shorts base clip,
+    // API error, or incomplete review must not prevent YouTube source preparation.
+    // Neither source staging nor a successful technical draft grants publication.
+    const stageFormat=async(format,renderOnBoot)=>{
+      try{
+        const result=await stageChristianPexelsFormat(format)
+        const short=format==='SHORT_59'
+        console.log(short?'CHRISTIAN_PEXELS_SHORTS_STAGED':'CHRISTIAN_PEXELS_YOUTUBE_STAGED',JSON.stringify(result))
+        if(!result.ok||process.env[renderOnBoot]!=='true')return
+        const preview=await renderChristianMusicVideoDraft({format})
+        console.log(short?'CHRISTIAN_PEXELS_59S_DRAFT_RESULT':'CHRISTIAN_PEXELS_YOUTUBE_DRAFT_RESULT',JSON.stringify({
           mediaUrl:preview.mediaUrl,masterHash:preview.masterHash,
           durationSeconds:preview.measured.durationSeconds,
           sourceClips:preview.measured.sourceClips,
           contactSheetUrl:preview.contactSheetUrl,publishingAllowed:false
         }))
+      }catch(error){
+        console.error('CHRISTIAN_PEXELS_FORMAT_STAGE_FAILED',JSON.stringify({
+          format,error:String(error?.message||error),publishingAllowed:false
+        }))
       }
-      if(process.env.CHRISTIAN_PEXELS_STAGE_LONG_ON_BOOT==='true'){
-        const long=await stageChristianPexelsFormat('YOUTUBE_LONG')
-        console.log('CHRISTIAN_PEXELS_YOUTUBE_STAGED',JSON.stringify(long))
-        if(long.ok&&process.env.CHRISTIAN_PEXELS_RENDER_LONG_ON_BOOT==='true'){
-          const preview=await renderChristianMusicVideoDraft({format:'YOUTUBE_LONG'})
-          console.log('CHRISTIAN_PEXELS_YOUTUBE_DRAFT_RESULT',JSON.stringify({
-            mediaUrl:preview.mediaUrl,masterHash:preview.masterHash,
-            durationSeconds:preview.measured.durationSeconds,
-            sourceClips:preview.measured.sourceClips,
-            contactSheetUrl:preview.contactSheetUrl,publishingAllowed:false
-          }))
-        }
-      }
+    }
+    void (async()=>{
+      await stageFormat('SHORT_59','CHRISTIAN_PEXELS_RENDER_SHORT_ON_BOOT')
+      if(process.env.CHRISTIAN_PEXELS_STAGE_LONG_ON_BOOT==='true')
+        await stageFormat('YOUTUBE_LONG','CHRISTIAN_PEXELS_RENDER_LONG_ON_BOOT')
     })().catch(error=>console.error('CHRISTIAN_PEXELS_FORMAT_BOOT_FAILED',JSON.stringify({
       error:String(error?.message||error),publishingAllowed:false
     })))
