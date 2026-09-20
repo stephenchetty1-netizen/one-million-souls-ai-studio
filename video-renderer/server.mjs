@@ -85,6 +85,39 @@ function reviewerOriginValid(req){
  try{return new URL(req.headers.origin).host===req.headers.host}catch{return false}
 }
 
+// Keep the exact-source approval as the gate, but make approved-bank renders
+// self-healing across restarts. No job here can certify or publish a master.
+const reviewedDraftJobs=new Set()
+function queueReviewedChristianDraft(format,trigger,attempt=1){
+ if(!['SHORT_59','YOUTUBE_LONG'].includes(format))return
+ if(reviewedDraftJobs.has(format))return
+ reviewedDraftJobs.add(format)
+ void (async()=>{
+   try{
+     const draft=format==='SHORT_59'
+       ?await renderChristianNarratedShortDraft()
+       :await renderChristianMusicVideoDraft({format:'YOUTUBE_LONG'})
+     console.log('CHRISTIAN_REVIEWED_SOURCE_DRAFT_READY',JSON.stringify({
+       format,trigger,attempt,masterHash:draft.masterHash,mediaUrl:draft.mediaUrl,
+       voiceover:draft.voiceover===true||draft.narrationPresent===true,
+       captionsPresent:draft.captionsPresent===true||draft.onScreenWords===true,
+       certification:'NOT_CERTIFIED',publishingAllowed:false
+     }))
+   }catch(error){
+     console.error('CHRISTIAN_REVIEWED_SOURCE_DRAFT_FAILED',JSON.stringify({
+       format,trigger,attempt,maxAttempts:3,
+       reason:String(error?.message||error).slice(0,1200),publishingAllowed:false
+     }))
+     if(attempt<3){
+       const waitMs=attempt*90000
+       setTimeout(()=>queueReviewedChristianDraft(format,'AUTONOMOUS_RETRY',attempt+1),waitMs)
+     }
+   }finally{
+     reviewedDraftJobs.delete(format)
+   }
+ })()
+}
+
 async function readJson(req) {
   const chunks = []
   let total = 0
@@ -427,22 +460,7 @@ const server = http.createServer(async (req, res) => {
               publishingAllowed:false})))
       }
       if(result.sourceBankReady&&result.decision==='APPROVE'){
-        // An exact, fully reviewed source bank starts its format-specific
-        // zero-paid-credit narrated draft without a second manual command.
-        // Neither source review nor successful draft rendering certifies a
-        // professional master or releases anything to social publishing.
-        const production=result.format==='SHORT_59'
-          ?renderChristianNarratedShortDraft()
-          :renderChristianMusicVideoDraft({format:'YOUTUBE_LONG'})
-        void production
-          .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_READY',JSON.stringify({
-            format:result.format,masterHash:draft.masterHash,mediaUrl:draft.mediaUrl,
-            voiceover:draft.voiceover,captionsPresent:draft.captionsPresent??draft.onScreenWords,
-            editorialStatus:draft.editorialStatus,publishingAllowed:false
-          })))
-          .catch(error=>console.error('CHRISTIAN_FULL_SOURCE_REVIEW_NARRATED_DRAFT_FAILED',JSON.stringify({
-            format:result.format,error:String(error?.message||error),publishingAllowed:false
-          })))
+        queueReviewedChristianDraft(result.format,'LAST_SOURCE_APPROVED')
       }
       return
     }catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
@@ -713,7 +731,7 @@ server.listen(PORT, '0.0.0.0', () => {
         // technically verified, NOT YET visually approved source bank.
         // This breaks the review deadlock: judge the real edited master first,
         // then approve/reject each exact source. Publishing remains locked.
-        if(short&&result.technicalSourceReady&&
+        if(short&&!result.ok&&result.technicalSourceReady&&
           process.env.CHRISTIAN_UNREVIEWED_DRAFT_ON_BOOT==='true'&&
           process.env.CHRISTIAN_UNREVIEWED_DRAFT_ENABLED==='true'){
           // Retry a transient zero-credit FFmpeg failure without another manual
@@ -743,14 +761,13 @@ server.listen(PORT, '0.0.0.0', () => {
           }
           void tryPrivatePreview()
         }
-        if(!result.ok||process.env[renderOnBoot]!=='true')return
-        const preview=await renderChristianMusicVideoDraft({format})
-        console.log(short?'CHRISTIAN_PEXELS_59S_DRAFT_RESULT':'CHRISTIAN_PEXELS_YOUTUBE_DRAFT_RESULT',JSON.stringify({
-          mediaUrl:preview.mediaUrl,masterHash:preview.masterHash,
-          durationSeconds:preview.measured.durationSeconds,
-          sourceClips:preview.measured.sourceClips,
-          contactSheetUrl:preview.contactSheetUrl,publishingAllowed:false
-        }))
+        if(result.ok){
+          // Resume an approved-source render after a Railway restart, even
+          // when the legacy MUSIC-led Shorts boot flag is disabled. The Short
+          // always uses narration and burned-in captions.
+          if(short||process.env[renderOnBoot]==='true')
+            queueReviewedChristianDraft(format,'REVIEWED_BANK_BOOT_RECOVERY')
+        }
       }catch(error){
         console.error('CHRISTIAN_PEXELS_FORMAT_STAGE_FAILED',JSON.stringify({
           format,error:String(error?.message||error),publishingAllowed:false
