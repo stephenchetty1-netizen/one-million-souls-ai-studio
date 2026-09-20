@@ -9,6 +9,7 @@ import { saveRetentionExperimentPlan } from '../content-agents/v60-experiment-le
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
 const RETRY_MS=30*60*1000
+const YOUTUBE_STRATEGY_VERSION='V59_VIEWER_NEEDS_20260920'
 const BOT_DEFINITIONS=Object.freeze([
   {id:'youtube-growth-bot',platform:'youtube',hoursEnv:'YOUTUBE_GROWTH_INTERVAL_HOURS',run:runYoutubeGrowthScan},
   {id:'tiktok-growth-bot',platform:'tiktok',hoursEnv:'TIKTOK_GROWTH_INTERVAL_HOURS',run:runTikTokGrowthScan},
@@ -36,6 +37,7 @@ function safeSummary(bot,result,snapshot){
   return {
     status:ok?(cached?'DEGRADED':'READY'):'BLOCKED',
     researchMode,
+    strategyVersion:bot.platform==='youtube'?YOUTUBE_STRATEGY_VERSION:null,
     publicApiConfigured:bot.platform==='youtube'?result?.publicApiConfigured===true:null,
     publicApiWarning:bot.platform==='youtube'?result?.publicApiWarning||null:null,
     analyticsSnapshotAvailable:snapshot?.available===true,
@@ -86,7 +88,12 @@ async function runBot(bot){
   // so an invalid key cannot trigger a request on every two-minute cycle.
   const youtubeApiNewlyConfigured=bot.platform==='youtube'&&
     Boolean(process.env.YOUTUBE_API_KEY)&&current?.publicApiConfigured!==true
-  if(!newerSnapshot&&!newerVerified&&!youtubeApiNewlyConfigured&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
+  // One bounded live refresh when a new evidence-based growth campaign ships;
+  // preserve the six-hour cadence after the new version has run once.
+  const youtubeStrategyUpdated=bot.platform==='youtube'&&
+    current?.strategyVersion!==YOUTUBE_STRATEGY_VERSION
+  if(!newerSnapshot&&!newerVerified&&!youtubeApiNewlyConfigured&&
+     !youtubeStrategyUpdated&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
     return {id:bot.id,status:'NOT_DUE',nextEligibleAt:current.nextEligibleAt,lastStatus:current.status}
   }
   const token=bot.id+':'+process.pid+':'+now
