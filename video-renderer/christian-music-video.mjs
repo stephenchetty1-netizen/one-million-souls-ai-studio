@@ -8,6 +8,9 @@ import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
 import {createChristianVideoTimelineScene,verifyChristianVideoSceneMetadata} from './christian-video-timeline.mjs'
 import {CHRISTIAN_VIDEO_FORMATS,requireChristianVideoFormat,inspectChristianVideoSources,requireChristianVideoSources} from './christian-video-formats.mjs'
 import {christianVisualSourceReviewed,christianVisualReviewReadiness} from './christian-visual-editorial-gate.mjs'
+import {requireChristianStoryPlan,requireNarratedChristianMasterEvidence} from './christian-narrative-story.mjs'
+import {callGradio,collectAssetUrls} from './free-ai-gradio.mjs'
+import {getFreeProviders} from './free-ai-providers.mjs'
 
 const run=promisify(execFile)
 const COLLECTION='BE_STILL_PEXELS_V1'
@@ -15,6 +18,7 @@ const TITLE='AMAZING GRACE'
 const ARCHIVED_PREVIEW_SECONDS=18.228
 const MUSIC_START_SECONDS=15
 const MAX_AUDIO=25*1024*1024
+const MAX_VOICE_AUDIO=70*1024*1024
 const MIN_LICENSED_MUSIC_SECONDS=60
 const PREFIX='music-video-review-v1'
 const MUSIC={
@@ -74,6 +78,67 @@ async function cachedMusic(s3,{forceRefresh=false}={}){
   console.log('CHRISTIAN_MUSIC_CACHE_STORE',JSON.stringify({title:MUSIC.title,sha256:hash(b),bytes:b.length}))
   return b
 }
+
+function trustedNarrationSource(url){
+ const u=new URL(url)
+ if(u.protocol!=='https:'||
+   !(u.hostname.endsWith('.hf.space')||u.hostname==='huggingface.co'||u.hostname.endsWith('.hf.co')))
+  throw Error('UNTRUSTED_NARRATION_AUDIO_URL')
+ return u.toString()
+}
+async function fetchNarrationAudio(url,target){
+ const response=await fetch(trustedNarrationSource(url),{
+  signal:AbortSignal.timeout(120000),redirect:'follow',
+  headers:{Accept:'audio/*, application/octet-stream'}})
+ trustedNarrationSource(response.url)
+ if(!response.ok)throw Error('NARRATION_DOWNLOAD_HTTP_'+response.status)
+ if(Number(response.headers.get('content-length')||0)>MAX_VOICE_AUDIO)
+  throw Error('NARRATION_AUDIO_EXCEEDS_BUDGET')
+ let bytes=0;const chunks=[]
+ for await(const chunk of response.body){
+  bytes+=chunk.length
+  if(bytes>MAX_VOICE_AUDIO)throw Error('NARRATION_AUDIO_EXCEEDS_BUDGET')
+  chunks.push(Buffer.from(chunk))
+ }
+ if(bytes<5000)throw Error('NARRATION_AUDIO_EMPTY')
+ await fs.writeFile(target,Buffer.concat(chunks,bytes))
+}
+async function generateChristianNarration(story,work){
+ const voiceFile=path.join(work,'christian-narration.wav')
+ let provider='Kokoro TTS'
+ try{
+  const voice=getFreeProviders().voice
+  if(!voice?.baseUrl)throw Error('CHRISTIAN_NARRATION_PROVIDER_NOT_CONFIGURED')
+  const result=await callGradio(voice.baseUrl,'/generate_all',[
+   story.voiceScript,process.env.FREE_TTS_VOICE||'bm_george',
+   Number(process.env.FREE_TTS_SPEED||0.95),true
+  ],240000)
+  const url=collectAssetUrls(result)[0]
+  if(!url)throw Error('KOKORO_RETURNED_NO_NARRATION_AUDIO')
+  await fetchNarrationAudio(url,voiceFile)
+ }catch(error){
+  const reason=String(error?.message||error).slice(0,220)
+  console.warn('CHRISTIAN_NARRATION_KOKORO_FAILED',JSON.stringify({reason,publishingAllowed:false}))
+  // Natural en-ZA neural voice is a fallback, not synthetic placeholder speech.
+  const cli=path.join(process.cwd(),'node_modules','.bin','node-edge-tts')
+  const fallback=path.join(work,'christian-narration-edge.mp3')
+  const voiceName=process.env.EDGE_TTS_VOICE||'en-ZA-LeahNeural'
+  await run(cli,['-t',story.voiceScript,'-f',fallback,
+    '-v',voiceName,'-l','en-ZA','--rate=-5%','--timeout','90000'],
+    {timeout:120000,maxBuffer:5*1024*1024})
+  await fs.rename(fallback,voiceFile)
+  provider='Edge neural TTS ('+voiceName+')'
+ }
+ const voiceSeconds=await checkedWork(voiceFile,'CHRISTIAN_NARRATION',story.voiceMinSeconds)
+ if(voiceSeconds>story.voiceMaxSeconds)
+  throw Error('CHRISTIAN_NARRATION_EXCEEDS_STORY_RUNTIME: measured='+voiceSeconds+
+    ' max='+story.voiceMaxSeconds)
+ console.log('CHRISTIAN_NARRATION_READY',JSON.stringify({
+  format:story.format,voiceSeconds,provider,spokenWords:story.voiceScript.split(/\s+/).length,
+  publishingAllowed:false}))
+ return {voiceFile,voiceSeconds,provider}
+}
+
 async function probe(file){
   const {stdout}=await run('ffprobe',['-v','error','-show_entries',
     'format=duration:stream=codec_type,width,height,r_frame_rate','-of','json',file],
@@ -85,7 +150,7 @@ async function checkedWork(file,kind,minDuration,profile=null){
   const duration=Number(result?.format?.duration)
   if(!Number.isFinite(duration)||duration<minDuration)
     throw new Error(kind+'_DURATION_INVALID: measured='+String(duration)+'s required='+String(minDuration)+'s')
-  if(kind==='CHRISTIAN_MUSIC'&&!result?.streams?.some(s=>s.codec_type==='audio'))
+  if(['CHRISTIAN_MUSIC','CHRISTIAN_NARRATION'].includes(kind)&&!result?.streams?.some(s=>s.codec_type==='audio'))
     throw new Error('CHRISTIAN_MUSIC_AUDIO_STREAM_MISSING')
   if(kind==='MUSIC_VIDEO'){
     const v=result.streams?.find(s=>s.codec_type==='video')
@@ -141,6 +206,7 @@ export async function inspectChristianVideoFormatReadiness(formatId='SHORT_59'){
 let activeDraft=null
 export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
   const profile=requireChristianVideoFormat(format)
+  const story=requireChristianStoryPlan(format)
   if(activeDraft)throw new Error('CHRISTIAN_MUSIC_VIDEO_ALREADY_RENDERING')
   if(!storageReady())throw new Error('CHRISTIAN_MUSIC_VIDEO_PRIVATE_STORAGE_REQUIRED')
   activeDraft=(async()=>{
@@ -187,6 +253,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         }))
         throw new Error('CHRISTIAN_VIDEO_HUMAN_CHRISTIAN_VISUAL_REVIEW_REQUIRED')
       }
+      const {voiceFile,voiceSeconds,provider:narrationProvider}=await generateChristianNarration(story,work)
       const scenes=[]
       for(let i=0;i<selected.length;i++){
         const scene=await createChristianVideoTimelineScene({
@@ -198,10 +265,12 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const listFile=path.join(work,'concat.txt')
       await fs.writeFile(listFile,scenes.map(s=>"file '"+s.local.replace(/'/g,"'\\''")+"'").join('\n')+'\n')
       const title=path.join(work,'title.txt'),ref=path.join(work,'scripture.txt'),brand=path.join(work,'brand.txt')
+      const cardFiles=story.cards.map((_,i)=>path.join(work,'story-card-'+i+'.txt'))
       await Promise.all([
         fs.writeFile(title,'AMAZING GRACE\n'),
         fs.writeFile(ref,'GRACE UPON GRACE  |  JOHN 1:16\n'),
         fs.writeFile(brand,'ONE MILLION SOULS  |  JESUS CHRIST\n'),
+        ...cardFiles.map((file,i)=>fs.writeFile(file,story.cards[i]+'\n')),
       ])
       const video=path.join(work,'amazing-grace-review.mp4')
       const font='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -216,16 +285,25 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       const referenceEnd=Number((profile.durationSeconds*0.83).toFixed(3))
       const titleEnd=Number(Math.min(7,profile.durationSeconds*0.13).toFixed(3))
       const audioFadeStart=Number((profile.durationSeconds-1.25).toFixed(3))
+      const cardFont=portrait?46:47
+      const captionY=Math.floor(profile.height*(portrait?0.78:0.79))
+      const storyFilters=cardFiles.map((file,i)=>{
+        const start=Number((i*profile.secondsPerScene+0.1).toFixed(3))
+        const end=Number((Math.min(profile.durationSeconds,(i+1)*profile.secondsPerScene)-0.15).toFixed(3))
+        return `drawtext=fontfile=${font}:textfile=${file}:fontsize=${cardFont}:fontcolor=white:borderw=2:bordercolor=black@0.8:box=1:boxcolor=black@0.47:boxborderw=18:x=(w-text_w)/2:y=${captionY}:enable='between(t\\,${start}\\,${end})'`
+      })
       const vf=[
         `drawtext=fontfile=${font}:textfile=${title}:fontsize=${titleFont}:fontcolor=white:borderw=3:bordercolor=black@0.7:x=(w-text_w)/2:y=${titleY}:enable='between(t\\,0\\,${titleEnd})'`,
         `drawtext=fontfile=${font}:textfile=${ref}:fontsize=${refFont}:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=${referenceY}:enable='between(t\\,${referenceStart}\\,${referenceEnd})'`,
         `drawtext=fontfile=${font}:textfile=${brand}:fontsize=${brandFont}:fontcolor=white:borderw=2:bordercolor=black@0.75:x=(w-text_w)/2:y=${brandY}`,
+        ...storyFilters,
       ].join(',')
       try{await run('ffmpeg',['-y','-hide_banner','-loglevel','error',
         '-filter_complex_threads','1',
         '-f','concat','-safe','0','-i',listFile,
-        '-stream_loop',loopedMusic?'-1':'0','-ss',String(MUSIC_START_SECONDS),'-i',audio,'-t',String(profile.durationSeconds),
-        '-filter_complex',`[0:v]${vf}[v];[1:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.6,afade=t=out:st=${audioFadeStart}:d=1.25,loudnorm=I=-14:LRA=9:TP=-1.5[a]`,
+        '-stream_loop',loopedMusic?'-1':'0','-ss',String(MUSIC_START_SECONDS),'-i',audio,
+        '-i',voiceFile,'-t',String(profile.durationSeconds),
+        '-filter_complex',`[0:v]${vf}[v];[1:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,volume=0.075,afade=t=in:st=0:d=0.6,afade=t=out:st=${audioFadeStart}:d=1.25[music];[2:a]atrim=duration=${profile.durationSeconds},asetpts=PTS-STARTPTS,highpass=f=80,volume=1.20[spoken];[music][spoken]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.88[a]`,
         '-map','[v]','-map','[a]','-c:v','libx264','-threads','2','-preset','veryfast','-crf','18',
         '-pix_fmt','yuv420p','-r',String(profile.fps),'-c:a','aac','-b:a','192k','-ac','2',
         '-movflags','+faststart','-shortest',video],
@@ -271,10 +349,13 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         measured:{width:profile.width,height:profile.height,fps:profile.fps,durationSeconds:duration,
           targetSeconds:profile.durationSeconds,secondsPerVisualBeat:profile.secondsPerScene,
           sourceClips:scenes.length,allSourcesDistinct:true,fullDecodePassed:true},
-        voiceover:false,lyricCaptions:false,editorialStatus:'AWAITING_FULL_AUDIOVISUAL_AND_RIGHTS_REVIEW',
+        voiceover:true,onScreenWords:true,musicUnderNarration:true,voiceSeconds,
+        narrationProvider,narrationScript:story.voiceScript,textCardCount:story.cards.length,
+        storyCards:story.cards,lyricCaptions:false,editorialStatus:'AWAITING_FULL_AUDIOVISUAL_AND_RIGHTS_REVIEW',
         professionalMasterCandidate:false,masterReady:false,publishingAllowed:false,
         publishingLocked:true,providerCreditsUsed:0,generatedAt:new Date().toISOString(),
       }
+      requireNarratedChristianMasterEvidence(asset)
       await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:buffer,
         ContentType:'video/mp4',CacheControl:'public, max-age=31536000, immutable'}))
       await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:contactKey,Body:sheet,
@@ -286,6 +367,7 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
       console.log('CHRISTIAN_MUSIC_VIDEO_DRAFT_RESULT',JSON.stringify({
         id,profileId:format,mediaUrl:asset.mediaUrl,masterHash:asset.masterHash,contactSheetUrl:asset.contactSheetUrl,
         durationSeconds:duration,targetSeconds:profile.durationSeconds,musicTitle:MUSIC.title,musicLicense:MUSIC.license,
+        voiceover:true,voiceSeconds,onScreenWords:true,textCardCount:story.cards.length,
         sourceFootage:asset.sourceScenes.map(s=>({id:s.stockId,license:s.license})),
         editorialStatus:asset.editorialStatus,publishingAllowed:false,
       }))
