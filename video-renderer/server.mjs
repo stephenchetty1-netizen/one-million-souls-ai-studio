@@ -379,7 +379,7 @@ const server = http.createServer(async (req, res) => {
       const at=String(Date.now())
       const mac=crypto.createHmac('sha256',SECRET).update('christian-review:'+at).digest('hex')
       res.setHeader('set-cookie','oms_christian_review='+at+'.'+mac+
-        '; HttpOnly; Secure; SameSite=Strict; Max-Age=7200; Path=/christian-review')
+        '; HttpOnly; Secure; SameSite=Strict; Max-Age=7200; Path=/')
       return sendJson(res,200,{ok:true,sessionMinutes:120,publishingAllowed:false})
     }catch{return sendJson(res,400,{ok:false,error:'INVALID_REVIEW_LOGIN_REQUEST'})}
   }
