@@ -172,6 +172,15 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
  const invalidSources=[]
  // Check real media, not merely the Pexels API duration and resolution.
  for(const source of existing){
+   // Human-rejected imagery is never recycled by staging or cache reuse.
+   if(source?.visualChristianEditorialStatus==='REJECTED_CHRISTIAN_STORY_FIT'||
+      source?.reviewStatus==='REJECTED_CHRISTIAN_STORY_FIT'){
+     invalidSources.push({id:source?.id,sourceSlot:source?.sourceSlot||null,
+       reason:'HUMAN_REJECTED_VISUAL_SOURCE'})
+     console.warn('PEXELS_REJECTED_SOURCE_QUARANTINED',JSON.stringify({
+       format,id:source?.id,publishingAllowed:false}))
+     continue
+   }
    try{
      const object=await store.send(new GetObjectCommand({
        Bucket:process.env.BUCKET,Key:source.sourceObjectKey}))
@@ -192,15 +201,18 @@ export async function stageChristianPexelsFormat(format='SHORT_59'){
      }))
    }
  }
- if(format==='SHORT_59'){
-   for(const id of plan.base){
-     if(!assets.some(x=>Number(x?.id)===id))
-       throw new Error('PEXELS_BASE_SHOT_INVALID_OR_MISSING_'+id)
-   }
- }
+ // An invalid or rejected original short clip must be replaceable; never
+ // demand that a previously rejected base ID re-enter the source bank.
+ const missingBase=format==='SHORT_59'
+   ?plan.base.filter(id=>!assets.some(x=>Number(x?.id)===id))
+   :[]
  const failures=[]
  let staged=0
- const slots=searchSlots(format)
+ const slots=[...searchSlots(format),...missingBase.map((id,index)=>({
+   id:'replacement-base:'+id,query:[
+     'church altar cross','open holy bible','christian worship church'
+   ][index%3],intent:'Replace rejected source with a new distinctly reviewed Christian video',rank:0
+ }))]
  const searches=new Map()
  for(const slot of slots){
    if(assets.some(x=>x.sourceSlot===slot.id))continue
