@@ -61,10 +61,17 @@ export async function inspectChristianHandoff(format,{base,secret,fetchImpl=fetc
  let url,contact
  try{url=new URL(draft.mediaUrl);contact=new URL(draft.contactSheetUrl)}
  catch{return status(format,'REVIEWED_MASTER_URL_INVALID')}
- if(!draft.ok||draft.sourceClips!==plan.count||draft.voiceover!==true||
+ const dimensions=format==='SHORT_59'?[1080,1920,59]:[1920,1080,240]
+ const measured=draft.measured||{}
+ const mediaProfileValid=measured.fullDecodePassed===true &&
+   Number(measured.width)===dimensions[0] &&
+   Number(measured.height)===dimensions[1] &&
+   Number(measured.fps)>=29.9 &&
+   Math.abs(Number(measured.durationSeconds)-dimensions[2])<=0.35
+ if(!draft.ok||!mediaProfileValid||draft.sourceClips!==plan.count||draft.voiceover!==true||
     draft.captionsPresent!==true||draft.certification!=='NOT_CERTIFIED'||
     draft.masterReady!==false||draft.publishingAllowed!==false||
-    !HASH.test(expected)||url.origin!==origin||contact.origin!==origin||
+    !HASH.test(expected)||!HASH.test(String(draft.contactSheetHash||''))||url.origin!==origin||contact.origin!==origin||
     !url.pathname.startsWith(plan.mediaPrefix)||
     !contact.pathname.startsWith(plan.mediaPrefix)||
     !url.pathname.endsWith('.mp4')||!contact.pathname.endsWith('.jpg'))
@@ -76,8 +83,7 @@ export async function inspectChristianHandoff(format,{base,secret,fetchImpl=fetc
  }catch(error){return status(format,'MASTER_MEDIA_UNAVAILABLE',{
    reason:String(error.message).slice(0,200),masterHash:expected})}
  if(media.sha256!==expected||
-    (HASH.test(String(draft.contactSheetHash||''))&&
-      sheet.sha256!==String(draft.contactSheetHash).toLowerCase()))
+    sheet.sha256!==String(draft.contactSheetHash).toLowerCase())
   return status(format,'EXACT_MASTER_MEDIA_HASH_MISMATCH',{
    masterHash:expected,measuredHash:media.sha256})
  return status(format,'AWAITING_INDEPENDENT_FINAL_MASTER_REVIEW',{
