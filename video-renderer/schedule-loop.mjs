@@ -38,7 +38,15 @@ async function trigger(slotKey) {
     const text = await response.text()
     console.log('SCHEDULED_RUN_RESULT', JSON.stringify({ slotKey, status: response.status, ok: response.ok, body: text.slice(0, 4000) }))
   } catch (error) {
-    console.error('SCHEDULED_RUN_ERROR', JSON.stringify({ slotKey, error: error instanceof Error ? error.message : String(error) }))
+    const cause = error instanceof Error ? error.cause : null
+    console.error('SCHEDULED_RUN_ERROR', JSON.stringify({
+      slotKey,
+      error: error instanceof Error ? error.message : String(error),
+      transportCode: typeof cause?.code === 'string' ? cause.code : null,
+      transportCause: cause instanceof Error ? cause.message.slice(0, 160) : null,
+      // Only the configured host, never CRON_SECRET or URL credentials.
+      targetHost: (() => { try { return new URL(V59_BASE_URL).hostname } catch { return 'INVALID_BASE_URL' } })(),
+    }))
   }
 }
 
@@ -54,3 +62,28 @@ async function tick() {
 console.log('EMBEDDED_SCHEDULER', JSON.stringify({ enabled: SCHEDULER_ENABLED, timezone: TIMEZONE, slots: [...SLOTS], configured: Boolean(V59_BASE_URL && CRON_SECRET), mode: SCHEDULER_ENABLED ? 'break-glass-enabled' : 'standalone-scheduler-authoritative' }))
 setInterval(() => tick().catch(error => console.error('SCHEDULER_TICK_ERROR', error)), 10_000)
 tick().catch(error => console.error('SCHEDULER_INITIAL_ERROR', error))
+
+// A safe read-only connectivity probe distinguishes network/DNS failures from
+// authorization and production-gate failures before the scheduled post time.
+async function schedulerConnectivityPreflight() {
+  if (!SCHEDULER_ENABLED || !V59_BASE_URL) return
+  const target = V59_BASE_URL + '/api/health'
+  try {
+    const response = await fetch(target, {signal: AbortSignal.timeout(12_000)})
+    console.log('SCHEDULER_CONNECTIVITY_PREFLIGHT', JSON.stringify({
+      reachable: true, httpStatus: response.status, ok: response.ok,
+      targetHost: new URL(V59_BASE_URL).hostname,
+      publishingPermissionGranted: false,
+    }))
+  } catch (error) {
+    const cause = error instanceof Error ? error.cause : null
+    console.error('SCHEDULER_CONNECTIVITY_PREFLIGHT', JSON.stringify({
+      reachable: false, error: error instanceof Error ? error.message : String(error),
+      transportCode: typeof cause?.code === 'string' ? cause.code : null,
+      transportCause: cause instanceof Error ? cause.message.slice(0, 160) : null,
+      publishingPermissionGranted: false,
+    }))
+  }
+}
+void schedulerConnectivityPreflight()
+setInterval(() => void schedulerConnectivityPreflight(), 15 * 60_000)
