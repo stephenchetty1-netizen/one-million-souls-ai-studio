@@ -74,6 +74,7 @@ const analyticsBootstrap=await bootstrapAnalyticsSnapshotEnv()
 console.log('ANALYTICS_BOOTSTRAP',JSON.stringify(analyticsBootstrap))
 console.log('AUTONOMY_WORKER_READY',JSON.stringify({base,providerConnected:provider,failClosed:true}))
 void runProductionRecoveryScan().then(r=>console.log('V59_RECOVERY_AGENT_TEAM',JSON.stringify(r))).catch(e=>console.error('V59_RECOVERY_AGENT_TEAM_BLOCKED',String(e?.message||e)))
+setInterval(()=>void runProductionRecoveryScan().then(r=>console.log('V59_RECOVERY_AGENT_TEAM',JSON.stringify(r))).catch(e=>console.error('V59_RECOVERY_AGENT_TEAM_BLOCKED',String(e?.message||e))),600000)
 if(process.env.REVIEW_PACKET_EXPORT_ENABLED==='true'){
  const reviewIntervalMs=Math.max(300000,Number(process.env.REVIEW_PACKET_REFRESH_MS||1800000))
  let reviewRunning=false
