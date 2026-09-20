@@ -36,6 +36,8 @@ jobs:
           node --check video-renderer/server.mjs
           node --check video-renderer/christian-reviewed-draft-integrity.mjs
           node --check video-renderer/christian-source-review-workflow.mjs
+          node --check video-renderer/christian-final-master-review.mjs
+          node --check video-renderer/christian-review.js
       - name: Test fail-closed release, content and growth regressions
         run: |
           node --test content-agents/review-window.test.mjs content-agents/christian-master-handoff.test.mjs system-agents/release-readiness.test.mjs content-agents/review-disposition.test.mjs content-agents/review-master-selector.test.mjs content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
