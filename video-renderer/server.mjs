@@ -16,6 +16,7 @@ import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
 import { inspectCurrentReviewedShortDraft, inspectCurrentReviewedLongDraft, inspectCurrentPrivatePreview } from './christian-reviewed-draft-integrity.mjs'
+import { validateChristianFinalReview } from './christian-final-master-review.mjs'
 import { planRejectedSourceRecovery, SOURCE_REPLACEMENT_MAX_ATTEMPTS } from './christian-source-recovery.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
@@ -361,6 +362,55 @@ async function readStoredJson(key) {
   return JSON.parse(text)
 }
 
+// Final editorial records apply ONLY to the currently source-reviewed exact MP4.
+// They never create content-agent votes, release certificates or publish rights.
+async function currentChristianFinalDraft(format){
+ if(!['SHORT_59','YOUTUBE_LONG'].includes(format))
+  throw new Error('CHRISTIAN_FINAL_FORMAT_INVALID')
+ const short=format==='SHORT_59'
+ const draft=await readStoredJson(short?
+  'internal/narrated-short-reviews/v1/latest.json':
+  'internal/music-video-reviews/v1/YOUTUBE_LONG/latest.json')
+ const manifest=await readStoredJson(short?
+  'internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json':
+  'internal/pexels-source-candidates/v1/YOUTUBE_WORSHIP_LANDSCAPE_V1/manifest.json')
+ const check=short?inspectCurrentReviewedShortDraft(draft,manifest):
+  inspectCurrentReviewedLongDraft(draft,manifest)
+ if(!check.ready)throw new Error('CURRENT_CHRISTIAN_DRAFT_NOT_SOURCE_REVIEWED: '+check.blockers.join(','))
+ if(!/^[a-f0-9-]{36}$/i.test(String(draft.id||''))||
+  !/^[a-f0-9]{64}$/i.test(String(draft.masterHash||'')))
+  throw new Error('EXACT_CHRISTIAN_DRAFT_IDENTITY_INVALID')
+ return draft
+}
+function finalMasterReviewKey(format,hash){
+ return 'internal/christian-final-master-review/v1/'+format+'/'+hash.toLowerCase()+'.json'
+}
+async function existingChristianFinalReview(format,hash){
+ try{return await readStoredJson(finalMasterReviewKey(format,hash))}
+ catch(error){
+  if(['NoSuchKey','NotFound'].includes(String(error?.name||''))||
+     /specified key does not exist/i.test(String(error?.message||'')))return null
+  throw error
+ }
+}
+async function rehashChristianFinalMaster(format,draft){
+ const short=format==='SHORT_59'
+ const key=(short?'narrated-short-review-v1/':'music-video-review-v1/YOUTUBE_LONG/')+
+  draft.id+'.mp4'
+ const media=await s3.send(new GetObjectCommand({Bucket:process.env.BUCKET,Key:key}))
+ if(!media.Body)throw new Error('FINAL_MASTER_BYTES_NOT_FOUND')
+ const hash=crypto.createHash('sha256')
+ let bytes=0
+ for await(const chunk of media.Body){
+  bytes+=chunk.length
+  if(bytes>400*1024*1024)throw new Error('FINAL_MASTER_EXCEEDS_REVIEW_LIMIT')
+  hash.update(chunk)
+ }
+ if(bytes<1000000||hash.digest('hex')!==String(draft.masterHash).toLowerCase())
+  throw new Error('EXACT_FINAL_MASTER_BYTES_CHANGED')
+ return bytes
+}
+
 async function serveMedia(req, res, key) {
   try {
     if (s3) {
@@ -470,6 +520,61 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res,200,{ok:true,sessionMinutes:120,publishingAllowed:false})
     }catch{return sendJson(res,400,{ok:false,error:'INVALID_REVIEW_LOGIN_REQUEST'})}
   }
+  if(req.method==='GET'&&url.pathname==='/christian-final-review-status'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const format=url.searchParams.get('format')||'SHORT_59'
+      const draft=await currentChristianFinalDraft(format)
+      const previous=await existingChristianFinalReview(format,draft.masterHash)
+      return sendJson(res,200,{ok:true,format,id:draft.id,masterHash:draft.masterHash,
+       reviewStatus:previous?.decision||'PENDING_FINAL_EXACT_VIDEO_REVIEW',
+       reviewedAt:previous?.reviewedAt||null,reviewer:previous?.reviewer||null,
+       reviewNotes:previous?.notes||null,fullWatch:previous?.fullWatch||false,
+       certification:'NOT_CERTIFIED',publishingAllowed:false,publishingLocked:true})
+    }catch(error){
+      return sendJson(res,404,{ok:false,
+       error:'FINAL_SOURCE_REVIEWED_MASTER_NOT_AVAILABLE',
+       detail:String(error?.message||error).slice(0,250),
+       certification:'NOT_CERTIFIED',publishingAllowed:false})
+    }
+  }
+  if(req.method==='POST'&&url.pathname==='/christian-final-review-decision'){
+    if(!reviewerAuthorized(req)||!reviewerOriginValid(req))
+      return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const body=await readJson(req)
+      const format=String(body?.format||'')
+      const draft=await currentChristianFinalDraft(format)
+      const review=validateChristianFinalReview(draft,body)
+      // Verify immutable MP4 content at submission, not just a matching label.
+      const bytes=await rehashChristianFinalMaster(format,draft)
+      const reviewedAt=new Date().toISOString()
+      const record={...review,videoBytes:bytes,reviewedAt,
+       reviewRecordId:crypto.randomUUID(),contactSheetHash:draft.contactSheetHash,
+       finalEditorialStatus:review.decision==='APPROVE'?
+        'EDITORIALLY_APPROVED_PENDING_INDEPENDENT_MASTER_CERTIFICATION':
+        'FINAL_VIDEO_REJECTED_REQUIRES_NEW_RENDER',
+       certification:'NOT_CERTIFIED',publishingAllowed:false,publishingLocked:true}
+      const base='internal/christian-final-master-review/v1/'+format+'/'+review.masterHash
+      const save=async(key)=>s3.send(new PutObjectCommand({
+       Bucket:process.env.BUCKET,Key:key,Body:JSON.stringify(record,null,2),
+       ContentType:'application/json',CacheControl:'private, no-store'}))
+      await save(base+'/'+record.reviewRecordId+'.json')
+      await save(finalMasterReviewKey(format,review.masterHash))
+      console.log('CHRISTIAN_FINAL_EXACT_MASTER_REVIEW_RECORDED',JSON.stringify({
+       format,decision:review.decision,id:review.id,masterHash:review.masterHash,
+       videoBytes:bytes,fullWatch:review.fullWatch,certification:'NOT_CERTIFIED',
+       publishingAllowed:false}))
+      return sendJson(res,200,{ok:true,format,id:review.id,
+       masterHash:review.masterHash,decision:review.decision,
+       finalEditorialStatus:record.finalEditorialStatus,
+       certification:'NOT_CERTIFIED',publishingAllowed:false,
+       nextAction:'INDEPENDENT_RELEASE_CERTIFICATION_REQUIRES_SEPARATE_VERIFIED_APPROVALS'})
+    }catch(error){return sendJson(res,409,{ok:false,
+     error:String(error?.message||error).slice(0,450),
+     certification:'NOT_CERTIFIED',publishingAllowed:false})}
+  }
+
   if(req.method==='GET'&&url.pathname==='/christian-review-queue'){
     if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{return sendJson(res,200,await christianSourceReviewQueue(url.searchParams.get('format')||'SHORT_59'))}
