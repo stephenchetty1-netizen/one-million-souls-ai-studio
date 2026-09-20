@@ -412,6 +412,18 @@ const server = http.createServer(async (req, res) => {
       // A fully reviewed source bank automatically starts a zero-credit FFmpeg
       // draft; independent exact-master certification still remains mandatory.
       sendJson(res,200,result)
+      if(result.decision==='REJECT'){
+        // Replace rejected originals automatically; replacement is a NEW
+        // unreviewed candidate and cannot inherit the old source's approval.
+        void stageChristianPexelsFormat(result.format)
+          .then(staged=>console.log('CHRISTIAN_REJECTED_SOURCE_REPLACEMENT',JSON.stringify({
+            format:result.format,staged:staged.staged,sourceClips:staged.sourceClips,
+            reviewed:staged.christianVisualReviewedClips,publishingAllowed:false
+          })))
+          .catch(error=>console.error('CHRISTIAN_REJECTED_SOURCE_REPLACEMENT_FAILED',
+            JSON.stringify({format:result.format,error:String(error?.message||error),
+              publishingAllowed:false})))
+      }
       if(result.sourceBankReady&&result.decision==='APPROVE'){
         void renderChristianMusicVideoDraft({format:result.format})
           .then(draft=>console.log('CHRISTIAN_FULL_SOURCE_REVIEW_DRAFT_READY',JSON.stringify({
