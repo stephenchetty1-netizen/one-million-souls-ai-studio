@@ -36,3 +36,35 @@ test('source clip must contain enough original motion for one beat',()=>{
  assert.throws(()=>verifyChristianVideoSceneMetadata(
    source({durationSeconds:3}),'SHORT_59','BE_STILL_PEXELS_V1'),/SOURCE_BLOCKED/)
 })
+
+test('exact-hash human-reviewed Christian source is eligible for finished timeline render',()=>{
+ const base=source()
+ const approved=source({
+  reviewStatus:'APPROVED_CHRISTIAN_STORY_FIT',
+  visualChristianEditorialStatus:'APPROVED_CHRISTIAN_STORY_FIT',
+  visualReviewBasis:'HUMAN_FULL_SOURCE_WATCH',
+  visualReviewedVideoSha256:base.videoSha256,
+  christianScriptureOrPrayerVisualVerified:true,
+  bookInScene:true,bookIsBibleVerified:true,
+  hasConflictingReligiousTextOrRitual:false,
+ })
+ assert.equal(verifyChristianVideoSceneMetadata(
+  approved,'SHORT_59','BE_STILL_PEXELS_V1').profile.id,'SHORT_59')
+})
+test('status-only approval and human-rejected clip cannot enter master timeline',()=>{
+ const base=source()
+ const approved={
+  visualChristianEditorialStatus:'APPROVED_CHRISTIAN_STORY_FIT',
+  visualReviewBasis:'HUMAN_FULL_SOURCE_WATCH',
+  christianScriptureOrPrayerVisualVerified:true,
+  bookInScene:false,hasConflictingReligiousTextOrRitual:false,
+  reviewStatus:'APPROVED_CHRISTIAN_STORY_FIT',
+ }
+ assert.throws(()=>verifyChristianVideoSceneMetadata(
+  source({...approved,visualReviewedVideoSha256:'b'.repeat(64)}),
+  'SHORT_59','BE_STILL_PEXELS_V1'),/SOURCE_BLOCKED/)
+ assert.throws(()=>verifyChristianVideoSceneMetadata(
+  source({...approved,visualReviewedVideoSha256:base.videoSha256,
+   reviewStatus:'REJECTED_CHRISTIAN_STORY_FIT'}),
+  'SHORT_59','BE_STILL_PEXELS_V1'),/SOURCE_BLOCKED/)
+})
