@@ -1,6 +1,15 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let selected=null,sourceList=[],playedToEnd=false;
+let finalDraft=null,finalPlaybackComplete=false;
+const finalChecks=['christian','scripture','story','voice','mix','captions','rights'];
+function finalEnabled(yes){$('final-approve').disabled=!yes;$('final-reject').disabled=!yes}
+function clearFinalDraft(){
+ finalDraft=null;finalPlaybackComplete=false;$('final-watched').checked=false;
+ finalEnabled(false);$('final-review-status').textContent='Waiting for a current source-approved exact MP4.';
+ $('final-decision-feedback').textContent='';
+}
+
 const reviewStatus=(s,ok=false)=>{const n=$('confirmation-status');if(n){n.textContent=s;n.className=ok?'ok':'warning'}};
 const message=(s,ok=false)=>{const n=$('message');n.textContent=s;n.className=ok?'ok':'bad'};
 async function request(path,opts={}){
@@ -116,15 +125,30 @@ async function loadFullPreview(){
    '. The nine source videos can still be reviewed individually below.';
  }
 }
+async function loadFinalReviewStatus(){
+ if(!finalDraft)return
+ try{
+  const d=await request('/christian-final-review-status?format='+encodeURIComponent(format()))
+  if(d.masterHash!==finalDraft.masterHash||d.id!==finalDraft.id)
+   throw Error('Finished video changed: reload exact MP4')
+  $('final-review-status').textContent='Exact master SHA-256: '+d.masterHash+
+   '. Final editorial decision: '+d.reviewStatus+'. Certificate: NOT CERTIFIED. Posting locked.'
+ }catch(e){$('final-review-status').textContent='Final review status unavailable: '+e.message}
+}
 async function loadReviewedDraft(){
  const status=$('reviewed-draft-status');
+ clearFinalDraft();
  status.textContent='Checking for the new reviewed-source draft…';
  try{
   const isLong=format()==='YOUTUBE_LONG';
   const url=isLong?'/christian-reviewed-long-draft-latest':'/christian-reviewed-draft-latest';
   const data=await request(url);
+  finalDraft={id:data.id,masterHash:data.masterHash,format:format()};
   $('reviewed-draft').src=data.mediaUrl;
   $('reviewed-draft').load();
+  finalEnabled(true);
+  if(!$('final-reviewer').value.trim())$('final-reviewer').value=$('reviewer').value.trim();
+  void loadFinalReviewStatus();
   status.textContent='REVIEWED SOURCE VIDEO — '+data.sourceClips+
    ' individually approved source clips, voice-over and on-screen words. Exact MP4 SHA-256: '+
    data.masterHash+'. NOT CERTIFIED. Do not post until final audiovisual and rights review passes.';
@@ -134,6 +158,69 @@ async function loadReviewedDraft(){
    '. Complete all '+(format()==='YOUTUBE_LONG'?24:9)+' source approvals; the renderer then creates the next draft.';
  }
 }
+function finalFullyWatched(){
+ const v=$('reviewed-draft'),duration=Number(v.duration)
+ if(!finalDraft||!Number.isFinite(duration)||duration<=0||
+    !v.played||!v.played.length)return false
+ let coverage=0,start=Infinity,end=0
+ for(let i=0;i<v.played.length;i++){
+  const a=v.played.start(i),b=v.played.end(i)
+  if(!Number.isFinite(a)||!Number.isFinite(b)||b<a)continue
+  start=Math.min(start,a);end=Math.max(end,b);coverage+=b-a
+ }
+ return start<=Math.min(.5,duration*.05)&&
+  end>=duration-Math.min(.5,duration*.05)&&
+  coverage>=duration*.94&&
+  Number(v.currentTime)>=duration-Math.min(.5,duration*.05)
+}
+function confirmFinalPlayback(){
+ if(finalPlaybackComplete||!finalFullyWatched())return
+ finalPlaybackComplete=true
+ $('final-review-status').textContent='Complete exact finished-video playback verified. Review the full audio and picture, then record your decision.'
+}
+$('reviewed-draft').addEventListener('ended',confirmFinalPlayback)
+$('reviewed-draft').addEventListener('timeupdate',confirmFinalPlayback)
+async function recordFinalDecision(decision){
+ const missing=[]
+ if(!finalDraft||finalDraft.format!==format())missing.push('load the current reviewed-source draft')
+ if($('final-reviewer').value.trim().length<2)missing.push('enter final reviewer name')
+ if($('final-notes').value.trim().length<20)missing.push('add specific notes (20+ characters)')
+ if(decision==='APPROVE'){
+  if(!finalPlaybackComplete||!$('final-watched').checked)missing.push('watch the full exact MP4 with sound and check the full-watch declaration')
+  for(const field of finalChecks)if(!$('final-'+field).checked)missing.push('verify '+field)
+ }
+ if(missing.length){
+  $('final-decision-feedback').textContent='Cannot record final '+decision.toLowerCase()+': '+missing.join('; ')
+  return
+ }
+ const checks={
+  christianVisualContextVerified:$('final-christian').checked,
+  scriptureContextVerified:$('final-scripture').checked,
+  storyPacingVerified:$('final-story').checked,
+  naturalVoiceVerified:$('final-voice').checked,
+  voiceMusicMixVerified:$('final-mix').checked,
+  captionReadabilityVerified:$('final-captions').checked,
+  musicAndFootageRightsVerified:$('final-rights').checked
+ }
+ const body={...finalDraft,decision,reviewer:$('final-reviewer').value,
+  notes:$('final-notes').value,
+  attestation:finalPlaybackComplete&&$('final-watched').checked?
+   'I_WATCHED_ENTIRE_EXACT_FINAL_VIDEO_AND_LISTENED_TO_AUDIO':'',...checks}
+ try{
+  finalEnabled(false)
+  $('final-decision-feedback').textContent='Verifying exact MP4 SHA-256 and saving final editorial decision…'
+  const result=await request('/christian-final-review-decision',{method:'POST',
+   headers:{'content-type':'application/json'},body:JSON.stringify(body)})
+  $('final-decision-feedback').textContent='Saved '+result.decision+' for this exact finished MP4. '+result.finalEditorialStatus+
+    '. Professional master certification and posting are still locked.'
+  await loadFinalReviewStatus()
+ }catch(e){$('final-decision-feedback').textContent='Final review not saved: '+e.message}
+ finally{finalEnabled(Boolean(finalDraft))}
+}
+$('final-approve').onclick=()=>recordFinalDecision('APPROVE')
+$('final-reject').onclick=()=>recordFinalDecision('REJECT')
+clearFinalDraft()
+
 $('load-reviewed-draft').onclick=()=>loadReviewedDraft();
 $('load-full-preview').onclick=()=>loadFullPreview();
 $('sign-in').onclick=async()=>{
