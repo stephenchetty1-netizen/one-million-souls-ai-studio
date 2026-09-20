@@ -113,9 +113,19 @@ async function probeRealPexelsVideo(bytes,formatId){
  try{
   await fs.writeFile(file,bytes)
   const {stdout}=await execFileAsync('ffprobe',['-v','error','-show_entries',
-    'format=duration:stream=codec_type,width,height','-of','json',file],
+    'format=duration:stream=codec_type,codec_name,pix_fmt,width,height','-of','json',file],
     {timeout:35000,maxBuffer:2*1024*1024})
-  return validateMeasuredPexelsVideo(JSON.parse(stdout),formatId)
+  const probe=JSON.parse(stdout)
+  const measured=validateMeasuredPexelsVideo(probe,formatId)
+  // A valid MP4 container does not imply an Android-browser-playable source.
+  // Quarantine unsupported codecs before presenting a blank review player.
+  const video=probe.streams?.find(x=>x.codec_type==='video')
+  if(video?.codec_name!=='h264'||!['yuv420p','yuvj420p'].includes(video?.pix_fmt))
+    throw new Error('PEXELS_SOURCE_BROWSER_CODEC_UNSUPPORTED')
+  // Verify that FFmpeg can decode actual frames, not just read metadata.
+  await execFileAsync('ffmpeg',['-v','error','-i',file,'-vf','fps=1/4,scale=32:32',
+    '-frames:v','3','-f','null','-'],{timeout:45000,maxBuffer:2*1024*1024})
+  return measured
  }finally{await fs.rm(file,{force:true}).catch(()=>{})}
 }
 
