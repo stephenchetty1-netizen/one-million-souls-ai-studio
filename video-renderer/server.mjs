@@ -518,6 +518,27 @@ const server = http.createServer(async (req, res) => {
     }catch(error){return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_YET_RENDERED',
       publishingAllowed:false})}
   }
+  // Reviewed SOURCE footage produces a reviewable FINAL draft, not a certificate.
+  // Preserve its hash-bound lookup through any Railway renderer restart.
+  if(req.method==='GET'&&url.pathname==='/christian-reviewed-draft-latest'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const latest=await readStoredJson('internal/narrated-short-reviews/v1/latest.json')
+      if(!latest||latest.unreviewedSourcePreview===true||latest.sourceReviewRequired===true||
+         !/^[a-f0-9]{64}$/i.test(String(latest.masterHash||''))||
+         latest.measured?.fullDecodePassed!==true||
+         !Array.isArray(latest.sourceScenes)||latest.sourceScenes.length!==9)
+        throw new Error('REVIEWED_DRAFT_NOT_READY')
+      return sendJson(res,200,{
+        ok:true,id:latest.id,title:latest.title,masterHash:latest.masterHash,
+        mediaUrl:latest.mediaUrl,contactSheetUrl:latest.contactSheetUrl,
+        sourceClips:latest.sourceScenes.length,voiceover:latest.voiceover===true,
+        captionsPresent:latest.captionsPresent===true,
+        editorialStatus:latest.editorialStatus,
+        certification:'NOT_CERTIFIED',masterReady:false,publishingAllowed:false
+      })
+    }catch(error){return sendJson(res,404,{ok:false,error:'REVIEWED_SOURCE_DRAFT_NOT_YET_RENDERED',publishingAllowed:false})}
+  }
   if(req.method==='GET'&&url.pathname==='/christian-private-preview'){
     if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     const id=String(url.searchParams.get('id')||'')
