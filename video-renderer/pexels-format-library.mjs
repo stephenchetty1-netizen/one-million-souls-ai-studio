@@ -115,17 +115,26 @@ export function rejectUnusableOpeningScene(log,sceneSeconds){
  const seconds=Number(sceneSeconds)
  if(!Number.isFinite(seconds)||seconds<=0)
   throw new Error('PEXELS_SOURCE_SCENE_DURATION_INVALID')
- const tests=[
-  {type:'BLANK',pattern:/black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g},
-  {type:'FROZEN',pattern:/freeze_start:([\d.]+)\s+freeze_end:([\d.]+)\s+freeze_duration:([\d.]+)/g},
- ]
- for(const test of tests){
-  for(const match of String(log||'').matchAll(test.pattern)){
-   const start=Number(match[1]),end=Number(match[2]),duration=Number(match[3])
-   if([start,end,duration].every(Number.isFinite)&&
-      start>=0&&end>=start&&duration>=seconds*0.8)
-    throw new Error('PEXELS_SOURCE_'+test.type+'_OPENING_SCENE')
-  }
+ const text=String(log||'')
+ // FFmpeg blackdetect puts all three measurements on one line.
+ for(const match of text.matchAll(/black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g)){
+  const start=Number(match[1]),end=Number(match[2]),duration=Number(match[3])
+  if([start,end,duration].every(Number.isFinite)&&start>=0&&end>=start&&
+     duration>=seconds*0.8)
+   throw new Error('PEXELS_SOURCE_BLANK_OPENING_SCENE')
+ }
+ // FFmpeg freezedetect reports start and end/duration on DIFFERENT lines;
+ // a freeze lasting to the end of -t emits a start without a duration.
+ const durations=[...text.matchAll(/lavfi\.freezedetect\.freeze_duration:\s*([\d.]+)/g)]
+ for(const match of durations)
+  if(Number(match[1])>=seconds*0.8)
+   throw new Error('PEXELS_SOURCE_FROZEN_OPENING_SCENE')
+ const starts=[...text.matchAll(/lavfi\.freezedetect\.freeze_start:\s*([\d.]+)/g)]
+ const ends=[...text.matchAll(/lavfi\.freezedetect\.freeze_end:\s*([\d.]+)/g)]
+ if(starts.length>ends.length){
+  const lastStart=Number(starts[starts.length-1][1])
+  if(Number.isFinite(lastStart)&&seconds-lastStart>=seconds*0.8)
+   throw new Error('PEXELS_SOURCE_FROZEN_OPENING_SCENE')
  }
  return {ok:true,blankOrFreezeRejected:false}
 }
