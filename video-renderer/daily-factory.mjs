@@ -559,6 +559,9 @@ let nextFactoryAttemptAt = 0
 const FACTORY_RETRY_MS = Number(process.env.DAILY_FACTORY_RETRY_MS || 15 * 60 * 1000)
 
 async function tick() {
+  // A disabled legacy factory must not wake, spin through 14 days, or
+  // emit misleading retry alarms while the reviewed-footage route is active.
+  if (!enabled) return
   const now = localDate()
   const target = tomorrowDate()
   if (Date.now() < nextFactoryAttemptAt) return
@@ -589,5 +592,12 @@ async function tick() {
 }
 
 console.log('DAILY_FACTORY', JSON.stringify({enabled,storageReady,timezone:TIMEZONE,bankSize:BANK.length,advanceDays:ADVANCE_DAYS,releaseModel:'PRODUCE_AHEAD_THEN_CERTIFY'}))
-setTimeout(()=>tick(),3000)
-setInterval(()=>tick(),30_000)
+if (enabled) {
+  setTimeout(()=>tick(),3000)
+  setInterval(()=>tick(),30_000)
+} else {
+  console.log('DAILY_FACTORY_DISABLED', JSON.stringify({
+    reason:'Legacy stock-only/quota-dependent factory paused; reviewed Christian footage route remains separate.',
+    publishingLocked:true,
+  }))
+}
