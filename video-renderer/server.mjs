@@ -510,7 +510,7 @@ const server = http.createServer(async (req, res) => {
       const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
       if(latest?.id!==id)return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_FOUND'})
       const range=req.headers.range
-      if(range&&!/^bytes=\\d{1,12}-\\d{0,12}$/.test(range))
+      if(range&&!/^bytes=\d{1,12}-\d{0,12}$/.test(range))
         return sendJson(res,416,{ok:false,error:'INVALID_PREVIEW_BYTE_RANGE'})
       const key='internal/unreviewed-narrated-short-draft/v1/'+id+
         (kind==='video'?'.mp4':'-contact.jpg')
