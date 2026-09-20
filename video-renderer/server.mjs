@@ -15,6 +15,7 @@ import { renderChristianNarratedShortDraft } from './christian-narrated-short.mj
 import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
+import { inspectCurrentReviewedShortDraft } from './christian-reviewed-draft-integrity.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -529,6 +530,9 @@ const server = http.createServer(async (req, res) => {
          latest.measured?.fullDecodePassed!==true||
          !Array.isArray(latest.sourceScenes)||latest.sourceScenes.length!==9)
         throw new Error('REVIEWED_DRAFT_NOT_READY')
+      const sourceManifest=await readStoredJson('internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json')
+      const integrity=inspectCurrentReviewedShortDraft(latest,sourceManifest)
+      if(!integrity.ready)throw new Error('REVIEWED_DRAFT_SOURCE_REVOKED_OR_CHANGED: '+integrity.blockers.join(';'))
       return sendJson(res,200,{
         ok:true,id:latest.id,title:latest.title,masterHash:latest.masterHash,
         mediaUrl:latest.mediaUrl,contactSheetUrl:latest.contactSheetUrl,

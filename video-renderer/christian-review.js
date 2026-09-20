@@ -111,7 +111,31 @@ $('sign-in').onclick=async()=>{
  }catch(e){message(e.message)}
 };
 $('format').onchange=()=>load().catch(e=>message(e.message));
-$('clip').addEventListener('ended',()=>{playedToEnd=true;message('Playback ended. Confirm full watch and complete the content checklist.',true);valid()});
+// Android video players sometimes omit 'ended'. Validate actual played ranges,
+// not a seek-to-end or a checked declaration, and accept complete playback on
+// either timeupdate or ended without reusing another source's history.
+function sourceFullyWatched(){
+ const v=$('clip'),duration=Number(v.duration)
+ if(!Number.isFinite(duration)||duration<=0||!v.played||!v.played.length)return false
+ let coverage=0,start=Infinity,end=0
+ for(let i=0;i<v.played.length;i++){
+  const a=v.played.start(i),b=v.played.end(i)
+  if(!Number.isFinite(a)||!Number.isFinite(b)||b<a)continue
+  start=Math.min(start,a);end=Math.max(end,b);coverage+=b-a
+ }
+ return start<=Math.min(.5,duration*.05)&&
+  end>=duration-Math.min(.5,duration*.05)&&
+  coverage>=duration*.94&&
+  Number(v.currentTime)>=duration-Math.min(.5,duration*.05)
+}
+function verifyCompletedPlayback(){
+ if(playedToEnd||!sourceFullyWatched())return
+ playedToEnd=true
+ message('Complete playback verified. Confirm full watch and review this exact source.',true)
+ valid()
+}
+$('clip').addEventListener('ended',verifyCompletedPlayback)
+$('clip').addEventListener('timeupdate',verifyCompletedPlayback)
 for(const id of ['watched','reviewer','notes','christian','conflict','bible'])
  $(id).addEventListener('input',valid);
 document.querySelectorAll('input[name=book]').forEach(x=>x.addEventListener('change',valid));
