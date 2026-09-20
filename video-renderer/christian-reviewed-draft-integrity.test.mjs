@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {inspectCurrentReviewedShortDraft,inspectCurrentPrivatePreview} from './christian-reviewed-draft-integrity.mjs'
+import {inspectCurrentReviewedShortDraft,inspectCurrentReviewedLongDraft,inspectCurrentPrivatePreview} from './christian-reviewed-draft-integrity.mjs'
 const hash=i=>i.toString(16).padStart(64,'0')
 const source=i=>({id:i,videoSha256:hash(i),visualReviewedVideoSha256:hash(i),
  visualChristianEditorialStatus:'APPROVED_CHRISTIAN_STORY_FIT',
@@ -58,4 +58,35 @@ test('replaced source or missing scene invalidates private preview',()=>{
  m.assets[0].videoSha256=hash(456)
  assert.equal(inspectCurrentPrivatePreview(p,m).ready,false)
  assert.equal(inspectCurrentPrivatePreview({...p,sourceScenes:p.sourceScenes.slice(1)},manifest()).ready,false)
+})
+
+const longManifest=()=>({collection:'YOUTUBE_WORSHIP_LANDSCAPE_V1',formatId:'YOUTUBE_LONG',
+ sourceBankReady:true,christianVisualEditorialReady:true,
+ assets:Array.from({length:24},(_,i)=>source(i+100))})
+const longDraft=m=>({profileId:'YOUTUBE_LONG',masterHash:hash(777),
+ publishingAllowed:false,masterReady:false,voiceover:true,onScreenWords:true,
+ voiceSeconds:120,measured:{fullDecodePassed:true,durationSeconds:240},
+ sourceScenes:m.assets.map(s=>({stockId:'pexels-'+s.id,sourceVideoHash:s.videoSha256}))})
+test('reviewed long-form draft is reviewable only after all 24 actual source decisions',()=>{
+ const m=longManifest(),r=inspectCurrentReviewedLongDraft(longDraft(m),m)
+ assert.equal(r.ready,true)
+ assert.equal(r.publishingAllowed,false)
+ assert.equal(r.certified,false)
+})
+test('long-form audio, duration and final source bytes remain mandatory',()=>{
+ const m=longManifest(),d=longDraft(m)
+ assert.equal(inspectCurrentReviewedLongDraft({...d,voiceSeconds:0},m).ready,false)
+ assert.equal(inspectCurrentReviewedLongDraft({...d,measured:{...d.measured,durationSeconds:18}},m).ready,false)
+ m.assets[12].videoSha256=hash(500)
+ m.assets[12].visualReviewedVideoSha256=hash(500)
+ assert.equal(inspectCurrentReviewedLongDraft(d,m).ready,false)
+})
+test('long-form rejection, duplicate scene or no human review invalidates the old draft',()=>{
+ const m=longManifest(),d=longDraft(m)
+ m.assets[5].visualChristianEditorialStatus='REJECTED_CHRISTIAN_STORY_FIT'
+ assert.equal(inspectCurrentReviewedLongDraft(d,m).ready,false)
+ m.assets[5].visualChristianEditorialStatus='APPROVED_CHRISTIAN_STORY_FIT'
+ assert.equal(inspectCurrentReviewedLongDraft({...d,sourceScenes:[...d.sourceScenes.slice(0,23),d.sourceScenes[0]]},m).ready,false)
+ m.assets[8].visualReviewBasis='STOCK_METADATA_ONLY'
+ assert.equal(inspectCurrentReviewedLongDraft(d,m).ready,false)
 })

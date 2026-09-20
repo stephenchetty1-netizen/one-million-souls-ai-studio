@@ -89,15 +89,18 @@ async function loadReviewedDraft(){
  const status=$('reviewed-draft-status');
  status.textContent='Checking for the new reviewed-source draft…';
  try{
-  const data=await request('/christian-reviewed-draft-latest');
+  const isLong=format()==='YOUTUBE_LONG';
+  const url=isLong?'/christian-reviewed-long-draft-latest':'/christian-reviewed-draft-latest';
+  const data=await request(url);
   $('reviewed-draft').src=data.mediaUrl;
   $('reviewed-draft').load();
   status.textContent='REVIEWED SOURCE VIDEO — '+data.sourceClips+
-   ' individually approved source clips, voice-over and captions. Final MP4 SHA-256: '+
+   ' individually approved source clips, voice-over and on-screen words. Exact MP4 SHA-256: '+
    data.masterHash+'. NOT CERTIFIED. Do not post until final audiovisual and rights review passes.';
  }catch(e){
+  $('reviewed-draft').removeAttribute('src');$('reviewed-draft').load();
   status.textContent='Not ready: '+e.message+
-   '. Complete all nine source approvals; the renderer automatically creates the next draft.';
+   '. Complete all '+(format()==='YOUTUBE_LONG'?24:9)+' source approvals; the renderer then creates the next draft.';
  }
 }
 $('load-reviewed-draft').onclick=()=>loadReviewedDraft();
@@ -110,7 +113,7 @@ $('sign-in').onclick=async()=>{
   $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();await loadReviewedDraft();
  }catch(e){message(e.message)}
 };
-$('format').onchange=()=>load().catch(e=>message(e.message));
+$('format').onchange=()=>{load().then(loadReviewedDraft).catch(e=>message(e.message))};
 // Android video players sometimes omit 'ended'. Validate actual played ranges,
 // not a seek-to-end or a checked declaration, and accept complete playback on
 // either timeupdate or ended without reusing another source's history.
@@ -159,7 +162,7 @@ async function decide(decision){
    // The exact-source review gate completed; the renderer is now building its
    // separate final draft. Do not treat this as a final master approval.
    $('reviewed-draft-status').textContent=
-    'All nine sources approved. Rendering the final narrated draft now; use Check newly reviewed-source draft to refresh.';
+    'All '+result.required+' sources approved. Rendering the reviewed-source draft; check the new draft above.';
    void loadReviewedDraft();
   }else{
    // Mobile workflow: advance to the next unreviewed exact MP4, never approve

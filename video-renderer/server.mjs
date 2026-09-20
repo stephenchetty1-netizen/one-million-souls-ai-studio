@@ -15,7 +15,7 @@ import { renderChristianNarratedShortDraft } from './christian-narrated-short.mj
 import { searchStoredMasterCandidates } from './master-archive-search.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
 import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
-import { inspectCurrentReviewedShortDraft, inspectCurrentPrivatePreview } from './christian-reviewed-draft-integrity.mjs'
+import { inspectCurrentReviewedShortDraft, inspectCurrentReviewedLongDraft, inspectCurrentPrivatePreview } from './christian-reviewed-draft-integrity.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -545,6 +545,29 @@ const server = http.createServer(async (req, res) => {
         certification:'NOT_CERTIFIED',masterReady:false,publishingAllowed:false
       })
     }catch(error){return sendJson(res,404,{ok:false,error:'REVIEWED_SOURCE_DRAFT_NOT_YET_RENDERED',publishingAllowed:false})}
+  }
+  // Long-form draft remains review-only; current exact-source approvals are rechecked.
+  if(req.method==='GET'&&url.pathname==='/christian-reviewed-long-draft-latest'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const latest=await readStoredJson('internal/music-video-reviews/v1/YOUTUBE_LONG/latest.json')
+      const currentSources=await readStoredJson('internal/pexels-source-candidates/v1/YOUTUBE_WORSHIP_LANDSCAPE_V1/manifest.json')
+      const integrity=inspectCurrentReviewedLongDraft(latest,currentSources)
+      if(!integrity.ready)throw new Error('LONG_DRAFT_REVIEW_BLOCKED: '+integrity.blockers.join(';'))
+      return sendJson(res,200,{
+        ok:true,format:'YOUTUBE_LONG',id:latest.id,title:latest.title,
+        masterHash:latest.masterHash,mediaUrl:latest.mediaUrl,
+        contactSheetUrl:latest.contactSheetUrl,sourceClips:latest.sourceScenes.length,
+        voiceover:true,captionsPresent:latest.onScreenWords===true,
+        durationSeconds:latest.measured.durationSeconds,
+        editorialStatus:latest.editorialStatus,
+        certification:'NOT_CERTIFIED',masterReady:false,publishingAllowed:false
+      })
+    }catch(error){
+      return sendJson(res,404,{ok:false,
+        error:'REVIEWED_YOUTUBE_DRAFT_NOT_YET_RENDERED_OR_SOURCE_CHANGED',
+        publishingAllowed:false})
+    }
   }
   if(req.method==='GET'&&url.pathname==='/christian-private-preview'){
     if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})

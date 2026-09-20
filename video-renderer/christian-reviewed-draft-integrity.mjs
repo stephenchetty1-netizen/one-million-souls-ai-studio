@@ -62,3 +62,39 @@ export function inspectCurrentReviewedShortDraft(draft,manifest){
  return {ready:blockers.length===0,blockers,sourceCount:selected.length,
   publishingAllowed:false,certified:false}
 }
+
+export function inspectCurrentReviewedLongDraft(draft,manifest){
+ const blockers=[]
+ const required=24
+ if(!draft||draft.profileId!=='YOUTUBE_LONG'||draft.publishingAllowed===true||
+    draft.masterReady===true||!HASH.test(String(draft.masterHash||''))||
+    draft.measured?.fullDecodePassed!==true||
+    Number(draft.measured?.durationSeconds)<239||
+    draft.voiceover!==true||draft.onScreenWords!==true||
+    Number(draft.voiceSeconds)<=0)
+   blockers.push('LONG_DRAFT_AUDIOVISUAL_MASTER_INVALID')
+ const all=Array.isArray(manifest?.assets)?manifest.assets:[]
+ if(manifest?.collection!=='YOUTUBE_WORSHIP_LANDSCAPE_V1'||
+    manifest?.formatId!=='YOUTUBE_LONG'||
+    manifest?.sourceBankReady!==true||
+    manifest?.christianVisualEditorialReady!==true)
+   blockers.push('LONG_SOURCE_BANK_NOT_APPROVED')
+ const selected=all.filter(christianVisualSourceReviewed).slice(0,required)
+ const scenes=Array.isArray(draft?.sourceScenes)?draft.sourceScenes:[]
+ if(selected.length!==required||scenes.length!==required)
+   blockers.push('TWENTY_FOUR_EXACT_REVIEWED_SOURCES_REQUIRED')
+ const seen=new Set()
+ for(let i=0;i<scenes.length;i++){
+  const scene=scenes[i],source=selected[i]
+  const id='pexels-'+String(source?.id??'')
+  const identity=String(scene?.stockId||'')+':'+String(scene?.sourceVideoHash||'').toLowerCase()
+  if(seen.has(identity))blockers.push('DUPLICATE_LONG_SOURCE_'+i)
+  seen.add(identity)
+  if(!source||scene?.stockId!==id||
+     String(scene?.sourceVideoHash||'').toLowerCase()!==String(source.videoSha256||'').toLowerCase()||
+     !HASH.test(String(scene?.sourceVideoHash||'')))
+    blockers.push('LONG_SOURCE_REVOKED_OR_CHANGED_'+i)
+ }
+ return {ready:blockers.length===0,blockers,sourceCount:selected.length,
+    publishingAllowed:false,certified:false}
+}

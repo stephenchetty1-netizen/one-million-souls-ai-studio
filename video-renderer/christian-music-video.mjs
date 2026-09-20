@@ -364,6 +364,11 @@ export async function renderChristianMusicVideoDraft({format='SHORT_59'}={}){
         Key:`internal/music-video-reviews/v1/${format}/${id}.json`,
         Body:JSON.stringify(asset,null,2),ContentType:'application/json',
         CacheControl:'private, no-store'}))
+      // Persist the exact un-certified draft index for mobile review and restart recovery.
+      await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,
+        Key:`internal/music-video-reviews/v1/${format}/latest.json`,
+        Body:JSON.stringify(asset,null,2),ContentType:'application/json',
+        CacheControl:'private, no-store'}))
       console.log('CHRISTIAN_MUSIC_VIDEO_DRAFT_RESULT',JSON.stringify({
         id,profileId:format,mediaUrl:asset.mediaUrl,masterHash:asset.masterHash,contactSheetUrl:asset.contactSheetUrl,
         durationSeconds:duration,targetSeconds:profile.durationSeconds,musicTitle:MUSIC.title,musicLicense:MUSIC.license,
