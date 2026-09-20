@@ -22,14 +22,16 @@ export const YOUTUBE_GROWTH_BOTS=Object.freeze([
 ])
 
 const DEFAULT_TOPICS=Object.freeze([
-  'prayer',
-  'Bible verse',
-  'Christian motivation',
-  'Jesus',
-  'faith over fear',
-  'God is with you',
-  'Bible questions',
-  'Christian youth',
+  // Specific real viewer questions for the One Million Souls mission.
+  // Research demand live before promotion; these are hypotheses, not trends.
+  'prayer for anxiety',
+  'when God feels silent',
+  'fear of the future Bible',
+  'forgive someone who hurt you Bible',
+  'feeling far from God',
+  'loneliness and Jesus',
+  'Christian youth peer pressure',
+  'why keep praying when God seems silent',
 ])
 
 const BLOCKED_GROWTH_TACTICS=Object.freeze([
