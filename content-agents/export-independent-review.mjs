@@ -3,13 +3,20 @@ import crypto from 'node:crypto'
 import { durableRedis } from './durable-redis.mjs'
 import { selectExactMasterForReview } from './review-master-selector.mjs'
 import { scanChristianHandoffs } from './christian-master-handoff.mjs'
+import { computeReviewWindow } from './review-window.mjs'
 
 const rendererAddress=String(process.env.RAILWAY_SERVICE_ONE_MILLION_SOULS_VIDEO_RENDERER_URL||process.env.VIDEO_RENDER_WEBHOOK_URL||'').trim().replace(/\/$/,'')
 const base=rendererAddress && !/^https?:\/\//i.test(rendererAddress)?'https://'+rendererAddress:rendererAddress
 const secret=String(process.env.VIDEO_RENDER_SECRET||'')
-const start=String(process.env.REVIEW_START_DATE||'')
-const days=Math.min(14,Math.max(1,Number(process.env.REVIEW_DAYS||7)))
-if(!base||!secret||!/^\d{4}-\d{2}-\d{2}$/.test(start))throw new Error('Set renderer URL, VIDEO_RENDER_SECRET, and REVIEW_START_DATE=YYYY-MM-DD')
+const reviewWindow=computeReviewWindow({
+ timezone:process.env.APP_TIMEZONE||'Africa/Johannesburg',
+ days:Number(process.env.REVIEW_DAYS||process.env.CONTENT_BUFFER_DAYS||14),
+ fixedStartDate:process.env.REVIEW_START_DATE||'',
+ fixedEnabled:process.env.REVIEW_FIXED_START_DATE==='true'
+})
+const start=reviewWindow.startDate,days=reviewWindow.days
+if(!base||!secret)throw new Error('Set renderer URL and VIDEO_RENDER_SECRET')
+console.log('INDEPENDENT_REVIEW_WINDOW '+JSON.stringify(reviewWindow))
 const dateAt=n=>{const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 const validHash=x=>/^[a-f0-9]{64}$/i.test(String(x||''))
 const entries=[]
