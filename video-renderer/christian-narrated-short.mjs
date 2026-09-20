@@ -133,13 +133,18 @@ export async function renderChristianNarratedShortDraft(){
    const concat=path.join(dir,'timeline.txt')
    await fs.writeFile(concat,localScenes.map(x=>"file '"+x.local.replace(/'/g,"'\\''")+"'").join('\n')+'\n')
    const captions=path.join(dir,'captions.ass'),title=path.join(dir,'hook.txt'),
-    verse=path.join(dir,'verse.txt'),end=path.join(dir,'end.txt'),brand=path.join(dir,'brand.txt')
+    verse=path.join(dir,'verse.txt'),end=path.join(dir,'end.txt'),brand=path.join(dir,'brand.txt'),
+    struggle=path.join(dir,'struggle.txt'),action=path.join(dir,'action.txt'),
+    promise=path.join(dir,'promise.txt')
    await Promise.all([
     fs.writeFile(captions,captionAss()),
     fs.writeFile(title,'GOD IS NOT\nFINISHED WITH YOU\n'),
     fs.writeFile(verse,'PHILIPPIANS 1:6  |  JESUS CHRIST\n'),
     fs.writeFile(end,NARRATED_SHORT.closing+'\n'),
-    fs.writeFile(brand,'ONE MILLION SOULS  |  ONE SAVIOUR\n')
+    fs.writeFile(brand,'ONE MILLION SOULS  |  ONE SAVIOUR\n'),
+    fs.writeFile(struggle,'YOU ARE NOT FORGOTTEN\n'),
+    fs.writeFile(promise,'HE WILL FINISH THE GOOD WORK\n'),
+    fs.writeFile(action,'PRAY. TRUST. TAKE ONE STEP.\n')
    ])
    const out=path.join(dir,'narrated-master-draft.mp4')
    const font='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -150,6 +155,12 @@ export async function renderChristianNarratedShortDraft(){
     'drawtext=fontfile='+font+':textfile='+title+
      ":fontsize=68:fontcolor=white:borderw=3:bordercolor=black@0.7:x=(w-text_w)/2:y=240:enable='between(t\\,0\\,4.6)'",
     'ass='+captions+':fontsdir=/usr/share/fonts/truetype/dejavu',
+    'drawtext=fontfile='+font+':textfile='+struggle+
+     ":fontsize=45:fontcolor=white:borderw=3:bordercolor=black@0.8:x=(w-text_w)/2:y=280:enable='between(t\\,8\\,15)'",
+    'drawtext=fontfile='+font+':textfile='+promise+
+     ":fontsize=33:fontcolor=white:borderw=3:bordercolor=black@0.8:x=(w-text_w)/2:y=280:enable='between(t\\,29\\,36)'",
+    'drawtext=fontfile='+font+':textfile='+action+
+     ":fontsize=40:fontcolor=white:borderw=3:bordercolor=black@0.8:x=(w-text_w)/2:y=280:enable='between(t\\,44\\,52)'",
     'drawtext=fontfile='+font+':textfile='+verse+
      ":fontsize=32:fontcolor=white:borderw=2:bordercolor=black@0.8:x=(w-text_w)/2:y=1180:enable='between(t\\,20\\,39)'",
     'drawtext=fontfile='+font+':textfile='+end+
