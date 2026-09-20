@@ -29,11 +29,13 @@ jobs:
           node --check system-agents/system-agent-team.mjs
           node --check system-agents/release-readiness.mjs
           node --check content-agents/certification-runner.mjs
+          node --check content-agents/christian-master-handoff.mjs
+          node --check content-agents/export-independent-review.mjs
           node --check video-renderer/schedule-loop.mjs
           node --check video-renderer/christian-source-review-workflow.mjs
       - name: Test fail-closed release, content and growth regressions
         run: |
-          node --test system-agents/release-readiness.test.mjs content-agents/review-disposition.test.mjs content-agents/review-master-selector.test.mjs content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
+          node --test content-agents/christian-master-handoff.test.mjs system-agents/release-readiness.test.mjs content-agents/review-disposition.test.mjs content-agents/review-master-selector.test.mjs content-agents/growth-multiplier.test.mjs content-agents/v60-retention-experiments.test.mjs
   renderer-offline:
     runs-on: ubuntu-latest
     timeout-minutes: 12
