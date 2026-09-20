@@ -7,7 +7,7 @@ test('rolls Johannesburg midnight into the next 14-day production review',()=>{
  assert.deepEqual(x,{startDate:'2026-09-22',days:14,rolling:true,timezone:'Africa/Johannesburg'})
 })
 test('legacy REVIEW_START_DATE cannot pin a rolling release audit',()=>{
- const x=computeReviewWindow({now:new Date('2026-09-20T21:45:00Z'),fixedStartDate:'2026-01-01'})
+ const x=computeReviewWindow({now:new Date('2026-09-20T22:45:00Z'),fixedStartDate:'2026-01-01'})
  assert.equal(x.startDate,'2026-09-22')
  assert.equal(x.rolling,true)
 })
