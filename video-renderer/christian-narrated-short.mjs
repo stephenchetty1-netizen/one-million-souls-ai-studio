@@ -4,7 +4,7 @@ import os from 'node:os'
 import crypto from 'node:crypto'
 import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
-import {S3Client,GetObjectCommand,PutObjectCommand} from '@aws-sdk/client-s3'
+import {S3Client,GetObjectCommand,PutObjectCommand,HeadObjectCommand} from '@aws-sdk/client-s3'
 import {createChristianVideoTimelineScene} from './christian-video-timeline.mjs'
 import {inspectChristianVideoSources,CHRISTIAN_VIDEO_FORMATS} from './christian-video-formats.mjs'
 import {christianVisualSourceReviewed} from './christian-visual-editorial-gate.mjs'
@@ -95,7 +95,9 @@ export function captionAss(script=NARRATED_SHORT.script,duration=59){
  return lines.join('\n')+'\n'
 }
 let active=null
-export async function renderChristianNarratedShortDraft(){
+export async function renderChristianNarratedShortDraft({reviewPreview=false}={}){
+ if(reviewPreview&&process.env.CHRISTIAN_UNREVIEWED_DRAFT_ENABLED!=='true')
+  throw new Error('UNREVIEWED_SOURCE_DRAFT_DISABLED')
  if(active)throw new Error('NARRATED_SHORT_ALREADY_RENDERING')
  active=(async()=>{
   reviewNarratedShortScript()
@@ -107,11 +109,45 @@ export async function renderChristianNarratedShortDraft(){
     Key:PREFIX+'/manifest.json'}))
    const manifest=JSON.parse(await obj.Body.transformToString())
    const sources=Array.isArray(manifest?.assets)?manifest.assets:[]
-   const selected=sources.filter(christianVisualSourceReviewed).slice(0,9)
+   // A private preview may be composed from unreviewed, technically verified
+   // Pexels sources so the editor can evaluate the ACTUAL complete moving video.
+   // This is never source approval or master certification. Rejected shots are
+   // excluded. The existing fully reviewed release-draft path is unchanged.
+   const selected=(reviewPreview
+    ?sources.filter(x=>x?.reviewStatus!=='REJECTED_CHRISTIAN_STORY_FIT'&&
+      x?.visualChristianEditorialStatus!=='REJECTED_CHRISTIAN_STORY_FIT')
+    :sources.filter(christianVisualSourceReviewed)).slice(0,9)
    const sourcePreflight=inspectChristianVideoSources('SHORT_59',selected,Infinity)
    if(!sourcePreflight.readyForDraftRender||selected.length!==9)
-    throw new Error('NARRATED_SHORT_REQUIRES_NINE_REVIEWED_DISTINCT_CHRISTIAN_CLIPS: '+
+    throw new Error((reviewPreview?'NARRATED_SHORT_PREVIEW_REQUIRES_NINE_VALID_CLIPS: ':
+      'NARRATED_SHORT_REQUIRES_NINE_REVIEWED_DISTINCT_CHRISTIAN_CLIPS: ')+
       sourcePreflight.blockers.join(';'))
+   const sourceBankHash=sha(Buffer.from(JSON.stringify({
+    script:NARRATED_SHORT.script,
+    sources:selected.map(x=>[x.id,x.videoSha256,x.reviewStatus])
+   })))
+   const previewLatestKey='internal/unreviewed-narrated-short-reviews/v1/latest.json'
+   if(reviewPreview){
+    try{
+     const stored=await s3.send(new GetObjectCommand({
+      Bucket:process.env.BUCKET,Key:previewLatestKey
+     }))
+     const previous=JSON.parse(await stored.Body.transformToString())
+     if(previous?.sourceBankHash===sourceBankHash&&previous?.id&&
+       /^[a-f0-9-]{36}$/i.test(previous.id)&&
+       /^[a-f0-9]{64}$/i.test(previous.masterHash)){
+       await s3.send(new HeadObjectCommand({Bucket:process.env.BUCKET,
+        Key:'internal/unreviewed-narrated-short-draft/v1/'+previous.id+'.mp4'}))
+       console.log('CHRISTIAN_PRIVATE_SHORT_PREVIEW_REUSED',
+        JSON.stringify({id:previous.id,masterHash:previous.masterHash,publishingAllowed:false}))
+       return previous
+     }
+    }catch(error){
+     if(!['NoSuchKey','NotFound'].includes(String(error?.name||'')))
+      console.warn('CHRISTIAN_PRIVATE_PREVIEW_CACHE_MISS',
+       JSON.stringify({reason:String(error?.name||'unavailable')}))
+    }
+   }
    const localVoice=path.join(dir,'narration.mp3')
    const cli=path.join(process.cwd(),'node_modules','.bin','node-edge-tts')
    await run(cli,['-t',NARRATED_SHORT.script,'-f',localVoice,'-v',
@@ -194,14 +230,19 @@ export async function renderChristianNarratedShortDraft(){
     '-vf','fps=0.25,scale=216:384,tile=4x4','-frames:v','1',contact],
     {timeout:60000,maxBuffer:5*1024*1024})
    const contactBytes=await fs.readFile(contact)
-   const key='narrated-short-review-v1/'+id+'.mp4',contactKey='narrated-short-review-v1/'+id+'-contact.jpg'
+   const draftPrefix=reviewPreview?'internal/unreviewed-narrated-short-draft/v1/':'narrated-short-review-v1/'
+   const key=draftPrefix+id+'.mp4',contactKey=draftPrefix+id+'-contact.jpg'
    await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:key,Body:bytes,
     ContentType:'video/mp4',CacheControl:'private, no-store'}))
    await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,Key:contactKey,Body:contactBytes,
     ContentType:'image/jpeg',CacheControl:'private, no-store'}))
    const result={
     id,title:NARRATED_SHORT.title,script:NARRATED_SHORT.script,scriptureReference:NARRATED_SHORT.reference,
-    mediaUrl:base()+'/media/'+key,contactSheetUrl:base()+'/media/'+contactKey,
+    mediaUrl:reviewPreview?base()+'/christian-private-preview?kind=video&id='+id:
+     base()+'/media/'+key,
+    contactSheetUrl:reviewPreview?base()+'/christian-private-preview?kind=contact&id='+id:
+     base()+'/media/'+contactKey,
+    sourceBankHash,unreviewedSourcePreview:reviewPreview,sourceReviewRequired:reviewPreview,
     masterHash:sha(bytes),contactSheetHash:sha(contactBytes),voiceSourceHash:sha(await fs.readFile(localVoice)),
     musicSourceHash:sha(soundtrack),sourceScenes:selected.map(x=>({id:x.id,sourceVideoHash:x.videoSha256,
      pageUrl:x.pageUrl,visualReviewer:x.visualReviewer,visualReviewedAt:x.visualReviewedAt})),
@@ -212,14 +253,20 @@ export async function renderChristianNarratedShortDraft(){
       attribution:MUSIC_CREDIT,source:'https://commons.wikimedia.org/wiki/File:Amazing_Grace_2011_(ISRC_USUAN1100820).mp3'},
     measured:{width:1080,height:1920,fps:30,durationSeconds:duration,fullDecodePassed:true,
       distinctSourceClips:selected.length},
-    editorialStatus:'AWAITING_FINAL_AUDIOVISUAL_AND_RIGHTS_REVIEW',
+    editorialStatus:reviewPreview?'UNREVIEWED_SOURCE_PREVIEW_ONLY':
+     'AWAITING_FINAL_AUDIOVISUAL_AND_RIGHTS_REVIEW',
     certification:'NOT_CERTIFIED',masterReady:false,publishingAllowed:false,publishingLocked:true,
     paidGenerationCreditsUsed:0,generatedAt:new Date().toISOString(),
    }
    await s3.send(new PutObjectCommand({Bucket:process.env.BUCKET,
-    Key:'internal/narrated-short-reviews/v1/'+id+'.json',Body:JSON.stringify(result,null,2),
+    Key:(reviewPreview?'internal/unreviewed-narrated-short-reviews/v1/':
+     'internal/narrated-short-reviews/v1/')+id+'.json',Body:JSON.stringify(result,null,2),
     ContentType:'application/json',CacheControl:'private, no-store'}))
-   console.log('CHRISTIAN_NARRATED_59_SECOND_DRAFT_RESULT',JSON.stringify({
+   if(reviewPreview)await s3.send(new PutObjectCommand({
+    Bucket:process.env.BUCKET,Key:previewLatestKey,Body:JSON.stringify(result,null,2),
+    ContentType:'application/json',CacheControl:'private, no-store'}))
+   console.log(reviewPreview?'CHRISTIAN_PRIVATE_SHORT_PREVIEW_READY':
+    'CHRISTIAN_NARRATED_59_SECOND_DRAFT_RESULT',JSON.stringify({
     id,masterHash:result.masterHash,mediaUrl:result.mediaUrl,voiceover:true,captionsPresent:true,
     sourceClips:selected.length,fullDecodePassed:true,certification:'NOT_CERTIFIED',
     publishingAllowed:false}))
