@@ -24,7 +24,10 @@ function fixture(format='SHORT_59',opts={}){
   ok:true,id:'abc',title:'Faith',sourceClips:count,voiceover:true,
   captionsPresent:true,certification:'NOT_CERTIFIED',masterReady:false,
   publishingAllowed:false,masterHash:opts.badHash?'0'.repeat(64):HASH,
-  contactSheetHash:CONTACT,mediaUrl:BASE+'/media/'+path+'.mp4',
+  contactSheetHash:CONTACT,measured:{width:format==='SHORT_59'?1080:1920,
+   height:format==='SHORT_59'?1920:1080,fps:30,
+   durationSeconds:format==='SHORT_59'?59:240,fullDecodePassed:true},
+  mediaUrl:BASE+'/media/'+path+'.mp4',
   contactSheetUrl:BASE+'/media/'+path+'-contact.jpg'
  }
  const fetchImpl=async (url)=>{
@@ -85,4 +88,15 @@ test('Per-format outcomes persist without fabricating success',async()=>{
  assert.equal(x.publishingLocked,true)
  assert.equal(x.reports[0].exactMp4Verified,true)
  assert.equal(x.reports[1].status,'AWAITING_HUMAN_EXACT_SOURCE_REVIEW')
+})
+
+test('Measured export and contact-sheet SHA must match exact master metadata',async()=>{
+ const shape=await inspectChristianHandoff('SHORT_59',fixture('SHORT_59',{
+  draft:{measured:{width:720,height:1280,fps:24,durationSeconds:59,fullDecodePassed:true}}
+ }))
+ assert.equal(shape.status,'REVIEWED_MASTER_IDENTITY_INVALID')
+ const sheet=await inspectChristianHandoff('SHORT_59',fixture('SHORT_59',{
+  draft:{contactSheetHash:'f'.repeat(64)}
+ }))
+ assert.equal(sheet.status,'EXACT_MASTER_MEDIA_HASH_MISMATCH')
 })
