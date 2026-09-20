@@ -51,7 +51,7 @@ export async function runProductionRecoveryScan() {
   const [appHealth, appReady, appStatus, rendererHealth, shorts, longForm, manifest] =
     await Promise.all([
       getJson(appBase + '/api/health'),
-      getJson(appBase + '/api/ready'),
+      getJson(appBase + '/api/ready', process.env.CRON_SECRET || ''),
       getJson(appBase + '/api/system-agents/autonomy-status', process.env.CRON_SECRET || ''),
       getJson(rendererBase && rendererBase + '/health'),
       getJson(rendererBase && rendererBase + '/christian-review-queue?format=SHORT_59', renderSecret),
@@ -101,9 +101,9 @@ export async function runProductionRecoveryScan() {
     'credential-config-auditor': () => result(Object.values(config).every(Boolean),
       { ...config, note: 'Presence only; no secrets read into report and no credential-validity claim.' }),
     'storage-delivery-engineer': () => result(rendererHealth.ok
-      && rendererHealth.body?.persistentStorage === true && manifest.ok,
+      && rendererHealth.body?.persistentStorage === true && manifest.reached && manifest.status === 200,
       { storageConfigured: rendererHealth.body?.persistentStorage === true,
-        manifestReadable: manifest.ok, rendererManifest: summary(manifest),
+        manifestReadable: manifest.reached && manifest.status === 200, rendererManifest: summary(manifest),
         note: 'Does not certify individual MP4 SHA-256 delivery.' }),
     'social-integration-repair-engineer': () => result(false,
       { reason: 'NO_AUTHORIZED_TEST_PUBLICATION_OR_PLATFORM_DELIVERY_PROOF',
