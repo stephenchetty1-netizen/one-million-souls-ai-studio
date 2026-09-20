@@ -108,6 +108,27 @@ export function validateMeasuredPexelsVideo({streams,format:container},formatId)
        requiredDurationSeconds:profile.secondsPerScene+0.35}))
  return {width,height,durationSeconds}
 }
+// Parse the real FFmpeg diagnostics: regexes with double-escaped \\d or \\s
+// silently miss black/frozen clips and let them reach Christian video reviews.
+// Short intro/outro fades are acceptable; a mostly black or frozen story beat is not.
+export function rejectUnusableOpeningScene(log,sceneSeconds){
+ const seconds=Number(sceneSeconds)
+ if(!Number.isFinite(seconds)||seconds<=0)
+  throw new Error('PEXELS_SOURCE_SCENE_DURATION_INVALID')
+ const tests=[
+  {type:'BLANK',pattern:/black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)/g},
+  {type:'FROZEN',pattern:/freeze_start:([\d.]+)\s+freeze_end:([\d.]+)\s+freeze_duration:([\d.]+)/g},
+ ]
+ for(const test of tests){
+  for(const match of String(log||'').matchAll(test.pattern)){
+   const start=Number(match[1]),end=Number(match[2]),duration=Number(match[3])
+   if([start,end,duration].every(Number.isFinite)&&
+      start>=0&&end>=start&&duration>=seconds*0.8)
+    throw new Error('PEXELS_SOURCE_'+test.type+'_OPENING_SCENE')
+  }
+ }
+ return {ok:true,blankOrFreezeRejected:false}
+}
 async function probeRealPexelsVideo(bytes,formatId){
  const file=path.join(os.tmpdir(),'oms-pexels-probe-'+crypto.randomUUID()+'.mp4')
  try{
@@ -125,19 +146,16 @@ async function probeRealPexelsVideo(bytes,formatId){
   // Verify that FFmpeg can decode actual frames, not just read metadata.
   await execFileAsync('ffmpeg',['-v','error','-i',file,'-vf','fps=1/4,scale=32:32',
     '-frames:v','3','-f','null','-'],{timeout:45000,maxBuffer:2*1024*1024})
-  // Inspect the actual opening story beat for black/blank footage. A technically
-  // decodable clip can still display a black screen in the review player.
-  // A full-scene black interval is rejected; short fades are permitted.
+  // Require actual motion and non-blank pictures in the scene that will
+  // enter the finished edit. No title, contributor, or search metadata can pass
+  // this technical media quality gate.
   const sceneSeconds=requireFormatPlan(formatId).profile.secondsPerScene
-  const {stderr:blackLog}=await execFileAsync('ffmpeg',[
+  const {stderr:visualLog}=await execFileAsync('ffmpeg',[
     '-hide_banner','-nostats','-i',file,'-t',String(sceneSeconds),
-    '-vf','blackdetect=d=1:pix_th=0.10:pic_th=0.98',
+    '-vf','blackdetect=d=1:pix_th=0.10:pic_th=0.98,freezedetect=n=-50dB:d=1',
     '-an','-f','null','-'
-  ],{timeout:45000,maxBuffer:2*1024*1024})
-  for(const match of blackLog.matchAll(/black_start:([\\d.]+)\\s+black_end:([\\d.]+)\\s+black_duration:([\\d.]+)/g)){
-    if(Number(match[3])>=sceneSeconds*0.8)
-      throw new Error('PEXELS_SOURCE_BLANK_OPENING_SCENE')
-  }
+  ],{timeout:60000,maxBuffer:3*1024*1024})
+  rejectUnusableOpeningScene(visualLog,sceneSeconds)
   return measured
  }finally{await fs.rm(file,{force:true}).catch(()=>{})}
 }
