@@ -124,27 +124,29 @@ export async function renderChristianNarratedShortDraft({reviewPreview=false}={}
       sourcePreflight.blockers.join(';'))
    const sourceBankHash=sha(Buffer.from(JSON.stringify({
     script:NARRATED_SHORT.script,
+    voice:process.env.EDGE_TTS_VOICE||'en-ZA-LeahNeural',
     sources:selected.map(x=>[x.id,x.videoSha256,x.reviewStatus])
    })))
    const previewLatestKey='internal/unreviewed-narrated-short-reviews/v1/latest.json'
-   if(reviewPreview){
+   const reviewedLatestKey='internal/narrated-short-reviews/v1/latest.json'
+   {
     try{
      const stored=await s3.send(new GetObjectCommand({
-      Bucket:process.env.BUCKET,Key:previewLatestKey
+      Bucket:process.env.BUCKET,Key:reviewPreview?previewLatestKey:reviewedLatestKey
      }))
      const previous=JSON.parse(await stored.Body.transformToString())
      if(previous?.sourceBankHash===sourceBankHash&&previous?.id&&
        /^[a-f0-9-]{36}$/i.test(previous.id)&&
        /^[a-f0-9]{64}$/i.test(previous.masterHash)){
        await s3.send(new HeadObjectCommand({Bucket:process.env.BUCKET,
-        Key:'internal/unreviewed-narrated-short-draft/v1/'+previous.id+'.mp4'}))
-       console.log('CHRISTIAN_PRIVATE_SHORT_PREVIEW_REUSED',
+        Key:(reviewPreview?'internal/unreviewed-narrated-short-draft/v1/':'narrated-short-review-v1/')+previous.id+'.mp4'}))
+       console.log(reviewPreview?'CHRISTIAN_PRIVATE_SHORT_PREVIEW_REUSED':'CHRISTIAN_REVIEWED_SHORT_DRAFT_REUSED',
         JSON.stringify({id:previous.id,masterHash:previous.masterHash,publishingAllowed:false}))
        return previous
      }
     }catch(error){
      if(!['NoSuchKey','NotFound'].includes(String(error?.name||'')))
-      console.warn('CHRISTIAN_PRIVATE_PREVIEW_CACHE_MISS',
+      console.warn(reviewPreview?'CHRISTIAN_PRIVATE_PREVIEW_CACHE_MISS':'CHRISTIAN_REVIEWED_DRAFT_CACHE_MISS',
        JSON.stringify({reason:String(error?.name||'unavailable')}))
     }
    }
@@ -262,8 +264,9 @@ export async function renderChristianNarratedShortDraft({reviewPreview=false}={}
     Key:(reviewPreview?'internal/unreviewed-narrated-short-reviews/v1/':
      'internal/narrated-short-reviews/v1/')+id+'.json',Body:JSON.stringify(result,null,2),
     ContentType:'application/json',CacheControl:'private, no-store'}))
-   if(reviewPreview)await s3.send(new PutObjectCommand({
-    Bucket:process.env.BUCKET,Key:previewLatestKey,Body:JSON.stringify(result,null,2),
+   await s3.send(new PutObjectCommand({
+    Bucket:process.env.BUCKET,Key:reviewPreview?previewLatestKey:reviewedLatestKey,
+    Body:JSON.stringify(result,null,2),
     ContentType:'application/json',CacheControl:'private, no-store'}))
    console.log(reviewPreview?'CHRISTIAN_PRIVATE_SHORT_PREVIEW_READY':
     'CHRISTIAN_NARRATED_59_SECOND_DRAFT_RESULT',JSON.stringify({
