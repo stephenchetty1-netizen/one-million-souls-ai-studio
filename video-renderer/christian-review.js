@@ -70,12 +70,27 @@ async function load(){
  }
  message('Video source review queue loaded.',true);
 }
+async function loadFullPreview(){
+ const status=$('full-preview-status');
+ status.textContent='Checking for an assembled full-length preview…';
+ try{
+  const data=await request('/christian-preview-latest');
+  $('full-preview').src=data.mediaUrl;
+  $('full-preview').load();
+  status.textContent='PRIVATE UNREVIEWED DRAFT — 59 seconds. Exact MP4 SHA-256: '+
+   data.masterHash+'. This is NOT a certified master or permission to post.';
+ }catch(e){
+  status.textContent='Full-length preview not available yet: '+e.message+
+   '. The nine source videos can still be reviewed individually below.';
+ }
+}
+$('load-full-preview').onclick=()=>loadFullPreview();
 $('sign-in').onclick=async()=>{
  try{
   const secret=$('secret').value;
   await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({secret})});
-  $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();
+  $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();
  }catch(e){message(e.message)}
 };
 $('format').onchange=()=>load().catch(e=>message(e.message));
@@ -106,5 +121,5 @@ async function decide(decision){
 $('approve').onclick=()=>decide('APPROVE');
 $('reject').onclick=()=>decide('REJECT');
 request('/christian-review-queue?format=SHORT_59').then(()=>{
- $('login').hidden=true;$('review').hidden=false;return load();
+ $('login').hidden=true;$('review').hidden=false;await load();return loadFullPreview();
 }).catch(()=>{});

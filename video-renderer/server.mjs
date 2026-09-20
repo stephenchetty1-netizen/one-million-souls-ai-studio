@@ -484,6 +484,51 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Preview the complete narrated 59-second edit *before* the 9 source
+  // approvals are recorded. The preview remains quarantined in private R2,
+  // is never a certified master, and cannot be addressed through /media/.
+  if(req.method==='GET'&&url.pathname==='/christian-preview-latest'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
+      return sendJson(res,200,{ok:true,id:latest.id,masterHash:latest.masterHash,
+        mediaUrl:'/christian-private-preview?kind=video&id='+latest.id,
+        contactSheetUrl:'/christian-private-preview?kind=contact&id='+latest.id,
+        editorialStatus:latest.editorialStatus,
+        unreviewedSourcePreview:true,sourceReviewRequired:true,
+        certified:false,masterReady:false,publishingAllowed:false})
+    }catch(error){return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_YET_RENDERED',
+      publishingAllowed:false})}
+  }
+  if(req.method==='GET'&&url.pathname==='/christian-private-preview'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    const id=String(url.searchParams.get('id')||'')
+    const kind=String(url.searchParams.get('kind')||'')
+    if(!/^[a-f0-9-]{36}$/i.test(id)||!['video','contact'].includes(kind))
+      return sendJson(res,400,{ok:false,error:'PRIVATE_PREVIEW_ID_INVALID'})
+    try{
+      const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
+      if(latest?.id!==id)return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_FOUND'})
+      const range=req.headers.range
+      if(range&&!/^bytes=\d{1,12}-\d{0,12}$/.test(range))
+        return sendJson(res,416,{ok:false,error:'INVALID_PREVIEW_BYTE_RANGE'})
+      const key='internal/unreviewed-narrated-short-draft/v1/'+id+
+        (kind==='video'?'.mp4':'-contact.jpg')
+      const result=await s3.send(new GetObjectCommand({
+        Bucket:process.env.BUCKET,Key:key,...(range?{Range:range}:{})
+      }))
+      res.writeHead(result.ContentRange?206:200,{
+        'content-type':kind==='video'?'video/mp4':'image/jpeg',
+        'cache-control':'private, no-store',
+        'x-content-type-options':'nosniff',
+        'accept-ranges':'bytes',
+        ...(result.ContentRange?{'content-range':result.ContentRange}:{}),
+        ...(result.ContentLength?{'content-length':result.ContentLength}:{})
+      })
+      return result.Body.pipe(res)
+    }catch(error){return sendJson(res,404,{ok:false,error:'PRIVATE_PREVIEW_NOT_FOUND'})}
+  }
+
   if(req.method==='POST'&&url.pathname==='/christian-narrated-short-draft'){
     if(!authorized(req))return sendJson(res,401,{ok:false,error:'Unauthorized'})
     try{
@@ -664,6 +709,22 @@ server.listen(PORT, '0.0.0.0', () => {
         const result=await stageChristianPexelsFormat(format)
         const short=format==='SHORT_59'
         console.log(short?'CHRISTIAN_PEXELS_SHORTS_STAGED':'CHRISTIAN_PEXELS_YOUTUBE_STAGED',JSON.stringify(result))
+        // Create one quarantined complete narrated video with the already
+        // technically verified, NOT YET visually approved source bank.
+        // This breaks the review deadlock: judge the real edited master first,
+        // then approve/reject each exact source. Publishing remains locked.
+        if(short&&result.technicalSourceReady&&
+          process.env.CHRISTIAN_UNREVIEWED_DRAFT_ON_BOOT==='true'&&
+          process.env.CHRISTIAN_UNREVIEWED_DRAFT_ENABLED==='true'){
+          void renderChristianNarratedShortDraft({reviewPreview:true})
+            .then(draft=>console.log('CHRISTIAN_PRIVATE_PREVIEW_BOOT_RESULT',
+              JSON.stringify({id:draft.id,mediaUrl:draft.mediaUrl,
+                masterHash:draft.masterHash,certification:'NOT_CERTIFIED',
+                sourceReviewRequired:true,publishingAllowed:false})))
+            .catch(error=>console.error('CHRISTIAN_PRIVATE_PREVIEW_BOOT_FAILED',
+              JSON.stringify({error:String(error?.message||error),
+                publishingAllowed:false})))
+        }
         if(!result.ok||process.env[renderOnBoot]!=='true')return
         const preview=await renderChristianMusicVideoDraft({format})
         console.log(short?'CHRISTIAN_PEXELS_59S_DRAFT_RESULT':'CHRISTIAN_PEXELS_YOUTUBE_DRAFT_RESULT',JSON.stringify({
