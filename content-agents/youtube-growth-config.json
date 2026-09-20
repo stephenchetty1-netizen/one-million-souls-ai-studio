@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "updatedAt": "2026-09-19",
+  "version": 3,
+  "updatedAt": "2026-09-20",
   "mode": "ZERO_CREDIT_ONLY",
   "mission": "Increase legitimate YouTube discovery, views, watch time and subscriber conversion by improving research, packaging, retention and content-market fit without artificial engagement.",
   "bots": [
@@ -43,11 +43,14 @@
     "paidAi": false
   },
   "baseline": {
-    "recent30DayViews": 9749,
-    "recent30DayUploads": 39,
-    "recent30DaySubscribersGained": 23,
-    "recent30DaySubscribersLost": 4,
-    "recent30DayViewsPerUpload": 249.97,
+    "recent30CalendarDateViews": 9203,
+    "recent30CalendarDateUploads": 34,
+    "recent30CalendarDateSubscribersGained": 21,
+    "recent30CalendarDateSubscribersLost": 4,
+    "recent30CalendarDateNetSubscribers": 17,
+    "recent30CalendarDateViewsPerUpload": 270.68,
+    "latestObservedSubscribers": 186,
+    "period": "2026-08-22 to 2026-09-20 (partial last day)",
     "strongestRecurringAudienceHourSast": 16
   },
   "growthSignals": [
@@ -116,5 +119,45 @@
     "humanTemplateReviewRequired": true,
     "publishingLocked": true,
     "paidAI": false
+  },
+  "viewerNeedsCampaign": {
+    "strategyVersion": "V59_VIEWER_NEEDS_20260920",
+    "researchTopics": [
+      "prayer for anxiety",
+      "when God feels silent",
+      "fear of the future Bible",
+      "forgive someone who hurt you Bible",
+      "feeling far from God",
+      "loneliness and Jesus",
+      "Christian youth peer pressure",
+      "why keep praying when God seems silent"
+    ],
+    "researchOnlyUntilSupportedByLiveEvidence": true,
+    "videoPackaging": "Promise one specific viewer benefit; Jesus/Scripture grounded; no exaggeration",
+    "shorts": "A finished original 59-second narrated Christian video with readable captions and intentional motion, not a still image montage.",
+    "longForm": "A genuinely deeper companion video, not a repeated Short stretched with filler.",
+    "opening": "Speak the audience's real problem in first seconds; answer it with a specific Scripture reference and practical response.",
+    "subscriberCTA": "After delivering value, invite the viewer to the named next episode or series; no engagement tricks.",
+    "contentQualityGates": [
+      "Christian scene suitability verified for the exact source hashes",
+      "Originality, theological and contextual accuracy",
+      "Complete audio/visual/rights review of exact exported master",
+      "No release or schedule without durable final certification"
+    ],
+    "growthLearning": [
+      "views per video at comparable ages",
+      "chose-to-view versus swipe-away for Shorts when available",
+      "average watch duration and percentage viewed",
+      "returning viewers, subscribers per 1000 views",
+      "CTR and traffic sources for long form when available"
+    ],
+    "postingTimeTest": {
+      "initialCandidate": "16:00 Africa/Johannesburg weekdays",
+      "meaning": "Metricool viewer-availability signal, not a proven causal advantage",
+      "varyOneVariableAtATime": true
+    },
+    "maximumDraftShortsPerWeek": 5,
+    "maximumDraftLongVideosPerWeek": 1,
+    "defaultPublishingLocked": true
   }
 }
