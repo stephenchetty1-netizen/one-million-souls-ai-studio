@@ -19,6 +19,7 @@ function clearReview(){
 function missingFor(decision){
  const missing=[];
  if(!selected)missing.push('select one video');
+ if(!playedToEnd)missing.push('play the selected exact source video through to its end');
  if(!$('watched').checked)missing.push('tick “I watched this exact video in full”');
  if($('reviewer').value.trim().length<2)missing.push('enter the reviewer name');
  if($('notes').value.trim().length<12)missing.push('enter at least 12 characters of specific visual notes');
