@@ -95,9 +95,22 @@ export async function searchStoredMasterCandidates({endpoint,region,bucket,acces
    }
   }
  }
+ // A 14-day release bank needs 14 distinct exact masters, not 14 JSON
+ // entries or repeated references to one preview. R2 alone cannot certify
+ // the bank: every master still needs its durable Redis approval recheck.
+ const requiredDays=14
+ const distinctVerifiedMasters=new Set(verifiedArchiveCandidates.map(x=>x.masterHash.toLowerCase())).size
+ const archiveReadiness={
+  requiredDays,distinctExactMastersInStorage:distinctVerifiedMasters,
+  missingExactMasters:Math.max(0,requiredDays-distinctVerifiedMasters),
+  redisFiftyApprovalVerified:false,certifiedDays:0,
+  fourteenDayArchiveCertified:false,
+  blocker:distinctVerifiedMasters<requiredDays?'INSUFFICIENT_DISTINCT_EXACT_MASTERS':
+   'DURABLE_INDEPENDENT_REDIS_CERTIFICATION_REQUIRED'
+ }
  const report={ok:failures.length===0,scope:'R2_REVIEW_AND_MANIFEST_ARCHIVE_ONLY',
   scannedJsonObjects,manifestEntries,musicReviewDrafts,qualifiedMetadata,
-  verifiedArchiveCandidates,publishingAllowed:false,
+  verifiedArchiveCandidates,archiveReadiness,publishingAllowed:false,
   redisFiftyApprovalVerified:false,
   certifiedMasterClaimAllowed:false,
   note:'Even a verified R2 candidate requires independent durable 50-agent Redis certificate recheck.'}
