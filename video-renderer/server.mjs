@@ -12,6 +12,7 @@ import { stagePexelsCollection } from './pexels-source-import.mjs'
 import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
 import { CHRISTIAN_VIDEO_FORMATS } from './christian-video-formats.mjs'
+import { christianSourceReviewQueue, christianReviewSourceObject, recordChristianSourceReview } from './christian-source-review-workflow.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -59,6 +60,27 @@ function sendJson(res, status, payload) {
 function authorized(req) {
   if (!SECRET) return true
   return req.headers.authorization === `Bearer ${SECRET}`
+}
+
+
+// Short-lived, signed, HttpOnly reviewer session. Source MP4s stay private and
+// are streamed only after authentication; no storage credentials enter URLs.
+function reviewSessionValid(req){
+ if(!SECRET)return false
+ const raw=String(req.headers.cookie||'').split(';').map(x=>x.trim())
+  .find(x=>x.startsWith('oms_christian_review='))
+ if(!raw)return false
+ const token=raw.slice('oms_christian_review='.length)
+ const [time,signature]=token.split('.')
+ if(!/^\\d{13}$/.test(time)||!/^[a-f0-9]{64}$/.test(signature||''))return false
+ if(Date.now()-Number(time)>2*60*60*1000||Number(time)>Date.now()+60000)return false
+ const expected=crypto.createHmac('sha256',SECRET).update('christian-review:'+time).digest('hex')
+ return crypto.timingSafeEqual(Buffer.from(signature,'hex'),Buffer.from(expected,'hex'))
+}
+function reviewerAuthorized(req){return Boolean(SECRET)&&(authorized(req)||reviewSessionValid(req))}
+function reviewerOriginValid(req){
+ if(!req.headers.origin)return true
+ try{return new URL(req.headers.origin).host===req.headers.host}catch{return false}
 }
 
 async function readJson(req) {
@@ -325,6 +347,61 @@ const server = http.createServer(async (req, res) => {
     } catch (error) {
       return sendJson(res, 409, { ok:false, blocked:true, error:error instanceof Error ? error.message : 'Factory retry rejected' })
     }
+  }
+
+
+  // Authenticated, source-hash-specific human visual review. This workflow
+  // NEVER approves a final master or enables automatic social posting.
+  if(req.method==='GET'&&url.pathname==='/christian-review'){
+    try{
+      const html=await fs.readFile(path.join(process.cwd(),'christian-review.html'),'utf8')
+      res.writeHead(200,{'content-type':'text/html; charset=utf-8',
+        'cache-control':'private, no-store','x-content-type-options':'nosniff',
+        'content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"})
+      return res.end(html)
+    }catch(error){return sendJson(res,503,{ok:false,error:'REVIEW_PORTAL_UNAVAILABLE'})}
+  }
+  if(req.method==='POST'&&url.pathname==='/christian-review-login'){
+    if(!SECRET||!reviewerOriginValid(req))return sendJson(res,403,{ok:false,error:'REVIEW_LOGIN_UNAVAILABLE'})
+    try{
+      const body=await readJson(req)
+      const proposed=crypto.createHash('sha256').update(String(body?.secret||'')).digest()
+      const expected=crypto.createHash('sha256').update(SECRET).digest()
+      if(!crypto.timingSafeEqual(proposed,expected))return sendJson(res,401,{ok:false,error:'INVALID_REVIEWER_CREDENTIALS'})
+      const at=String(Date.now())
+      const mac=crypto.createHmac('sha256',SECRET).update('christian-review:'+at).digest('hex')
+      res.setHeader('set-cookie','oms_christian_review='+at+'.'+mac+
+        '; HttpOnly; Secure; SameSite=Strict; Max-Age=7200; Path=/christian-review')
+      return sendJson(res,200,{ok:true,sessionMinutes:120,publishingAllowed:false})
+    }catch{return sendJson(res,400,{ok:false,error:'INVALID_REVIEW_LOGIN_REQUEST'})}
+  }
+  if(req.method==='GET'&&url.pathname==='/christian-review-queue'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{return sendJson(res,200,await christianSourceReviewQueue(url.searchParams.get('format')||'SHORT_59'))}
+    catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
+  }
+  if(req.method==='GET'&&url.pathname==='/christian-review-video'){
+    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const {result,hash}=await christianReviewSourceObject(
+        url.searchParams.get('format')||'SHORT_59',url.searchParams.get('id'),req.headers.range)
+      res.writeHead(result.ContentRange?206:200,{
+        'content-type':'video/mp4','cache-control':'private, no-store',
+        'accept-ranges':'bytes','x-source-sha256':hash,
+        'x-content-type-options':'nosniff',
+        ...(result.ContentLength?{'content-length':result.ContentLength}:{}),
+        ...(result.ContentRange?{'content-range':result.ContentRange}:{}),
+      })
+      return result.Body.pipe(res)
+    }catch(error){return sendJson(res,404,{ok:false,error:String(error?.message||error)})}
+  }
+  if(req.method==='POST'&&url.pathname==='/christian-review-decision'){
+    if(!reviewerAuthorized(req)||!reviewerOriginValid(req))
+      return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
+    try{
+      const body=await readJson(req)
+      return sendJson(res,200,await recordChristianSourceReview(body?.format||'SHORT_59',body))
+    }catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
   }
 
   if (req.method === 'GET' && url.pathname === '/christian-video-formats') {
