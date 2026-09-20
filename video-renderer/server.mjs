@@ -361,6 +361,14 @@ const server = http.createServer(async (req, res) => {
       return res.end(html)
     }catch(error){return sendJson(res,503,{ok:false,error:'REVIEW_PORTAL_UNAVAILABLE'})}
   }
+  if(req.method==='GET'&&url.pathname==='/christian-review.js'){
+    try{
+      const script=await fs.readFile(path.join(process.cwd(),'christian-review.js'),'utf8')
+      res.writeHead(200,{'content-type':'application/javascript; charset=utf-8',
+        'cache-control':'private, no-store','x-content-type-options':'nosniff'})
+      return res.end(script)
+    }catch{return sendJson(res,503,{ok:false,error:'REVIEW_PORTAL_SCRIPT_UNAVAILABLE'})}
+  }
   if(req.method==='POST'&&url.pathname==='/christian-review-login'){
     if(!SECRET||!reviewerOriginValid(req))return sendJson(res,403,{ok:false,error:'REVIEW_LOGIN_UNAVAILABLE'})
     try{
