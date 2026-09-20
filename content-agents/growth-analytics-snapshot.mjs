@@ -83,15 +83,29 @@ export async function loadAnalyticsSnapshot(platform){
   return {available:true,...snapshot,ageMinutes:Math.round(ageMs/60000)}
 }
 export async function bootstrapAnalyticsSnapshotEnv(){
-  const raw=process.env.METRICOOL_ANALYTICS_BOOTSTRAP_JSON
-  if(!raw)return {ok:true,skipped:true,reason:'NO_BOOTSTRAP_SNAPSHOT'}
-  let parsed
-  try{parsed=JSON.parse(raw)}catch{return {ok:false,reason:'BOOTSTRAP_JSON_INVALID'}}
-  const items=Array.isArray(parsed)?parsed:[parsed]
+  // Keep the established two-platform seed intact. A newer owner-verified
+  // YouTube snapshot can be added independently without replacing TikTok data.
+  const sources=[
+    {name:'METRICOOL_ANALYTICS_BOOTSTRAP_JSON',platform:null},
+    {name:'METRICOOL_YOUTUBE_SNAPSHOT_JSON',platform:'youtube'},
+  ]
   const result=[]
-  for(const payload of items){
-    try{result.push(await saveAnalyticsSnapshot(payload))}
-    catch(error){result.push({stored:false,error:String(error?.message||error)})}
+  for(const source of sources){
+    const raw=process.env[source.name]
+    if(!raw)continue
+    let parsed
+    try{parsed=JSON.parse(raw)}
+    catch{result.push({stored:false,source:source.name,error:'BOOTSTRAP_JSON_INVALID'});continue}
+    const items=Array.isArray(parsed)?parsed:[parsed]
+    for(const payload of items){
+      if(source.platform&&payload?.platform!==source.platform){
+        result.push({stored:false,source:source.name,error:'BOOTSTRAP_PLATFORM_MISMATCH'})
+        continue
+      }
+      try{result.push({source:source.name,...await saveAnalyticsSnapshot(payload)})}
+      catch(error){result.push({stored:false,source:source.name,error:String(error?.message||error)})}
+    }
   }
+  if(!result.length)return {ok:true,skipped:true,reason:'NO_BOOTSTRAP_SNAPSHOT'}
   return {ok:result.every(x=>!x.error),results:result}
 }
