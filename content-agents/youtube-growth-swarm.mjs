@@ -266,12 +266,56 @@ export function inspectTitlePackaging(title,recentTitles=[]){
   if(duplicate>=0.72)warnings.push('near-duplicate of a recent title')
   return {status:warnings.length?'REVISE':'PASS',warnings,upperCaseRatio:Number(upperRatio.toFixed(2)),hashtags,emojis,recentTitleSimilarity:Number(duplicate.toFixed(2))}
 }
-function titleDirections(topic){
-  const t=clean(topic)
-  return [
-    `What the Bible Says About ${t}`,
-    `When ${t} Feels Hard: A Biblical Response`,
-    `${t}: One Truth to Remember Today`,
+// Package a specific real viewer need instead of awkward keyword substitution.
+// All headlines remain brief/true; the faith claim must be demonstrated in video.
+export function titleDirections(topic){
+  const t=clean(topic).toLowerCase()
+  const titles={
+    'prayer for anxiety':[
+      'A Prayer for When Your Mind Won’t Slow Down',
+      'Feeling Anxious? Pray Through Philippians 4',
+      'When Worry Takes Over, Start With This Prayer',
+    ],
+    'when god feels silent':[
+      'When God Feels Silent, What Can You Pray?',
+      'Still Praying and Hearing Nothing?',
+      'What Psalm 13 Teaches About Waiting on God',
+    ],
+    'fear of the future bible':[
+      'Afraid of Tomorrow? Read Matthew 6:34',
+      'How to Trust God With an Uncertain Future',
+      'When the Future Frightens You, Start Here',
+    ],
+    'forgive someone who hurt you bible':[
+      'Forgiveness Doesn’t Mean the Hurt Was Small',
+      'What Does the Bible Say About Forgiving Someone?',
+      'Can You Forgive and Still Set Boundaries?',
+    ],
+    'feeling far from god':[
+      'Feeling Far From God? Pray This Honestly',
+      'When Your Faith Feels Distant, Remember This',
+      'A Prayer for the Days You Feel Spiritually Lost',
+    ],
+    'loneliness and jesus':[
+      'Feeling Alone? Remember What Jesus Promised',
+      'A Prayer for the Night You Feel Lonely',
+      'When No One Understands, Bring This to Jesus',
+    ],
+    'christian youth peer pressure':[
+      'Following Jesus When Everyone Expects You to Fit In',
+      'Young Christian: What If You Feel Different?',
+      'How to Say No Without Losing Your Kindness',
+    ],
+    'why keep praying when god seems silent':[
+      'Why Keep Praying When Nothing Seems to Change?',
+      'A Bible Passage for Unanswered Prayer',
+      'What to Do While You’re Waiting on God',
+    ],
+  }
+  return titles[t]||[
+    `What Does the Bible Say About ${clean(topic)}?`,
+    `A Prayer for ${clean(topic)}`,
+    `${clean(topic)}: One Biblical Truth to Remember`,
   ]
 }
 function opportunityFrom(topic,rows,state,recentTitles=[]){
@@ -314,10 +358,10 @@ export function subscriberActions(metrics={}){
   return {
     subscriberConversionPercent:rate===null?null:Number(rate.toFixed(3)),
     actions:[
-      'Build recurring series so a viewer knows what they will receive by subscribing.',
-      'Use a natural subscribe CTA after delivering value, not before.',
-      'Point viewers to the next closely related video or playlist to deepen session value.',
-      'Turn repeated audience questions into follow-up videos and Shorts.',
+      'Make Prayer Right Now and One Question. One Verse. recognisable named YouTube series, not interchangeable generic motivation uploads.',
+      'Give the answer or prayer first. After the value: “Subscribe to One Million Souls for the next honest prayer and Bible truth.”',
+      'Link each Short to a genuinely deeper companion or the next episode of the same named series; do not repeat the identical script.',
+      'Create follow-up episodes from measured audience questions; never fabricate testimonials, comments or subscriber numbers.',
     ],
   }
 }
