@@ -36,6 +36,8 @@ function safeSummary(bot,result,snapshot){
   return {
     status:ok?(cached?'DEGRADED':'READY'):'BLOCKED',
     researchMode,
+    publicApiConfigured:bot.platform==='youtube'?result?.publicApiConfigured===true:null,
+    publicApiWarning:bot.platform==='youtube'?result?.publicApiWarning||null:null,
     analyticsSnapshotAvailable:snapshot?.available===true,
     analyticsCapturedAt:snapshot?.available?snapshot.capturedAt:null,
     analyticsSnapshotWarning:snapshot?.available?null:(snapshot?.reason||'ANALYTICS_SNAPSHOT_MISSING'),
@@ -78,7 +80,13 @@ async function runBot(bot){
   const verified=await loadVerifiedPerformance(bot.platform)
   const newerSnapshot=snapshot.available===true && Date.parse(snapshot.capturedAt)>Date.parse(current?.analyticsCapturedAt||0)
   const newerVerified=Boolean(verified.capturedAt&&Date.parse(verified.capturedAt)>Date.parse(current?.performanceCapturedAt||0))
-  if(!newerSnapshot&&!newerVerified&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
+  // A freshly configured public API must be tested immediately, not wait for
+  // the cached-research bot's old six-hour nextEligibleAt. Persist the tested
+  // configuration flag even when Google's response requires cached fallback,
+  // so an invalid key cannot trigger a request on every two-minute cycle.
+  const youtubeApiNewlyConfigured=bot.platform==='youtube'&&
+    Boolean(process.env.YOUTUBE_API_KEY)&&current?.publicApiConfigured!==true
+  if(!newerSnapshot&&!newerVerified&&!youtubeApiNewlyConfigured&&current?.nextEligibleAt&&Date.parse(current.nextEligibleAt)>now){
     return {id:bot.id,status:'NOT_DUE',nextEligibleAt:current.nextEligibleAt,lastStatus:current.status}
   }
   const token=bot.id+':'+process.pid+':'+now
