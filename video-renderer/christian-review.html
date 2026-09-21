@@ -28,42 +28,13 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <div class="pill">Publishing locked until independent master certification</div></header>
 <p>Watch each exact source video in full. Approve only footage that genuinely fits the Christian script and contains no conflicting religious text or ritual. Do not infer anyone's religion from their appearance. A book must be visibly verified as a Bible before approval.</p>
 <main id="review">
+<div id="review-guide" role="status" aria-live="polite" style="grid-column:1/-1;background:#17375c;border:1px solid #6d9ef0;border-radius:12px;padding:16px">Start with the source footage below. Final-video approval becomes available only after all source reviews and rendering are complete.</div>
 <section><h2>Review decisions are protected</h2><p>Footage and drafts can be viewed without signing in. To submit an approval or rejection, enter the reviewer credential for the Railway renderer. It is sent only when you submit a decision, never placed in a link. Watching footage does not approve it.</p><label for="secret">Decision authorization credential</label><input id="secret" type="password" autocomplete="off" placeholder="Required only to save review decisions"><p class="fine">Do not share this credential. Publishing remains locked.</p></section>
 <section><h2>Complete 59-second narrated preview</h2>
 <p>Review the full edited video here before approving any individual source. This private draft may contain unreviewed footage; it is NOT a certified master and cannot be posted. Reject any incorrect religious imagery, weak storytelling, caption problems or poor voice/music balance.</p>
 <button type="button" id="load-full-preview">Load latest finished preview</button>
 <p id="full-preview-status" aria-live="polite">Private preview not loaded.</p>
 <video id="full-preview" controls preload="metadata" playsinline></video>
-</section>
-<section><h2>Reviewed-source draft: Shorts or YouTube long form</h2>
-<p>After all exact sources pass review, V59 automatically renders a narrated 59-second Short or a 240-second YouTube video. It survives Railway restarts and is kept separate from the unreviewed preview. Play the whole new video to check pacing, Christian context, voice/music balance, captions and actual story quality. A rendered draft is NOT a certified master and cannot be posted.</p>
-<button type="button" id="load-reviewed-draft">Check newly reviewed-source draft</button>
-<p id="reviewed-draft-status" aria-live="polite">Waiting for nine Shorts or 24 YouTube source approvals.</p>
-<video id="reviewed-draft" controls preload="metadata" playsinline></video>
-</section>
-<section><h2>Final exact-video editorial review</h2>
-<p>Once the reviewed-source draft exists, watch the entire finished video with audio, verify Christian context, captions, pacing, mix and usage rights. This decision is saved against the actual MP4 SHA-256. <strong>Even an approved final editorial review is NOT a professional master certificate or permission to post.</strong></p>
-<p id="final-review-status" role="status" aria-live="polite">Final video not loaded.</p>
-<label for="final-reviewer">Independent final reviewer</label>
-<input id="final-reviewer" autocomplete="name" placeholder="Your name">
-<label for="final-notes">Specific observations on the actual finished video</label>
-<textarea id="final-notes" rows="3" placeholder="Describe exact shots, story pacing, caption timing, voice and music balance, rights or corrections."></textarea>
-<fieldset><legend>Finished video — verify each part before approving</legend>
-<label><input id="final-watched" type="checkbox"> I personally watched the entire exact finished video and listened to the complete audio.</label>
-<label><input id="final-christian" type="checkbox"> Christian visual context is accurate throughout; no conflicting religious imagery.</label>
-<label><input id="final-scripture" type="checkbox"> Scripture quotation and context are accurate for the finished video.</label>
-<label><input id="final-story" type="checkbox"> Scenes tell a coherent, engaging story and do not repeat weak visual material.</label>
-<label><input id="final-voice" type="checkbox"> Full narration is natural, audible and clearly pronounced.</label>
-<label><input id="final-mix" type="checkbox"> Voice and music balance are appropriate throughout; no silence or clipping.</label>
-<label><input id="final-captions" type="checkbox"> Words are synchronized, readable and clear of the mobile UI.</label>
-<label><input id="final-rights" type="checkbox"> Exact footage and music licences and required attributions were checked.</label>
-</fieldset>
-<p class="fine">Approval requires verified complete playback and all seven checks. Reject may be recorded after seeing a specific flaw; partial viewing will not be misrepresented as a full watch. A changed or replaced MP4 requires a NEW decision.</p>
-<div class="actions">
-<button type="button" id="final-approve">Approve finished video's editorial quality</button>
-<button type="button" id="final-reject" class="reject">Reject finished video</button>
-</div>
-<p id="final-decision-feedback" aria-live="polite" class="fine"></p>
 </section>
 <section><label for="format">Review format</label><select id="format"><option value="SHORT_59">Shorts — 59 seconds</option><option value="YOUTUBE_LONG">YouTube — long form</option></select>
 <div id="summary" aria-live="polite"></div><div id="sources"></div></section>
@@ -84,6 +55,37 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 </fieldset>
 <p id="confirmation-status" role="status" aria-live="polite">Select a video to start.</p><div class="actions"><button type="button" id="approve">Approve exact source</button><button type="button" id="reject" class="reject">Reject exact source</button></div>
 <p class="fine">Source approval is NOT certification of the finished video. The final 59-second or long-form master still requires an independent review and exact-master hash checks.</p>
-</section></main><div id="message" aria-live="polite"></div>
+</section>
+<section><h2>Reviewed-source draft: Shorts or YouTube long form</h2>
+<p>After all exact sources pass review, V59 automatically renders a narrated 59-second Short or a 240-second YouTube video. It survives Railway restarts and is kept separate from the unreviewed preview. Play the whole new video to check pacing, Christian context, voice/music balance, captions and actual story quality. A rendered draft is NOT a certified master and cannot be posted.</p>
+<button type="button" id="load-reviewed-draft">Check newly reviewed-source draft</button>
+<p id="reviewed-draft-status" aria-live="polite">Waiting for nine Shorts or 24 YouTube source approvals.</p>
+<video id="reviewed-draft" controls preload="metadata" playsinline></video>
+</section>
+<section id="final-section"><h2>Final exact-video editorial review</h2>
+<p>Once the reviewed-source draft exists, watch the entire finished video with audio, verify Christian context, captions, pacing, mix and usage rights. This decision is saved against the actual MP4 SHA-256. <strong>Even an approved final editorial review is NOT a professional master certificate or permission to post.</strong></p>
+<p id="final-review-status" role="status" aria-live="polite">Final video not loaded.</p>
+<label for="final-reviewer">Final editorial reviewer</label>
+<input id="final-reviewer" autocomplete="name" placeholder="Your name">
+<label for="final-notes">Specific observations on the actual finished video</label>
+<textarea id="final-notes" rows="3" placeholder="Describe exact shots, story pacing, caption timing, voice and music balance, rights or corrections."></textarea>
+<fieldset id="final-checks" disabled><legend>Finished video — verify each part before approving</legend>
+<label><input id="final-watched" type="checkbox"> I personally watched the entire exact finished video and listened to the complete audio.</label>
+<label><input id="final-christian" type="checkbox"> Christian visual context is accurate throughout; no conflicting religious imagery.</label>
+<label><input id="final-scripture" type="checkbox"> Scripture quotation and context are accurate for the finished video.</label>
+<label><input id="final-story" type="checkbox"> Scenes tell a coherent, engaging story and do not repeat weak visual material.</label>
+<label><input id="final-voice" type="checkbox"> Full narration is natural, audible and clearly pronounced.</label>
+<label><input id="final-mix" type="checkbox"> Voice and music balance are appropriate throughout; no silence or clipping.</label>
+<label><input id="final-captions" type="checkbox"> Words are synchronized, readable and clear of the mobile UI.</label>
+<label><input id="final-rights" type="checkbox"> Exact footage and music licences and required attributions were checked.</label>
+</fieldset>
+<p class="fine">Approval requires verified complete playback and all seven checks. Reject may be recorded after seeing a specific flaw; partial viewing will not be misrepresented as a full watch. A changed or replaced MP4 requires a NEW decision.</p>
+<div class="actions">
+<button type="button" id="final-approve">Approve finished video's editorial quality</button>
+<button type="button" id="final-reject" class="reject">Reject finished video</button>
+</div>
+<p id="final-decision-feedback" aria-live="polite" class="fine"></p>
+</section>
+</main><div id="message" aria-live="polite"></div>
 <script src="/christian-review.js" defer></script>
 </body></html>
