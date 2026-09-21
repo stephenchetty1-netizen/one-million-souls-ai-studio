@@ -9,7 +9,7 @@ import { saveRetentionExperimentPlan } from '../content-agents/v60-experiment-le
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
 const RETRY_MS=30*60*1000
-const YOUTUBE_STRATEGY_VERSION='V59_1K_SUBS_10M_VIEWS_20260921'
+const YOUTUBE_STRATEGY_VERSION='V59_BIBLE_PLACES_TEST_20260921'
 const BOT_DEFINITIONS=Object.freeze([
   {id:'youtube-growth-bot',platform:'youtube',hoursEnv:'YOUTUBE_GROWTH_INTERVAL_HOURS',run:runYoutubeGrowthScan},
   {id:'tiktok-growth-bot',platform:'tiktok',hoursEnv:'TIKTOK_GROWTH_INTERVAL_HOURS',run:runTikTokGrowthScan},
