@@ -26,12 +26,13 @@ const DEFAULT_TOPICS=Object.freeze([
   // Research demand live before promotion; these are hypotheses, not trends.
   'prayer for anxiety',
   'when God feels silent',
-  'fear of the future Bible',
-  'forgive someone who hurt you Bible',
   'feeling far from God',
-  'loneliness and Jesus',
+  'forgive someone who hurt you Bible',
   'Christian youth peer pressure',
-  'why keep praying when God seems silent',
+  'fear of the future Bible',
+  // Historic top-content screenshot gives reason to TEST—not presume demand.
+  'Sea of Galilee Jesus Bible places',
+  'Jerusalem Garden Tomb resurrection history',
 ])
 
 const BLOCKED_GROWTH_TACTICS=Object.freeze([
@@ -336,6 +337,16 @@ export function titleDirections(topic){
       'Why Keep Praying When Nothing Seems to Change?',
       'A Bible Passage for Unanswered Prayer',
       'What to Do While You’re Waiting on God',
+    ],
+    'sea of galilee jesus bible places':[
+      'Sea of Galilee: Where Jesus Walked and Taught',
+      'What Happened at the Sea of Galilee in the Bible?',
+      'Bible Places Explained: The Sea of Galilee',
+    ],
+    'jerusalem garden tomb resurrection history':[
+      'The Garden Tomb: What the Bible Says About the Resurrection',
+      'Jerusalem’s Garden Tomb: Tradition and Gospel History',
+      'Bible Places Explained: Jerusalem and the Empty Tomb',
     ],
   }
   return titles[t]||[
