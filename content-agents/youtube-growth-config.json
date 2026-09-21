@@ -125,12 +125,12 @@
     "researchTopics": [
       "prayer for anxiety",
       "when God feels silent",
-      "fear of the future Bible",
-      "forgive someone who hurt you Bible",
       "feeling far from God",
-      "loneliness and Jesus",
+      "forgive someone who hurt you Bible",
       "Christian youth peer pressure",
-      "why keep praying when God seems silent"
+      "fear of the future Bible",
+      "Sea of Galilee Jesus Bible places",
+      "Jerusalem Garden Tomb resurrection history"
     ],
     "researchOnlyUntilSupportedByLiveEvidence": true,
     "videoPackaging": "Promise one specific viewer benefit; Jesus/Scripture grounded; no exaggeration",
@@ -158,7 +158,19 @@
     },
     "maximumDraftShortsPerWeek": 5,
     "maximumDraftLongVideosPerWeek": 1,
-    "defaultPublishingLocked": true
+    "defaultPublishingLocked": true,
+    "historicalChannelDiscovery": {
+      "finding": "Top lifetime content mixes travel with Holy Land sites, especially Sea of Galilee and Jerusalem, plus general travel; NOT an all-Christian top-content list.",
+      "testSeries": "Bible Places Explained",
+      "topicHypotheses": [
+        "Sea of Galilee and the Gospel stories",
+        "Jerusalem Palm Sunday road and biblical geography",
+        "The Garden Tomb in Jerusalem: tradition and what the Gospels say"
+      ],
+      "authenticity": "Only describe exact places actually shown in footage; historic/original footage must be owned/licensed, verified and age/context disclosed. Do not claim the Garden Tomb is proven to be Jesus' tomb.",
+      "measurement": "Test Holy Land Bible explainer content at comparable 24-hour and 7-day ages against prayer Shorts; include subscriber conversion and retention, not only views.",
+      "releaseGate": "All final masters still need exact audiovisual review, rights and certification; no auto-posting."
+    }
   },
   "growthObjective": {
     "id": "ONE_MILLION_SOULS_AUTHENTIC_GROWTH_20260921",
@@ -188,7 +200,65 @@
           "rankByViewsAmongRecentTen": 4
         }
       },
-      "reason": "Subscriber count verified in YouTube Studio screenshot, resolving conflicting Metricool 147 figure. 9.2K views reflects last 28 days only, NOT lifetime cumulative views. Await YouTube Studio lifetime views to establish accurate +10M view goal baseline."
+      "reason": "Subscriber count verified in YouTube Studio screenshot, resolving conflicting Metricool 147 figure. 9.2K views reflects last 28 days only, NOT lifetime cumulative views. Await YouTube Studio lifetime views to establish accurate +10M view goal baseline. Lifetime top-content screenshot confirms Holy Land and travel themes but does not display cumulative lifetime channel views.",
+      "lifetimeTopContentEvidence": {
+        "status": "VERIFIED_FROM_YOUTUBE_STUDIO_SCREENSHOT",
+        "source": "User-provided YouTube Studio Top content > Lifetime screenshot, 2026-09-21 around 18:07 Africa/Johannesburg",
+        "dateRangeDisplayed": "2008-11-12 to 2026-09-20",
+        "approxViewsByTitle": [
+          {
+            "titlePrefix": "USA Florida Universal Studios",
+            "viewsApprox": 4500,
+            "category": "GENERAL_TRAVEL"
+          },
+          {
+            "titlePrefix": "Sea of Galilee Israel Jerusalem South Africa",
+            "viewsApprox": 4100,
+            "category": "HOLY_LAND_TRAVEL"
+          },
+          {
+            "titlePrefix": "Israel Eilat",
+            "viewsApprox": 4000,
+            "category": "GENERAL_ISRAEL_TRAVEL"
+          },
+          {
+            "titlePrefix": "Israel Eilat",
+            "viewsApprox": 3600,
+            "category": "GENERAL_ISRAEL_TRAVEL"
+          },
+          {
+            "titlePrefix": "Jerusalem Palm Sunday Road Mount of Olives",
+            "viewsApprox": 2600,
+            "category": "HOLY_LAND_TRAVEL"
+          },
+          {
+            "titlePrefix": "Jerusalem Garden Tomb He is Risen",
+            "viewsApprox": 2400,
+            "category": "HOLY_LAND_TRAVEL"
+          },
+          {
+            "titlePrefix": "LIV Club Miami",
+            "viewsApprox": 2400,
+            "category": "GENERAL_TRAVEL"
+          },
+          {
+            "titlePrefix": "Israel",
+            "viewsApprox": 2400,
+            "category": "GENERAL_ISRAEL_TRAVEL"
+          },
+          {
+            "titlePrefix": "I Won't Dance With the Devil",
+            "viewsApprox": 1500,
+            "category": "CHRISTIAN_MESSAGE"
+          },
+          {
+            "titlePrefix": "LIV Club Miami",
+            "viewsApprox": 1300,
+            "category": "GENERAL_TRAVEL"
+          }
+        ],
+        "limitation": "Lifetime totals accumulated over different publish ages; do not compare with recent 28-day Shorts or infer retention/subscribers generated; Top content list is not a lifetime total-view count."
+      }
     },
     "measurementPolicy": {
       "verifyBaselineInYoutubeStudio": true,
