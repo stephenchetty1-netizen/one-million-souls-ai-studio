@@ -7,8 +7,8 @@
 h1{font-size:clamp(27px,4vw,42px);margin:.5em 0}h2{font-size:21px}p{line-height:1.45;color:#c7d5ed}
 header{display:flex;gap:18px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #4b6087;padding-bottom:16px}
 .pill{border:1px solid #f5b942;border-radius:40px;color:#ffd775;padding:7px 13px;font-size:13px}
-main{display:grid;grid-template-columns:minmax(220px,350px) minmax(280px,1fr);gap:18px;margin-top:18px}
-@media(max-width:770px){main{grid-template-columns:1fr}}
+main{display:grid;grid-template-columns:minmax(0,350px) minmax(0,1fr);gap:18px;margin-top:18px}
+@media(max-width:770px){main{grid-template-columns:minmax(0,1fr)}body{padding:12px}section,.card{min-width:0}#review-guide{min-width:0}}
 section,.card{background:#152340;border:1px solid #344b75;border-radius:13px;padding:18px}
 input,select,textarea,button{font:inherit;border-radius:7px;padding:10px;color:#f6f8ff;background:#0b1731;border:1px solid #5673a6}
 input:not([type=checkbox]):not([type=radio]),textarea,select{width:100%;margin:6px 0 13px}
@@ -29,7 +29,7 @@ legend{color:#e4d29c}fieldset label{display:inline-block;margin:5px 12px 5px 0}
 <p>Watch each exact source video in full. Approve only footage that genuinely fits the Christian script and contains no conflicting religious text or ritual. Do not infer anyone's religion from their appearance. A book must be visibly verified as a Bible before approval.</p>
 <main id="review">
 <div id="review-guide" role="status" aria-live="polite" style="grid-column:1/-1;background:#17375c;border:1px solid #6d9ef0;border-radius:12px;padding:16px">Start with the source footage below. Final-video approval becomes available only after all source reviews and rendering are complete.</div>
-<section><h2>Review decisions are protected</h2><p>Footage and drafts can be viewed without signing in. To submit an approval or rejection, enter the reviewer credential for the Railway renderer. It is sent only when you submit a decision, never placed in a link. Watching footage does not approve it.</p><label for="secret">Decision authorization credential</label><input id="secret" type="password" autocomplete="off" placeholder="Required only to save review decisions"><p class="fine">Do not share this credential. Publishing remains locked.</p></section>
+<section><h2>Review decisions are protected</h2><p>Footage and drafts can be viewed without signing in. To submit an approval or rejection, enter the reviewer credential for the Railway renderer. It is sent only when you submit a decision, never placed in a link. Watching footage does not approve it.</p><label for="secret">Decision authorization credential</label><input id="secret" type="password" autocomplete="off" placeholder="Exact VIDEO_RENDER_SECRET value from Railway"><button type="button" id="test-credential">Verify decision credential</button><p id="credential-status" role="status" aria-live="assertive" class="warning">Verify this credential before reviewing more clips. If it fails, check the renderer service Variables in Railway.</p><p class="fine">Do not share this credential. Publishing remains locked.</p></section>
 <section><h2>Complete 59-second narrated preview</h2>
 <p>Review the full edited video here before approving any individual source. This private draft may contain unreviewed footage; it is NOT a certified master and cannot be posted. Reject any incorrect religious imagery, weak storytelling, caption problems or poor voice/music balance.</p>
 <button type="button" id="load-full-preview">Load latest finished preview</button>
