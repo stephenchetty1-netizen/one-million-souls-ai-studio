@@ -9,7 +9,7 @@ import { saveRetentionExperimentPlan } from '../content-agents/v60-experiment-le
 const PREFIX='one-million-souls:v59:autonomous-growth:'
 const LEASE_SECONDS=20*60
 const RETRY_MS=30*60*1000
-const YOUTUBE_STRATEGY_VERSION='V59_SUBSCRIBER_SERIES_20260920'
+const YOUTUBE_STRATEGY_VERSION='V59_1K_SUBS_10M_VIEWS_20260921'
 const BOT_DEFINITIONS=Object.freeze([
   {id:'youtube-growth-bot',platform:'youtube',hoursEnv:'YOUTUBE_GROWTH_INTERVAL_HOURS',run:runYoutubeGrowthScan},
   {id:'tiktok-growth-bot',platform:'tiktok',hoursEnv:'TIKTOK_GROWTH_INTERVAL_HOURS',run:runTikTokGrowthScan},
@@ -38,6 +38,12 @@ function safeSummary(bot,result,snapshot){
     status:ok?(cached?'DEGRADED':'READY'):'BLOCKED',
     researchMode,
     strategyVersion:bot.platform==='youtube'?YOUTUBE_STRATEGY_VERSION:null,
+    growthObjectiveStatus:bot.platform==='youtube'
+      ?result?.growthObjective?.progressStatus||'UNAVAILABLE':null,
+    additionalSubscriberGoal:bot.platform==='youtube'
+      ?Number(result?.growthObjective?.additionalGenuineSubscribers||0):null,
+    additionalViewGoal:bot.platform==='youtube'
+      ?Number(result?.growthObjective?.additionalAuthenticVideoViews||0):null,
     publicApiConfigured:bot.platform==='youtube'?result?.publicApiConfigured===true:null,
     publicApiWarning:bot.platform==='youtube'?result?.publicApiWarning||null:null,
     analyticsSnapshotAvailable:snapshot?.available===true,
