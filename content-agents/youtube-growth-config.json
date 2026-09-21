@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "updatedAt": "2026-09-20",
+  "version": 4,
+  "updatedAt": "2026-09-21",
   "mode": "ZERO_CREDIT_ONLY",
   "mission": "Increase legitimate YouTube discovery, views, watch time and subscriber conversion by improving research, packaging, retention and content-market fit without artificial engagement.",
   "bots": [
@@ -159,5 +159,74 @@
     "maximumDraftShortsPerWeek": 5,
     "maximumDraftLongVideosPerWeek": 1,
     "defaultPublishingLocked": true
+  },
+  "growthObjective": {
+    "id": "ONE_MILLION_SOULS_AUTHENTIC_GROWTH_20260921",
+    "startDate": "2026-09-21",
+    "goals": {
+      "additionalGenuineSubscribers": 1000,
+      "additionalAuthenticVideoViews": 10000000
+    },
+    "verifiedStartBaseline": {
+      "status": "AWAITING_YOUTUBE_STUDIO_VALIDATION",
+      "subscribers": null,
+      "lifetimeViews": null,
+      "reason": "Connected Metricool showed 186 subscribers on 20 September and 147 on 21 September; do not use an inconsistent reading as the goal's starting line."
+    },
+    "measurementPolicy": {
+      "verifyBaselineInYoutubeStudio": true,
+      "reconcileAnomalousSubscriberCounts": true,
+      "countOnlyPlatformReportedSubscribersAndViews": true,
+      "neverInterpretScheduledDraftsAsPublished": true,
+      "compareEachVideoAt24HoursAnd7Days": true,
+      "weeklyScorecard": [
+        "verified subscriber change since start",
+        "verified views since start",
+        "views per published video at comparable ages",
+        "subscribers gained per 1000 views",
+        "Shorts viewed versus swiped away when available",
+        "first-seconds retention and average percentage viewed when available",
+        "long-form click-through rate and watch duration when available",
+        "returning viewers when available"
+      ]
+    },
+    "operatingPlan": {
+      "initialExperimentWindowDays": 90,
+      "experimentWindowIsNotAResultGuarantee": true,
+      "researchCadenceHours": 6,
+      "maximumOriginalCertifiedShortsPerWeek": 5,
+      "maximumOriginalCertifiedLongVideosPerWeek": 1,
+      "initialPublicationTimeTest": "16:00 Africa/Johannesburg weekdays; measure against alternate time after comparable posts",
+      "series": [
+        "Prayer Right Now",
+        "One Question. One Verse.",
+        "Bible in 60 Seconds",
+        "One Million Souls: One Action"
+      ],
+      "earlyMilestones": {
+        "additionalSubscribers": [
+          25,
+          100,
+          250,
+          500,
+          1000
+        ],
+        "additionalViews": [
+          10000,
+          100000,
+          1000000,
+          10000000
+        ]
+      },
+      "experiments": "Improve hook and payoff, retention, title, thumbnail, series continuation and subscriber conversion one variable at a time; use actual source data."
+    },
+    "releasePolicy": {
+      "automaticResearchAndDrafting": true,
+      "requireGenuineExactVideoQualityAndRightsCertificationBeforePosting": true,
+      "neverEnableFakeViewsSubscribersOrTraffic": true,
+      "doNotConvertGoalsToFabricatedReportedResults": true,
+      "doNotForceVolumeIfCertifiedInventoryUnavailable": true,
+      "noClaimOfViralityGuarantee": true
+    }
   }
 }
