@@ -3,9 +3,10 @@ const $=id=>document.getElementById(id);
 let selected=null,sourceList=[],playedToEnd=false;
 let finalDraft=null,finalPlaybackComplete=false;
 const finalChecks=['christian','scripture','story','voice','mix','captions','rights'];
-function finalEnabled(yes){$('final-approve').disabled=!yes;$('final-reject').disabled=!yes}
+function finalEnabled(yes){$('final-approve').disabled=!yes;$('final-reject').disabled=!yes;$('final-checks').disabled=!yes;$('final-reviewer').disabled=!yes;$('final-notes').disabled=!yes}
 function clearFinalDraft(){
- finalDraft=null;finalPlaybackComplete=false;$('final-watched').checked=false;
+ finalDraft=null;finalPlaybackComplete=false;
+ for(const field of ['watched',...finalChecks])$('final-'+field).checked=false;
  finalEnabled(false);$('final-review-status').textContent='Waiting for a current source-approved exact MP4.';
  $('final-decision-feedback').textContent='';
 }
@@ -70,6 +71,9 @@ function selectSource(id){
 function drawQueue(data){
  sourceList=data.assets;
  $('summary').textContent=data.reviewed+'/'+data.required+' Christian source videos approved; '+data.total+' staged.';
+ $('review-guide').textContent=data.reviewed<data.required
+  ?'STEP 1: Watch and review the remaining '+(data.required-data.reviewed)+' '+(format()==='SHORT_59'?'Shorts':'YouTube')+' source clips below. The finished-video approval is intentionally unavailable until a new reviewed-source MP4 is rendered.'
+  :'Source review complete. STEP 2: Check the reviewed-source draft and watch its exact MP4 before recording final editorial feedback.';
  const sources=$('sources');sources.replaceChildren();
  for(const source of sourceList){
   const b=document.createElement('button');b.type='button';b.className='source';b.dataset.id=String(source.id);
@@ -84,7 +88,9 @@ async function load(){
  const data=await request('/christian-review-queue?format='+encodeURIComponent(format()));
  selected=null;$('clip').removeAttribute('src');$('clip').load();clearReview();
  drawQueue(data);
- message('Video source review queue loaded.',true);
+ const next=sourceList.find(x=>x.reviewStatus!=='APPROVED_CHRISTIAN_STORY_FIT'&&x.reviewStatus!=='REJECTED_CHRISTIAN_STORY_FIT');
+ if(next)selectSource(next.id);
+ else message('Video source review queue loaded. No pending clip selected.',true);
 }
 let replacementMonitorToken=0;
 function monitorReplacement(rejectedId,reviewFormat){
@@ -154,8 +160,8 @@ async function loadReviewedDraft(){
    data.masterHash+'. NOT CERTIFIED. Do not post until final audiovisual and rights review passes.';
  }catch(e){
   $('reviewed-draft').removeAttribute('src');$('reviewed-draft').load();
-  status.textContent='Not ready: '+e.message+
-   '. Complete all '+(format()==='YOUTUBE_LONG'?24:9)+' source approvals; the renderer then creates the next draft.';
+  status.textContent='Final video unavailable: '+e.message+
+   '. Review the pending source clips above first. The final-video checkboxes and buttons remain disabled until a new exact MP4 exists.';
  }
 }
 function finalFullyWatched(){
@@ -281,7 +287,7 @@ for(const id of ['watched','reviewer','notes','christian','conflict','bible'])
 document.querySelectorAll('input[name=book]').forEach(x=>x.addEventListener('change',valid));
 async function decide(decision){
  const missing=missingFor(decision);
- if(missing.length){reviewStatus('Cannot '+decision.toLowerCase()+' yet: '+missing.join('; ')+'.');return}
+ if(missing.length){reviewStatus('Cannot '+decision.toLowerCase()+' yet: '+missing.join('; ')+'.');$('confirmation-status').scrollIntoView({behavior:'smooth',block:'center'});return}
  const book=document.querySelector('input[name=book]:checked');
  const body={format:format(),id:selected.id,sourceVideoHash:selected.sourceVideoHash,
   reviewer:$('reviewer').value,notes:$('notes').value,decision,
