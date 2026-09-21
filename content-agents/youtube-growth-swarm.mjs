@@ -152,6 +152,32 @@ async function baseline(){
     return JSON.parse(await fs.readFile(file,'utf8'))
   }catch{return {metrics:{},audienceTiming:{}}}
 }
+async function growthGoal(){
+  // Actual subscriber/view milestones require a verified START and live
+  // cumulative YouTube Studio measurements, not a moving 30-day snapshot.
+  try{
+    const raw=await fs.readFile(path.join(process.cwd(),'content-agents','youtube-growth-config.json'),'utf8')
+    const goal=JSON.parse(raw)?.growthObjective
+    if(!goal?.goals)return {status:'NO_CONFIGURED_GROWTH_GOAL'}
+    return {
+      id:goal.id,
+      startDate:goal.startDate,
+      additionalGenuineSubscribers:goal.goals.additionalGenuineSubscribers,
+      additionalAuthenticVideoViews:goal.goals.additionalAuthenticVideoViews,
+      progressStatus:'AWAITING_VERIFIED_BASELINE_AND_CUMULATIVE_METRICS',
+      baselineStatus:goal.verifiedStartBaseline?.status||'NOT_VERIFIED',
+      experimentWindowDays:goal.operatingPlan?.initialExperimentWindowDays||null,
+      experimentWindowIsNotAResultGuarantee:true,
+      milestones:goal.operatingPlan?.earlyMilestones||null,
+      certifiedVideosOnly:true,
+      artificialEngagement:false,
+      measuredSubscribersGainedSinceStart:null,
+      measuredViewsGainedSinceStart:null,
+    }
+  }catch(error){
+    return {status:'GOAL_CONFIG_UNAVAILABLE',reason:String(error?.message||error).slice(0,120)}
+  }
+}
 async function localEvidenceSearch(topic){
   try{
     const [patternsRaw,trendsRaw]=await Promise.all([
@@ -387,6 +413,7 @@ export async function runYoutubeGrowthScan(input={}){
   const state=await loadYoutubeGrowthState()
   const verifiedPerformance=await loadVerifiedPerformance('youtube')
   const base=await baseline()
+  const objective=await growthGoal()
   const metrics={...(base.metrics||{}),...(input.metrics||{})}
   const feed=await ownChannelFeed()
   const recentTitles=Array.isArray(input.recentTitles)&&input.recentTitles.length
@@ -447,6 +474,7 @@ export async function runYoutubeGrowthScan(input={}){
     quotaPolicy:{maxTopicSearchesPerCycle:8,minimumHoursBetweenCycles:6},
     promotionPolicy:{developAtScore:65,researchMoreAtScore:50,oneVariableExperiment:true},
     benchmark:channelBenchmark(metrics,base),
+    growthObjective:objective,
     ownChannelFeed:{
       available:feed.ok===true,
       source:feed.source||null,
