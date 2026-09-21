@@ -165,13 +165,30 @@
     "startDate": "2026-09-21",
     "goals": {
       "additionalGenuineSubscribers": 1000,
-      "additionalAuthenticVideoViews": 10000000
+      "additionalAuthenticVideoViews": 10000000,
+      "targetTotalSubscribers": 1187,
+      "targetLifetimeViews": null
     },
     "verifiedStartBaseline": {
-      "status": "AWAITING_YOUTUBE_STUDIO_VALIDATION",
-      "subscribers": null,
+      "status": "PARTIALLY_VERIFIED_FROM_YOUTUBE_STUDIO_SCREENSHOT",
+      "subscribers": 187,
       "lifetimeViews": null,
-      "reason": "Connected Metricool showed 186 subscribers on 20 September and 147 on 21 September; do not use an inconsistent reading as the goal's starting line."
+      "source": "User-provided YouTube Studio mobile dashboard screenshot, 2026-09-21 around 18:04 Africa/Johannesburg",
+      "currentDisplayedAtCapture": {
+        "subscribers": 187,
+        "last28DaysViewsApprox": 9200,
+        "last28DaysWatchHours": 22.5,
+        "latestVideo": {
+          "titlePrefix": "ONE GOD, MANY NAMES, ENDLESS POWER!",
+          "views": 64,
+          "ageHoursApprox": 16.83,
+          "averagePercentageViewed": 110.9,
+          "likes": 1,
+          "comments": 0,
+          "rankByViewsAmongRecentTen": 4
+        }
+      },
+      "reason": "Subscriber count verified in YouTube Studio screenshot, resolving conflicting Metricool 147 figure. 9.2K views reflects last 28 days only, NOT lifetime cumulative views. Await YouTube Studio lifetime views to establish accurate +10M view goal baseline."
     },
     "measurementPolicy": {
       "verifyBaselineInYoutubeStudio": true,
