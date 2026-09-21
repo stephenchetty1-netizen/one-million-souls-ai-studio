@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 let selected=null,sourceList=[],playedToEnd=false;
 let finalDraft=null,finalPlaybackComplete=false;
 const finalChecks=['christian','scripture','story','voice','mix','captions','rights'];
-function finalEnabled(yes){$('final-approve').disabled=!yes;$('final-reject').disabled=!yes;$('final-checks').disabled=!yes;$('final-reviewer').disabled=!yes;$('final-notes').disabled=!yes}
+function finalEnabled(yes){$('final-section').hidden=!yes;$('final-approve').disabled=!yes;$('final-reject').disabled=!yes;$('final-checks').disabled=!yes;$('final-reviewer').disabled=!yes;$('final-notes').disabled=!yes}
 function clearFinalDraft(){
  finalDraft=null;finalPlaybackComplete=false;
  for(const field of ['watched',...finalChecks])$('final-'+field).checked=false;
