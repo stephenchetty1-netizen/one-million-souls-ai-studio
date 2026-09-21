@@ -183,6 +183,25 @@
       "reviewStatus": "AWAITING_ORIGINAL_VIDEO_AND_SCENE_VERIFICATION",
       "publishingLocked": true,
       "note": "User provided video URL as follow-up to request for Sea of Galilee original. Cannot assume link content or source rights from URL; verify content, original files, and exact visual/audiovisual material before producing a master."
+    },
+    "narrationApproval": {
+      "project": "From Galilee to Jerusalem — Bible Places Explained 59s",
+      "preferredVoiceProvider": "VEED",
+      "preferredVoiceName": "Owen - Engaging and Clear Storyteller",
+      "voiceId": "giAoKpl5weRTCJK7uB9b",
+      "locale": "en-GB",
+      "voiceSelectedByUser": true,
+      "approvedFinalNarration": false,
+      "veedCreditBalanceVerified": 0,
+      "talkingHeadQuoteCredits": 168,
+      "talkingHeadQuoteNotApplicableToAudioOnly": true,
+      "audioOnlyQuote": null,
+      "doNotGenerateTalkingHead": true,
+      "previousSyntheticNarrationRejected": true,
+      "defaultVideoReviewPath": "Galilee_NO_VOICE_MOBILE.mp4",
+      "requireAudioOnlyVoiceoverUploadOrUserOwnVoice": true,
+      "neverSubstituteUnapprovedVoice": true,
+      "publishingLocked": true
     }
   },
   "growthObjective": {
