@@ -228,31 +228,43 @@ clearFinalDraft()
 
 $('load-reviewed-draft').onclick=()=>loadReviewedDraft();
 $('load-full-preview').onclick=()=>loadFullPreview();
+function credentialStatus(detail,ok=false){
+ const n=$('credential-status');n.textContent=detail;n.className=ok?'ok':'bad';
+}
 function requireDecisionCredential(detail){
  const field=$('secret');
+ credentialStatus(detail);
  field.scrollIntoView({behavior:'smooth',block:'center'});
  field.focus({preventScroll:true});
  message(detail);
  throw Error(detail);
 }
-async function authorizedDecision(path,body){
+async function verifyDecisionCredential(){
  const credential=$('secret').value.trim();
- if(credential){
-  try{
-   await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
-    body:JSON.stringify({secret:credential})});
-   $('secret').value='';
-  }catch(error){
-   if(error.message==='INVALID_REVIEWER_CREDENTIALS'||error.message==='REVIEW_LOGIN_UNAVAILABLE')
-    requireDecisionCredential('Decision not saved: the renderer reviewer credential was rejected. Check VIDEO_RENDER_SECRET in Railway video-renderer Variables. Do not share it.');
-   throw error;
-  }
+ if(!credential)requireDecisionCredential('Enter the exact VIDEO_RENDER_SECRET value from Railway → lavish-enjoyment → one-million-souls-video-renderer → Variables.');
+ credentialStatus('Checking the reviewer credential…');
+ try{
+  const result=await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({secret:credential})});
+  $('secret').value='';
+  credentialStatus('Reviewer authorization verified. You may now submit exact-source decisions for clips you have watched in full.',true);
+  return result;
+ }catch(error){
+  if(error.message==='INVALID_REVIEWER_CREDENTIALS')
+   requireDecisionCredential('Credential rejected by Railway renderer (HTTP 401). This is NOT a video-playback error. Copy the VALUE of VIDEO_RENDER_SECRET from the renderer service, not the variable name; if unavailable, rotate it in Railway and wait for SUCCESS.');
+  if(error.message==='REVIEW_LOGIN_UNAVAILABLE')
+   requireDecisionCredential('Reviewer authorization unavailable on the renderer. Check VIDEO_RENDER_SECRET configuration and deployment status in Railway.');
+  throw error;
  }
+}
+$('test-credential').onclick=()=>verifyDecisionCredential().catch(error=>message(error.message));
+async function authorizedDecision(path,body){
+ if($('secret').value.trim())await verifyDecisionCredential();
  try{
   return await request(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
  }catch(error){
   if(error.message==='REVIEWER_AUTH_REQUIRED')
-   requireDecisionCredential('Decision not saved. Enter VIDEO_RENDER_SECRET in the decision authorization field above, then press the same Approve or Reject button again. Viewing clips does not require a credential.');
+   requireDecisionCredential('Decision not saved: reviewer session missing or expired. Enter VIDEO_RENDER_SECRET above, tap Verify decision credential, then submit this clip again.');
   throw error;
  }
 }
