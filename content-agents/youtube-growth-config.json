@@ -170,6 +170,19 @@
       "authenticity": "Only describe exact places actually shown in footage; historic/original footage must be owned/licensed, verified and age/context disclosed. Do not claim the Garden Tomb is proven to be Jesus' tomb.",
       "measurement": "Test Holy Land Bible explainer content at comparable 24-hour and 7-day ages against prayer Shorts; include subscriber conversion and retention, not only views.",
       "releaseGate": "All final masters still need exact audiovisual review, rights and certification; no auto-posting."
+    },
+    "originalHolyLandVideoCandidate": {
+      "youtubeVideoId": "6Wsc94uW-U8",
+      "url": "https://youtu.be/6Wsc94uW-U8",
+      "submittedByUser": "2026-09-21",
+      "intendedExperiment": "Bible Places Explained: Sea of Galilee",
+      "contentVerified": false,
+      "footageAccessibleForEditing": false,
+      "ownershipAndReuseRightsVerified": false,
+      "originalFileRequiredForHighQualityReedit": true,
+      "reviewStatus": "AWAITING_ORIGINAL_VIDEO_AND_SCENE_VERIFICATION",
+      "publishingLocked": true,
+      "note": "User provided video URL as follow-up to request for Sea of Galilee original. Cannot assume link content or source rights from URL; verify content, original files, and exact visual/audiovisual material before producing a master."
     }
   },
   "growthObjective": {
