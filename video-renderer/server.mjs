@@ -521,7 +521,6 @@ const server = http.createServer(async (req, res) => {
     }catch{return sendJson(res,400,{ok:false,error:'INVALID_REVIEW_LOGIN_REQUEST'})}
   }
   if(req.method==='GET'&&url.pathname==='/christian-final-review-status'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const format=url.searchParams.get('format')||'SHORT_59'
       const draft=await currentChristianFinalDraft(format)
@@ -576,12 +575,10 @@ const server = http.createServer(async (req, res) => {
   }
 
   if(req.method==='GET'&&url.pathname==='/christian-review-queue'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{return sendJson(res,200,await christianSourceReviewQueue(url.searchParams.get('format')||'SHORT_59'))}
     catch(error){return sendJson(res,409,{ok:false,error:String(error?.message||error),publishingAllowed:false})}
   }
   if(req.method==='GET'&&url.pathname==='/christian-review-video'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const {result,hash}=await christianReviewSourceObject(
         url.searchParams.get('format')||'SHORT_59',url.searchParams.get('id'),req.headers.range)
@@ -654,7 +651,6 @@ const server = http.createServer(async (req, res) => {
   // approvals are recorded. The preview remains quarantined in private R2,
   // is never a certified master, and cannot be addressed through /media/.
   if(req.method==='GET'&&url.pathname==='/christian-preview-latest'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const latest=await readStoredJson('internal/unreviewed-narrated-short-reviews/v1/latest.json')
       const currentSources=await readStoredJson('internal/pexels-source-candidates/v1/BE_STILL_PEXELS_V1/manifest.json')
@@ -672,7 +668,6 @@ const server = http.createServer(async (req, res) => {
   // Reviewed SOURCE footage produces a reviewable FINAL draft, not a certificate.
   // Preserve its hash-bound lookup through any Railway renderer restart.
   if(req.method==='GET'&&url.pathname==='/christian-reviewed-draft-latest'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const latest=await readStoredJson('internal/narrated-short-reviews/v1/latest.json')
       if(!latest||latest.unreviewedSourcePreview===true||latest.sourceReviewRequired===true||
@@ -696,7 +691,6 @@ const server = http.createServer(async (req, res) => {
   }
   // Long-form draft remains review-only; current exact-source approvals are rechecked.
   if(req.method==='GET'&&url.pathname==='/christian-reviewed-long-draft-latest'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     try{
       const latest=await readStoredJson('internal/music-video-reviews/v1/YOUTUBE_LONG/latest.json')
       const currentSources=await readStoredJson('internal/pexels-source-candidates/v1/YOUTUBE_WORSHIP_LANDSCAPE_V1/manifest.json')
@@ -719,7 +713,6 @@ const server = http.createServer(async (req, res) => {
     }
   }
   if(req.method==='GET'&&url.pathname==='/christian-private-preview'){
-    if(!reviewerAuthorized(req))return sendJson(res,401,{ok:false,error:'REVIEWER_AUTH_REQUIRED'})
     const id=String(url.searchParams.get('id')||'')
     const kind=String(url.searchParams.get('kind')||'')
     if(!/^[a-f0-9-]{36}$/i.test(id)||!['video','contact'].includes(kind))
