@@ -209,8 +209,7 @@ async function recordFinalDecision(decision){
  try{
   finalEnabled(false)
   $('final-decision-feedback').textContent='Verifying exact MP4 SHA-256 and saving final editorial decision…'
-  const result=await request('/christian-final-review-decision',{method:'POST',
-   headers:{'content-type':'application/json'},body:JSON.stringify(body)})
+  const result=await authorizedDecision('/christian-final-review-decision',body)
   $('final-decision-feedback').textContent='Saved '+result.decision+' for this exact finished MP4. '+result.finalEditorialStatus+
     '. Professional master certification and posting are still locked.'
   await loadFinalReviewStatus()
@@ -223,14 +222,20 @@ clearFinalDraft()
 
 $('load-reviewed-draft').onclick=()=>loadReviewedDraft();
 $('load-full-preview').onclick=()=>loadFullPreview();
-$('sign-in').onclick=async()=>{
- try{
-  const secret=$('secret').value;
+async function authorizedDecision(path,body){
+ const credential=$('secret').value.trim();
+ if(credential){
   await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({secret})});
-  $('secret').value='';$('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();await loadReviewedDraft();
- }catch(e){message(e.message)}
-};
+   body:JSON.stringify({secret:credential})});
+  $('secret').value='';
+ }
+ try{
+  return await request(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+ }catch(error){
+  if(error.message==='REVIEWER_AUTH_REQUIRED')throw Error('Enter the decision authorization credential above, then submit again. No decision was saved.');
+  throw error;
+ }
+}
 $('format').onchange=()=>{replacementMonitorToken++;load().then(loadReviewedDraft).catch(e=>message(e.message))};
 // Android video players sometimes omit 'ended'. Validate actual played ranges,
 // not a seek-to-end or a checked declaration, and accept complete playback on
@@ -273,8 +278,7 @@ async function decide(decision){
  try{
   $('approve').disabled=true;$('reject').disabled=true;
   reviewStatus('Saving exact-source '+decision.toLowerCase()+' decision…',true);
-  const result=await request('/christian-review-decision',{method:'POST',
-   headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  const result=await authorizedDecision('/christian-review-decision',body);
   await load();
   if(result.replacementQueued===true)monitorReplacement(result.id,result.format);
   if(result.sourceBankReady){
@@ -299,6 +303,4 @@ async function decide(decision){
 }
 $('approve').onclick=()=>decide('APPROVE');
 $('reject').onclick=()=>decide('REJECT');
-request('/christian-review-queue?format=SHORT_59').then(async()=>{
- $('login').hidden=true;$('review').hidden=false;await load();await loadFullPreview();return loadReviewedDraft();
-}).catch(()=>{});
+load().then(async()=>{await loadFullPreview();return loadReviewedDraft()}).catch(e=>message('Review queue unavailable: '+e.message));
