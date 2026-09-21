@@ -222,17 +222,31 @@ clearFinalDraft()
 
 $('load-reviewed-draft').onclick=()=>loadReviewedDraft();
 $('load-full-preview').onclick=()=>loadFullPreview();
+function requireDecisionCredential(detail){
+ const field=$('secret');
+ field.scrollIntoView({behavior:'smooth',block:'center'});
+ field.focus({preventScroll:true});
+ message(detail);
+ throw Error(detail);
+}
 async function authorizedDecision(path,body){
  const credential=$('secret').value.trim();
  if(credential){
-  await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
-   body:JSON.stringify({secret:credential})});
-  $('secret').value='';
+  try{
+   await request('/christian-review-login',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({secret:credential})});
+   $('secret').value='';
+  }catch(error){
+   if(error.message==='INVALID_REVIEWER_CREDENTIALS'||error.message==='REVIEW_LOGIN_UNAVAILABLE')
+    requireDecisionCredential('Decision not saved: the renderer reviewer credential was rejected. Check VIDEO_RENDER_SECRET in Railway video-renderer Variables. Do not share it.');
+   throw error;
+  }
  }
  try{
   return await request(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
  }catch(error){
-  if(error.message==='REVIEWER_AUTH_REQUIRED')throw Error('Enter the decision authorization credential above, then submit again. No decision was saved.');
+  if(error.message==='REVIEWER_AUTH_REQUIRED')
+   requireDecisionCredential('Decision not saved. Enter VIDEO_RENDER_SECRET in the decision authorization field above, then press the same Approve or Reject button again. Viewing clips does not require a credential.');
   throw error;
  }
 }
