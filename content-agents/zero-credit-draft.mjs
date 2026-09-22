@@ -87,14 +87,14 @@ export async function prepareZeroCreditDraft(input, { ledgerPath = path.join(pro
         cautions: ['The ledger is a curated devotional source, not newly performed Bible research.']
       },
       quality: {
-        scriptureAccurate: true,
-        biblicalConsistency: true,
-        gospelCentered: /\b(Jesus|God|Christ|Lord)\b/i.test(item.script),
+        scriptureAccurate: false,
+        biblicalConsistency: false,
+        gospelCentered: false,
         audienceFit: false,
         retentionReady: false,
         notes: [
           'Source: exact curated text (' + ledger.version + '); no paid AI or new text generation occurred.',
-          'Audience fit, fresh Scripture research and independent theological review were NOT performed.',
+          'Scripture accuracy, biblical consistency, Gospel focus, audience fit and independent theological review remain PENDING; the curated ledger is not a substitute for review of this draft.',
           'This is a text draft, not an approved video or a publishable campaign. Publishing is locked.'
         ],
         status: 'REVISE'
