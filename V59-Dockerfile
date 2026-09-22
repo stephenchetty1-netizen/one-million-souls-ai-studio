@@ -11,6 +11,14 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
 
 RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute app/api/content-agents/youtube-growth app/api/content-agents/tiktok-growth app/api/content-agents/autonomous-bots app/api/content-agents/growth-metrics app/api/content-agents/analytics-ingest app/api/content-agents/v60-experiments
 COPY content-agents /workspace/content-agents
+# Offline, zero-credit devotional endpoint: override the archived paid /api/generate route.
+# Disable the archived paid image endpoint and accurately label the client UI.
+RUN mkdir -p app/api/generate app/api/image
+COPY docker-overrides/zero-credit/generate-route.ts /workspace/app/api/generate/route.ts
+COPY docker-overrides/zero-credit/image-route.ts /workspace/app/api/image/route.ts
+COPY docker-overrides/zero-credit/patch-page.mjs /workspace/docker-overrides/zero-credit/patch-page.mjs
+RUN node docker-overrides/zero-credit/patch-page.mjs \
+ && node --test content-agents/zero-credit-generator.test.mjs
 # Validate the owner's TikTok Creator Search Insights evidence during image build.
 RUN node --check content-agents/tiktok-growth-swarm.mjs \
  && node --check content-agents/tiktok-search-intel.mjs \
@@ -67,7 +75,7 @@ RUN node -e "const fs=require('fs'); const p='tsconfig.json'; const j=JSON.parse
 
 # Some legacy knowledge modules instantiate the OpenAI SDK at module load.
 # Supply a non-secret build-only placeholder so Next can collect route metadata;
-# real requests still use the production OPENAI_API_KEY at runtime.
+# this zero-credit /api/generate and /api/image override never calls that SDK.
 ENV OPENAI_API_KEY=build-placeholder-not-for-runtime
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN node --test content-agents/growth-multiplier.test.mjs
