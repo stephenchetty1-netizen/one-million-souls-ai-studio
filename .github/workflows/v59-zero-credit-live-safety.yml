@@ -1,0 +1,77 @@
+name: V59 Zero-Credit Live Safety
+on:
+  push:
+    branches: [repair/zero-credit-live-safety-20260922]
+    paths:
+      - .github/workflows/v59-zero-credit-live-safety.yml
+      - V59-Dockerfile
+      - Dockerfile
+      - content-agents/zero-credit-draft.mjs
+      - content-agents/zero-credit-draft.test.mjs
+      - docker-overrides/zero-credit/**
+  pull_request:
+    branches: [main]
+    paths:
+      - V59-Dockerfile
+      - Dockerfile
+      - content-agents/zero-credit-draft.mjs
+      - content-agents/zero-credit-draft.test.mjs
+      - docker-overrides/zero-credit/**
+jobs:
+  zero-credit-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate curated draft schema and review restrictions
+        run: |
+          node --check content-agents/zero-credit-draft.mjs
+          node --check docker-overrides/zero-credit/patch-homepage.mjs
+          node --test content-agents/zero-credit-draft.test.mjs
+      - name: Build Railway's effective Dockerfile
+        run: docker build --file Dockerfile --tag oms-curated-safety-check .
+      - name: Smoke test manual generation without any API key
+        run: |
+          set -euo pipefail
+          docker run --name oms-curated-safety-smoke --rm -d -p 127.0.0.1:3000:3000 \
+            -e ZERO_CREDIT_ONLY=true -e V59_PUBLISH_ENABLED=false \
+            oms-curated-safety-check
+          trap 'docker logs --tail 18 oms-curated-safety-smoke || true; docker stop oms-curated-safety-smoke >/dev/null || true' EXIT
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:3000/ -o /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS --max-time 35 http://127.0.0.1:3000/api/generate \
+            -H 'Content-Type: application/json' \
+            -d '{"topic":"Trusting God when you cannot see the way forward","audience":"Christian youth and young adults","goal":"Encourage youth to trust God","tone":"Hopeful and Jesus-centered","channels":["TikTok","YouTube Shorts"]}' \
+            > /tmp/oms-draft.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/oms-draft.json'))
+          c=r['campaign']
+          assert r['mode']=='ZERO_CREDIT_CURATED_DRAFT'
+          assert r['publishingLocked'] is True
+          assert c['status']=='DRAFT_REVIEW_REQUIRED'
+          assert c['quality']['status']=='REVISE'
+          assert c['quality']['scriptureAccurate'] is False
+          assert c['quality']['biblicalConsistency'] is False
+          assert c['quality']['gospelCentered'] is False
+          assert c['tiktokScript']
+          print('LIVE_CURATED_DRAFT_PASS: HTTP 200; no API key; QA pending; publishing locked')
+          PY
+          status=$(curl -sS -o /tmp/oms-image.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:3000/api/image)
+          test "$status" = "403"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/oms-image.json'))
+          assert r['mode']=='zero-credit'
+          assert r['publishingLocked'] is True
+          print('LIVE_PAID_IMAGE_BLOCK_PASS: HTTP 403; no AI charges')
+          PY
