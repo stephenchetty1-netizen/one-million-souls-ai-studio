@@ -1,0 +1,30 @@
+name: Inspect zero-credit generation contract
+on:
+  push:
+    branches:
+      - fix/zero-credit-generate-route
+    paths:
+      - .github/workflows/zero-credit-diagnose.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect archived V59 generation handler and homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=christian-content-ai-studio-autonomous-christian-discernment-v59-final.tar.gz
+          echo '=== ARCHIVE MATCHING PATHS ==='
+          tar -tzf "$archive" | grep -E '(^|/)app/api/generate/route\.(ts|js)$|(^|/)app/page\.(tsx|jsx|ts|js)$' || true
+          mkdir -p /tmp/oms-extracted
+          tar -xzf "$archive" -C /tmp/oms-extracted
+          route=$(find /tmp/oms-extracted -path '*/app/api/generate/route.ts' -o -path '*/app/api/generate/route.js' | head -n 1)
+          page=$(find /tmp/oms-extracted -path '*/app/page.tsx' -o -path '*/app/page.jsx' -o -path '*/app/page.ts' -o -path '*/app/page.js' | head -n 1)
+          echo '=== GENERATE HANDLER ==='
+          if [ -n "$route" ]; then sed -n '1,240p' "$route"; else echo 'ROUTE_NOT_FOUND'; fi
+          echo '=== HOME PAGE ==='
+          if [ -n "$page" ]; then sed -n '1,270p' "$page"; else echo 'PAGE_NOT_FOUND'; fi
