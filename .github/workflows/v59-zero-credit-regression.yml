@@ -34,3 +34,40 @@ jobs:
           node --test content-agents/zero-credit-generator.test.mjs
       - name: Build the exact V59 production Dockerfile with the offline override
         run: docker build --file V59-Dockerfile --tag oms-zero-credit-check .
+      - name: Boot V59 without an API key and test the actual HTTP endpoints
+        run: |
+          set -euo pipefail
+          docker run --name oms-zero-credit-smoke --rm -d -p 127.0.0.1:3000:3000 \
+            -e ZERO_CREDIT_ONLY=true -e V59_PUBLISH_ENABLED=false \
+            oms-zero-credit-check
+          trap 'docker logs --tail 18 oms-zero-credit-smoke || true; docker stop oms-zero-credit-smoke >/dev/null || true' EXIT
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:3000/ -o /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS --max-time 35 http://127.0.0.1:3000/api/generate \
+            -H 'Content-Type: application/json' \
+            -d '{"topic":"Trusting God when you cannot see the way forward","audience":"Christian youth and young adults","goal":"Encourage youth to trust God","tone":"Hopeful and Jesus-centered","channels":["TikTok","YouTube Shorts"]}' \
+            > /tmp/zero-credit-response.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/zero-credit-response.json'))
+          c=r['campaign']
+          assert r['mode']=='zero-credit'
+          assert c['provider']=='local-curated-template'
+          assert c['publishingLocked'] is True
+          assert c['quality']['status']=='REVISE'
+          assert 'Proverbs' in c['bible']['primaryScripture']
+          print('LIVE_ZERO_CREDIT_GENERATE_PASS: HTTP 200; no API key; draft only')
+          PY
+          status=$(curl -sS -o /tmp/zero-credit-image.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{}' \
+            http://127.0.0.1:3000/api/image)
+          test "$status" = "403"
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/zero-credit-image.json'))
+          assert r['mode']=='zero-credit'
+          assert r['publishingLocked'] is True
+          print('LIVE_PAID_IMAGE_BLOCK_PASS: HTTP 403')
+          PY
