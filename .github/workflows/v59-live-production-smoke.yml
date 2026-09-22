@@ -1,0 +1,52 @@
+name: Verify live zero-credit V59 production
+on:
+  push:
+    branches: [repair/zero-credit-live-safety-20260922]
+    paths: [.github/workflows/v59-live-production-smoke.yml]
+permissions:
+  contents: read
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify actual production generation and block paid images
+        run: |
+          set -euo pipefail
+          base=https://one-million-souls-v59-production.up.railway.app
+          code=$(curl -sS --max-time 45 -o /tmp/oms-live.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -d '{"topic":"Trusting God when you cannot see the way forward","audience":"Christian youth and young adults","goal":"Encourage youth to trust God","tone":"Hopeful and Jesus-centered","channels":["TikTok","YouTube Shorts"]}' \
+            "$base/api/generate")
+          echo "LIVE_GENERATE_HTTP_STATUS=$code"
+          if [ "$code" != "200" ]; then
+            python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/oms-live.json'))
+          print('LIVE_GENERATE_ERROR:',str(r.get('error','unknown'))[:180])
+          PY
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/oms-live.json'))
+          c=r['campaign']
+          assert r['mode']=='ZERO_CREDIT_CURATED_DRAFT'
+          assert r['publishingLocked'] is True
+          assert c['status']=='DRAFT_REVIEW_REQUIRED'
+          assert c['quality']['status']=='REVISE'
+          assert all(c['quality'][k] is False for k in ['scriptureAccurate','biblicalConsistency','gospelCentered'])
+          assert c['tiktokScript']
+          print('LIVE_PRODUCTION_CURATED_DRAFT_PASS')
+          PY
+          imageCode=$(curl -sS --max-time 45 -o /tmp/oms-live-image.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{}' "$base/api/image")
+          echo "LIVE_IMAGE_HTTP_STATUS=$imageCode"
+          test "$imageCode" = 403
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/oms-live-image.json'))
+          assert r['mode']=='zero-credit'
+          assert r['publishingLocked'] is True
+          print('LIVE_PRODUCTION_PAID_IMAGE_BLOCK_PASS')
+          PY
