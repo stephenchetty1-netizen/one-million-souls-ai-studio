@@ -94,7 +94,7 @@ export async function prepareZeroCreditDraft(input, { ledgerPath = path.join(pro
         retentionReady: false,
         notes: [
           'Source: exact curated text (' + ledger.version + '); no paid AI or new text generation occurred.',
-          'Scripture accuracy, biblical consistency, Gospel focus, audience fit and independent theological review remain PENDING; the curated ledger is not a substitute for this draft's review.',
+          'Scripture accuracy, biblical consistency, Gospel focus, audience fit and independent theological review remain PENDING; the curated ledger is not a substitute for review of this draft.',
           'This is a text draft, not an approved video or a publishable campaign. Publishing is locked.'
         ],
         status: 'REVISE'
