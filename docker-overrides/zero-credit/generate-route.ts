@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   } catch (error) {
     if (error instanceof UnmatchedCuratedTopicError) {
       return Response.json({
-        error: error.message,
+        error: error.message + ' Available curated topics: ' + error.availableTopics.join(', '),
         availableTopics: error.availableTopics,
         publishingLocked: true
       }, { status: 422 })
