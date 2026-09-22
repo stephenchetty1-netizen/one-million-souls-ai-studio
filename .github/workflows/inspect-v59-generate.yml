@@ -1,0 +1,28 @@
+name: Inspect V59 generation contract
+on:
+  push:
+    branches:
+      - repair/zero-credit-generate-20260922
+    paths:
+      - .github/workflows/inspect-v59-generate.yml
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print generation source and caller contract (no credentials)
+        run: |
+          python3 - <<'PY'
+          import tarfile
+          p='christian-content-ai-studio-autonomous-christian-discernment-v59-final.tar.gz'
+          with tarfile.open(p) as t:
+              matches=[m for m in t.getmembers() if m.isfile() and (m.name.endswith('/app/api/generate/route.ts') or m.name.endswith('/app/page.tsx') or m.name.endswith('/app/components/ContentStudio.tsx') or m.name.endswith('/app/page.jsx'))]
+              for m in matches:
+                  print('=== FILE '+m.name+' ===')
+                  content=t.extractfile(m).read().decode('utf-8',errors='replace')
+                  print(content[:27000])
+              print('=== app/api/generate path count:',sum('app/api/generate/' in m.name for m in t.getmembers()))
+          PY
