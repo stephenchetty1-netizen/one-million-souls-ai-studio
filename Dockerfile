@@ -19,6 +19,8 @@ RUN node --check content-agents/review-master-selector.mjs \
 COPY system-agents /workspace/system-agents
 RUN mkdir -p app/api/generate
 COPY docker-overrides/zero-credit/generate-route.ts /workspace/app/api/generate/route.ts
+RUN mkdir -p app/api/image
+COPY docker-overrides/zero-credit/image-route.ts /workspace/app/api/image/route.ts
 COPY docker-overrides/zero-credit/patch-homepage.mjs /tmp/patch-zero-credit-homepage.mjs
 RUN node /tmp/patch-zero-credit-homepage.mjs
 COPY docker-overrides/content-agents/status-route.ts /workspace/app/api/content-agents/status/route.ts
