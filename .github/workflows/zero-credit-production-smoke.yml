@@ -1,0 +1,59 @@
+name: Zero-credit production smoke
+on:
+  push:
+    branches: [test/zero-credit-production-smoke]
+    paths:
+      - .github/workflows/zero-credit-production-smoke.yml
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for repaired Railway app and verify exact draft contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://one-million-souls-v59-production.up.railway.app
+          for attempt in $(seq 1 60); do
+            if curl -fsS --max-time 15 "$BASE/" -o /tmp/oms-home.html \
+                && grep -q 'Zero-credit curated mode' /tmp/oms-home.html; then
+              echo 'ZERO_CREDIT_REPAIRED_UI_ONLINE'
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then echo 'Repaired UI not yet live' >&2; exit 1; fi
+            sleep 10
+          done
+          status=$(curl -sS --max-time 30 -o /tmp/oms-draft.json -w '%{http_code}' \
+            -X POST "$BASE/api/generate" -H 'Content-Type: application/json' \
+            --data '{"topic":"Trusting God when you cannot see the way forward","audience":"Christian youth and young adults","goal":"Encourage people to trust God, strengthen their faith, and keep following Jesus when life feels uncertain.","tone":"Bold, hopeful, warm, Jesus-centered","channels":["TikTok","Instagram Reels","YouTube Shorts"]}')
+          echo "CURATED_DRAFT_HTTP=$status"
+          [ "$status" = 200 ]
+          python3 - <<'PY'
+          import json
+          with open('/tmp/oms-draft.json') as f: got = json.load(f)
+          with open('content-agents/verified-content-ledger.json') as f: bank = json.load(f)
+          entry = next(e for e in bank['items'] if e['title']=='FAITH OVER FEAR')
+          assert got['mode']=='ZERO_CREDIT_CURATED_DRAFT', got
+          assert got['publishingLocked'] is True
+          assert got['campaign']['tiktokScript']==entry['script']
+          assert got['campaign']['caption']==entry['caption']
+          assert got['campaign']['status']=='DRAFT_REVIEW_REQUIRED'
+          assert got['campaign']['quality']['status']=='REVISE'
+          print('ZERO_CREDIT_DEFAULT_DRAFT_PASS: exact curated text; publishing locked')
+          PY
+          error_status=$(curl -sS --max-time 30 -o /tmp/oms-unknown.json -w '%{http_code}' \
+            -X POST "$BASE/api/generate" -H 'Content-Type: application/json' \
+            --data '{"topic":"Asteroid mining economics","audience":"Christian youth and young adults","goal":"Discuss economics","tone":"Hopeful","channels":["TikTok"]}')
+          echo "UNMATCHED_TOPIC_HTTP=$error_status"
+          [ "$error_status" = 422 ]
+          python3 - <<'PY'
+          import json
+          with open('/tmp/oms-unknown.json') as f: got = json.load(f)
+          assert got['publishingLocked'] is True
+          assert 'FAITH OVER FEAR' in got['availableTopics']
+          assert 'Available curated topics' in got['error']
+          print('ZERO_CREDIT_UNKNOWN_TOPIC_FAIL_CLOSED_PASS')
+          PY
