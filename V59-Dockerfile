@@ -11,6 +11,8 @@ RUN mkdir -p /src && tar -xzf /tmp/v59.tar.gz -C /src \
 
 RUN mkdir -p app/api/content-agents/status app/api/content-agents/queue app/api/content-agents/plan app/api/content-agents/approval-record app/api/content-agents/approval-execute app/api/content-agents/youtube-growth app/api/content-agents/tiktok-growth app/api/content-agents/autonomous-bots app/api/content-agents/growth-metrics app/api/content-agents/analytics-ingest app/api/content-agents/v60-experiments
 COPY content-agents /workspace/content-agents
+# Zero-credit manual drafting must reproduce exact curated ledger text, not use paid AI.
+RUN node --test content-agents/zero-credit-draft.test.mjs
 # Validate the owner's TikTok Creator Search Insights evidence during image build.
 RUN node --check content-agents/tiktok-growth-swarm.mjs \
  && node --check content-agents/tiktok-search-intel.mjs \
@@ -29,6 +31,10 @@ COPY docker-overrides/content-agents/growth-metrics-route.ts /workspace/app/api/
 COPY docker-overrides/content-agents/analytics-ingest-route.ts /workspace/app/api/content-agents/analytics-ingest/route.ts
 RUN mkdir -p app/api/system-agents/status app/api/system-agents/plan
 COPY system-agents /workspace/system-agents
+RUN mkdir -p app/api/generate
+COPY docker-overrides/zero-credit/generate-route.ts /workspace/app/api/generate/route.ts
+COPY docker-overrides/zero-credit/patch-homepage.mjs /tmp/patch-zero-credit-homepage.mjs
+RUN node /tmp/patch-zero-credit-homepage.mjs
 RUN node --check system-agents/worker.mjs \
  && node --check system-agents/production-recovery-scan.mjs
 COPY docker-overrides/system-agents/status-route.ts /workspace/app/api/system-agents/status/route.ts
