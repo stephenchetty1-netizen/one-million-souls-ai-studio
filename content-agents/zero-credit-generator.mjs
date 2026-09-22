@@ -62,7 +62,7 @@ const BLUEPRINTS = [
     lines:['HOPE FOR TODAY','ROMANS 15:13','BE HONEST WITH GOD','TAKE ONE FAITHFUL STEP']
   },
   {
-    id:'forgiveness',match:/\b(forgiv|mercy|grace|reconciliation)\b/i,
+    id:'forgiveness',match:/\b(forgiv\w*|mercy|grace|reconciliation)\b/i,
     title:'Learning to Forgive',
     hook:'Forgiveness can be a process, not a performance.',
     scripture:'Ephesians 4:32',support:['Colossians 3:13','Matthew 6:14–15'],
