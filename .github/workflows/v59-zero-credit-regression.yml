@@ -1,0 +1,36 @@
+name: V59 Zero-Credit Generation Regression
+on:
+  push:
+    branches:
+      - repair/zero-credit-generate-20260922
+    paths:
+      - .github/workflows/v59-zero-credit-regression.yml
+      - V59-Dockerfile
+      - content-agents/zero-credit-generator.mjs
+      - content-agents/zero-credit-generator.test.mjs
+      - docker-overrides/zero-credit/**
+  pull_request:
+    branches: [main]
+    paths:
+      - V59-Dockerfile
+      - content-agents/zero-credit-generator.mjs
+      - content-agents/zero-credit-generator.test.mjs
+      - docker-overrides/zero-credit/**
+jobs:
+  zero-credit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check offline code and test draft contract
+        run: |
+          node --check content-agents/zero-credit-generator.mjs
+          node --check docker-overrides/zero-credit/patch-page.mjs
+          node --test content-agents/zero-credit-generator.test.mjs
+      - name: Build the exact V59 production Dockerfile with the offline override
+        run: docker build --file V59-Dockerfile --tag oms-zero-credit-check .
