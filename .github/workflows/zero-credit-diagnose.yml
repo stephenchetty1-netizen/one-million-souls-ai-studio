@@ -28,3 +28,15 @@ jobs:
           if [ -n "$route" ]; then sed -n '1,240p' "$route"; else echo 'ROUTE_NOT_FOUND'; fi
           echo '=== HOME PAGE ==='
           if [ -n "$page" ]; then sed -n '1,270p' "$page"; else echo 'PAGE_NOT_FOUND'; fi
+      - name: Validate zero-credit draft and patch the archived UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test content-agents/zero-credit-draft.test.mjs
+          mkdir -p /tmp/oms-app-verify
+          tar -xzf christian-content-ai-studio-autonomous-christian-discernment-v59-final.tar.gz -C /tmp/oms-app-verify
+          cd /tmp/oms-app-verify/v59
+          node "$GITHUB_WORKSPACE/docker-overrides/zero-credit/patch-homepage.mjs"
+          grep -q 'Paid image generation disabled' app/page.tsx
+          grep -q 'PUBLISHING LOCKED' app/page.tsx
+          echo 'ZERO_CREDIT_CONTRACT_AND_UI_PASS'
