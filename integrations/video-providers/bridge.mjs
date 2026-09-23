@@ -11,7 +11,7 @@ function comfyBase(env) {
   if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
     throw new Error("Remote ComfyUI must use HTTPS");
   }
-  return url.href.replace(/\\/$/, "");
+  return url.href.endsWith("/") ? url.href.slice(0, -1) : url.href;
 }
 export function connectionStatus(env = process.env) {
   const comfy = Boolean(env.COMFYUI_URL);
