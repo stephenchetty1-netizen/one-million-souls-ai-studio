@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile.local
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     init: true
     env_file:
       - .env
