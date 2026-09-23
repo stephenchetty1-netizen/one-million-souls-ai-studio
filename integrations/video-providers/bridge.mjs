@@ -7,7 +7,7 @@ function requireHiggsfield(env) {
 function comfyBase(env) {
   if (!env.COMFYUI_URL) throw new Error("COMFYUI_URL not configured");
   const url = new URL(env.COMFYUI_URL);
-  const local = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  const local = ["localhost", "127.0.0.1", "::1", "host.docker.internal"].includes(url.hostname);
   if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
     throw new Error("Remote ComfyUI must use HTTPS");
   }
