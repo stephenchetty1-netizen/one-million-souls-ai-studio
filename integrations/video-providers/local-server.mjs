@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { connectionStatus, submitComfyWorkflow, comfyWorkflowStatus } from "./bridge.mjs";
 
-const PAGE = String.raw\`<!doctype html>
+const PAGE = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark"><title>One Million Souls — Local Studio</title>
 <style>
@@ -48,7 +48,7 @@ $("queue").onclick=async()=>{ $("output").textContent="Validating...";
  catch(e){$("output").textContent=e.message}};
 $("history").onclick=async()=>{try{$("output").textContent=JSON.stringify(await call("/api/comfy/history?id="+encodeURIComponent($("jobid").value)),null,2)}
  catch(e){$("output").textContent=e.message}};
-</script></body></html>\`;
+</script></body></html>`;
 
 const headers = {
   "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
