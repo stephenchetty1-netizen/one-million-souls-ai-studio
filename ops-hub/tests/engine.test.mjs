@@ -48,3 +48,23 @@ test("brief generator returns actionable drafts without pretending to publish",(
  assert.throws(()=>createCreativeBrief("unknown","topic"));
  assert.throws(()=>createCreativeBrief("oms","  "));
 });
+
+test("review completion requires real prior approval and evidence",()=>{
+ for(const [lane,stage] of [["oms","Final master review"],["onehub","Human approval"]]){
+  const t=createTask(lane,stage,"Review");
+  assert.throws(()=>setStatus(t,"done"),/Human approval/);
+  t.checks=[...LANES[lane].checks];t.evidence="Observed final deliverable";
+  if(lane==="oms")t.masterHash="a".repeat(64);
+  assert.throws(()=>setStatus(t,"done"),/Human approval/);
+  const approved=setStatus(t,"approved");
+  assert.equal(setStatus(approved,"done").status,"done");
+ }
+});
+test("no local sales or distribution completion and no forged backup completions",()=>{
+ const cases=[["oms","Distribution handoff"],["onehub","Organic distribution handoff"],["onehub","Verified sales measurement"]];
+ const tasks=cases.map(([lane,stage])=>createTask(lane,stage,"Unverified action"));
+ for(const t of tasks)assert.throws(()=>setStatus(t,"done"),/cannot|PayPal/);
+ const claimed=tasks.map(t=>({...t,status:"done"}));
+ const imported=validateImport({schema:1,tasks:claimed});
+ assert.ok(imported.every(t=>t.status==="needs_review"));
+});
