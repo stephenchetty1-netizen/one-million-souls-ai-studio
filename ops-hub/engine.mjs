@@ -18,18 +18,28 @@ export function makePlan(lane,topic){
  const t=safeText(topic,120);if(!t)throw Error("Enter a topic or campaign");
  return LANES[lane].stages.map((s,i)=>createTask(lane,s,s+" — "+t,i?"Depends on "+LANES[lane].stages[i-1]+". Not completed AI work.":"Research brief: "+t));
 }
+function isReviewStage(task){
+ return (task.lane==="oms"&&task.stage==="Final master review")||(task.lane==="onehub"&&task.stage==="Human approval");
+}
+function verifyReviewEvidence(task){
+ const checks=LANES[task.lane]?.checks||[];
+ if(!checks.every(x=>Array.isArray(task.checks)&&task.checks.includes(x)))throw Error("Complete all review checks first");
+ if(!safeText(task.evidence,500))throw Error("Add review evidence before approval");
+ if(task.lane==="oms"&&!/^[a-f\d]{64}$/i.test(task.masterHash))throw Error("Record exact final master SHA-256");
+}
 export function setStatus(task,status,extras={}){
+ if(!LANES[task.lane]||!LANES[task.lane].stages.includes(task.stage))throw Error("Invalid workspace or stage");
  if(!STATUSES.includes(status))throw Error("Invalid status");
- const candidate={...task,...extras};
- const review=(candidate.lane==="oms"&&candidate.stage==="Final master review")||(candidate.lane==="onehub"&&candidate.stage==="Human approval");
- if(status==="done"&&review&&task.status!=="approved")throw Error("Human approval required before completing review");
- if(status==="approved"){
-  const checks=LANES[candidate.lane]?.checks||[];
-  if(!checks.every(x=>candidate.checks.includes(x)))throw Error("Complete all review checks first");
-  if(!safeText(candidate.evidence,500))throw Error("Add review evidence before approval");
-  if(candidate.lane==="oms"&&!/^[a-f\d]{64}$/i.test(candidate.masterHash))throw Error("Record exact final master SHA-256");
+ if(status==="approved")verifyReviewEvidence(task);
+ if(status==="done"){
+  if(["Distribution handoff","Organic distribution handoff"].includes(task.stage))throw Error("This local workbench cannot confirm external distribution");
+  if(task.lane==="onehub"&&task.stage==="Verified sales measurement")throw Error("Independent PayPal evidence required; local task cannot verify sales");
+  if(isReviewStage(task)){
+   if(task.status!=="approved"||!task.approvedAt)throw Error("Human approval required before completing this review stage");
+   verifyReviewEvidence(task);
+  }
  }
- return {...candidate,status,updatedAt:now(),approvedAt:status==="approved"?now():status==="done"&&task.status==="approved"?task.approvedAt:null};
+ return {...task,...extras,status,updatedAt:now(),approvedAt:status==="approved"?now():status==="planned"?null:task.approvedAt};
 }
 export function validateImport(value){
  if(!value||value.schema!==SAFE_SCHEMA||!Array.isArray(value.tasks)||value.tasks.length>1000)throw Error("Invalid backup");
@@ -37,7 +47,7 @@ export function validateImport(value){
   if(!t||!LANES[t.lane]||!LANES[t.lane].stages.includes(t.stage)||!STATUSES.includes(t.status))throw Error("Invalid task");
   const v={...createTask(t.lane,t.stage,safeText(t.title,120),safeText(t.notes,2000)),id:safeText(t.id,120)||makeId(),status:t.status,checks:Array.isArray(t.checks)?t.checks.filter(x=>LANES[t.lane].checks.includes(x)):[],evidence:safeText(t.evidence,2000),masterHash:safeText(t.masterHash,64),createdAt:safeText(t.createdAt,40)||now(),updatedAt:safeText(t.updatedAt,40)||now(),approvedAt:t.approvedAt?safeText(t.approvedAt,40):null};
   const review=(v.lane==="oms"&&v.stage==="Final master review")||(v.lane==="onehub"&&v.stage==="Human approval");
-  if(v.status==="approved"||(review&&v.status==="done")){v.status="needs_review";v.approvedAt=null}
+  if(v.status==="approved"||(review&&v.status==="done")||(v.status==="done"&&(["Distribution handoff","Organic distribution handoff"].includes(v.stage)||(v.lane==="onehub"&&v.stage==="Verified sales measurement")))){v.status="needs_review";v.approvedAt=null}
   return v;
  });
 }
