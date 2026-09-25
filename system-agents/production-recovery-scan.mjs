@@ -37,7 +37,7 @@ async function getJson(url, secret = '') {
 function result(passed, evidence) { return { passed, evidence } }
 function summary(r) {
   return { reached: r?.reached || false, http: r?.status || null,
-    reason: r?.reason || null, transportCode: r?.transportCode || null }
+    reason: r?.reason || r?.body?.error || null, transportCode: r?.transportCode || null }
 }
 function sources(r) {
   return { ...summary(r), approved: r?.body?.reviewed ?? null,
@@ -56,7 +56,12 @@ export async function runProductionRecoveryScan() {
       getJson(rendererBase && rendererBase + '/health'),
       getJson(rendererBase && rendererBase + '/christian-review-queue?format=SHORT_59', renderSecret),
       getJson(rendererBase && rendererBase + '/christian-review-queue?format=YOUTUBE_LONG', renderSecret),
-      getJson(rendererBase && rendererBase + '/factory-manifest?date=' + date, renderSecret)
+      // An intentionally paused legacy factory cannot have tomorrow's new manifest.
+      // Preserve the blocked result rather than causing a predictable 404 every scan.
+      rendererHealth?.body?.legacyDailyFactoryEnabled === false
+        ? Promise.resolve({ reached:false, ok:false, reason:'LEGACY_DAILY_FACTORY_DISABLED',
+            body:{ok:false,error:'LEGACY_DAILY_FACTORY_DISABLED'} })
+        : getJson(rendererBase && rendererBase + '/factory-manifest?date=' + date, renderSecret)
     ])
   const entries = Array.isArray(manifest.body?.entries) ? manifest.body.entries : []
   const certified = entries.filter(x => x?.releaseStatus === 'APPROVED_AWAITING_POST_TIME'
@@ -92,6 +97,7 @@ export async function runProductionRecoveryScan() {
     'manifest-consistency-engineer': () => result(manifest.ok
       && entries.length === 3 && certified.length === 3,
       { date, expected: 3, present: entries.length, candidates: certified.length,
+        legacyDailyFactoryEnabled: rendererHealth?.body?.legacyDailyFactoryEnabled ?? null,
         rendererManifest: summary(manifest), separateChristianShortSources: sources(shorts),
         separateChristianLongSources: sources(longForm) }),
     'release-gate-integrity-engineer': () => result(releaseSafe,
