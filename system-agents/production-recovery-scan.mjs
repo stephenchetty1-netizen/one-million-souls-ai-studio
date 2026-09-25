@@ -48,12 +48,14 @@ function sources(r) {
 export async function runProductionRecoveryScan() {
   const renderSecret = process.env.VIDEO_RENDER_SECRET || ''
   const date = tomorrow()
-  const [appHealth, appReady, appStatus, rendererHealth, shorts, longForm, manifest] =
+  // Renderer health is resolved first so the intentionally disabled legacy
+  // factory can be detected before choosing the manifest request.
+  const rendererHealth = await getJson(rendererBase && rendererBase + '/health')
+  const [appHealth, appReady, appStatus, shorts, longForm, manifest] =
     await Promise.all([
       getJson(appBase + '/api/health'),
       getJson(appBase + '/api/ready', process.env.CRON_SECRET || ''),
       getJson(appBase + '/api/system-agents/autonomy-status', process.env.CRON_SECRET || ''),
-      getJson(rendererBase && rendererBase + '/health'),
       getJson(rendererBase && rendererBase + '/christian-review-queue?format=SHORT_59', renderSecret),
       getJson(rendererBase && rendererBase + '/christian-review-queue?format=YOUTUBE_LONG', renderSecret),
       // An intentionally paused legacy factory cannot have tomorrow's new manifest.
