@@ -1,0 +1,26 @@
+name: Operations Hub safety tests
+on:
+  pull_request:
+    paths:
+      - 'ops-hub/**'
+      - 'video-renderer/factory-manifest-errors*'
+      - '.github/workflows/ops-hub-tests.yml'
+  push:
+    branches:
+      - feature/two-workspace-operations-hub
+    paths:
+      - 'ops-hub/**'
+      - '.github/workflows/ops-hub-tests.yml'
+permissions:
+  contents: read
+jobs:
+  workflow-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline workflow safety checks
+        run: node --test ops-hub/tests/engine.test.mjs video-renderer/factory-manifest-errors.test.mjs
