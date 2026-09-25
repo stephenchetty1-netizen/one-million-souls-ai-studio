@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {LANES,makePlan,createTask,setStatus,validateImport,summarize} from "../engine.mjs";
+import {LANES,makePlan,createTask,setStatus,validateImport,summarize,createCreativeBrief} from "../engine.mjs";
 test("two separate 8-step workflows",()=>{
  const a=makePlan("oms","Psalm 91"),b=makePlan("onehub","Content Pack");
  assert.equal(a.length,8);assert.equal(b.length,8);
@@ -38,4 +38,13 @@ test("review stages cannot be completed before approval",()=>{
 test("extra fields cannot replace missing approval evidence",()=>{
  const t=createTask("oms","Final master review","Review");
  assert.throws(()=>setStatus(t,"approved",{checks:[],evidence:"",masterHash:"a".repeat(64)}));
+});
+
+test("brief generator returns actionable drafts without pretending to publish",()=>{
+ const video=createCreativeBrief("oms","Psalm 91:1");
+ assert.match(video,/50–59/);assert.match(video,/SHA-256/);assert.match(video,/Publishing remains OFF/);
+ const business=createCreativeBrief("onehub","Content Pack");
+ assert.match(business,/Five post concepts/);assert.match(business,/verified PayPal/);
+ assert.throws(()=>createCreativeBrief("unknown","topic"));
+ assert.throws(()=>createCreativeBrief("oms","  "));
 });
