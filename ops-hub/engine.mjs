@@ -24,7 +24,7 @@ export function setStatus(task,status,extras={}){
  const checks=LANES[task.lane]?.checks||[];
  if(!checks.every(x=>task.checks.includes(x)))throw Error("Complete all review checks first");
  if(!safeText(task.evidence,500))throw Error("Add review evidence before approval");
- if(task.lane==="oms"&&!/^[a-f\\d]{64}$/i.test(task.masterHash))throw Error("Record exact final master SHA-256");
+ if(task.lane==="oms"&&!/^[a-f\d]{64}$/i.test(task.masterHash))throw Error("Record exact final master SHA-256");
  }
  return {...task,...extras,status,updatedAt:now(),approvedAt:status==="approved"?now():status==="planned"?null:task.approvedAt};
 }
