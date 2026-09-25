@@ -42,3 +42,62 @@ export function validateImport(value){
  });
 }
 export function summarize(tasks,lane){const t=tasks.filter(x=>x.lane===lane);return {total:t.length,active:t.filter(x=>x.status==="in_progress").length,review:t.filter(x=>x.status==="needs_review").length,blocked:t.filter(x=>x.status==="blocked").length,approved:t.filter(x=>x.status==="approved").length}}
+
+
+/** Produce a draft for human editors; no renderer, publisher, payments or remote tools. */
+export function createCreativeBrief(lane,subject){
+ if(!LANES[lane])throw Error("Unknown workspace");
+ const topic=safeText(subject,120).replace(/[\r\n]+/g," ");
+ if(!topic)throw Error("Enter a topic or campaign");
+ const date=now().slice(0,10);
+ if(lane==="oms")return \`# ONE MILLION SOULS — CINEMATIC CONTENT HANDOFF
+Date: \${date}
+Topic: \${topic}
+Status: DRAFT. No video generated, footage licensed or social post published.
+
+## Technical
+59-second vertical 9:16 video; target 1080×1920, 30fps. No voiceover; use music only after rights verification. Blue/white/black/silver/gold; kinetic 3D typography and cinematic pacing.
+
+## Edit timeline
+| Seconds | Visual | On-screen direction |
+|---|---|---|
+| 00–04 | Dark-to-light 3D reveal | \${topic} |
+| 04–12 | Slow cinematic scene | WHEN LIFE FEELS UNCERTAIN |
+| 12–24 | Christian-context cross / open Bible | GOD'S WORD IS AN ANCHOR |
+| 24–37 | Golden light with restrained particles | PAUSE. RETURN TO HIS PROMISES. |
+| 37–50 | Strongest approved imagery | [INSERT CHECKED SCRIPTURE OR THEME LINE] |
+| 50–59 | Minimal brand end card | ONE MISSION · ONE MILLION SOULS |
+
+Caption draft: \${topic} — turn to Scripture and bring your worries to God in prayer. #OneMillionSouls #Faith #Bible
+
+## Non-negotiable QA
+- [ ] Verify actual Bible wording and translation; no invented Scripture quotes.
+- [ ] Individually verify video, image and music licenses.
+- [ ] Check content suitability, subtitle legibility, audio, pacing, 9:16 output and exact duration.
+- [ ] Record exact final MP4 SHA-256 and obtain separate human approval.
+- [ ] Publishing remains OFF. Approval in this workbench does not certify a V59 master.
+\`;
+ return \`# ONEHUB AI BUSINESS — FIVE-POST DRAFT HANDOFF
+Date: \${date}
+Campaign: \${topic}
+Status: DRAFT. No final graphics, customers contacted or payments verified.
+
+Product page: https://onehub-ai-business.floot.app/social-media-content
+Existing offer to recheck before use: one-time US$30.54, five original post designs, five matching captions, one consolidated revision round. Delivery after verified payment and completed brief; no guaranteed marketing outcomes or delivery date.
+
+## Five post concepts
+1. Five floating post frames — YOUR BUSINESS, FIVE FRESH POSTS. Caption: Five original designs and five captions tailored to your brief.
+2. Recognisable colour system — LOOK CONSISTENT, NOT GENERIC. Caption: Give your next five posts a connected visual direction.
+3. 5 + 5 + 1 editorial checklist — WHAT'S INCLUDED. Caption: Five custom graphics, five captions and a revision round, one-time US$30.54.
+4. Brief → payment verification → design → delivery — HOW IT WORKS. Caption: Tell us about your business and share your brand details after checkout.
+5. Minimal CTA — READY FOR YOUR NEXT FIVE POSTS? Caption: Explore the full pack details at the official product page.
+
+## Non-negotiable QA
+- [ ] Reverify current price, offer and destination link before use.
+- [ ] Produce five actual original graphics; do not pass concepts off as finished.
+- [ ] Check licensing and legibility on Android.
+- [ ] Obtain human approval before external distribution.
+- [ ] Record PAID only from independently verified PayPal transactions; CRM leads are not revenue.
+- [ ] No posting, messaging, spending or third-party signups through this workbench.
+\`;
+}
