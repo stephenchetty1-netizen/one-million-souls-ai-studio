@@ -50,9 +50,9 @@ export function createCreativeBrief(lane,subject){
  const topic=safeText(subject,120).replace(/[\r\n]+/g," ");
  if(!topic)throw Error("Enter a topic or campaign");
  const date=now().slice(0,10);
- if(lane==="oms")return \`# ONE MILLION SOULS — CINEMATIC CONTENT HANDOFF
-Date: \${date}
-Topic: \${topic}
+ if(lane==="oms")return `# ONE MILLION SOULS — CINEMATIC CONTENT HANDOFF
+Date: ${date}
+Topic: ${topic}
 Status: DRAFT. No video generated, footage licensed or social post published.
 
 ## Technical
@@ -61,14 +61,14 @@ Status: DRAFT. No video generated, footage licensed or social post published.
 ## Edit timeline
 | Seconds | Visual | On-screen direction |
 |---|---|---|
-| 00–04 | Dark-to-light 3D reveal | \${topic} |
+| 00–04 | Dark-to-light 3D reveal | ${topic} |
 | 04–12 | Slow cinematic scene | WHEN LIFE FEELS UNCERTAIN |
 | 12–24 | Christian-context cross / open Bible | GOD'S WORD IS AN ANCHOR |
 | 24–37 | Golden light with restrained particles | PAUSE. RETURN TO HIS PROMISES. |
 | 37–50 | Strongest approved imagery | [INSERT CHECKED SCRIPTURE OR THEME LINE] |
 | 50–59 | Minimal brand end card | ONE MISSION · ONE MILLION SOULS |
 
-Caption draft: \${topic} — turn to Scripture and bring your worries to God in prayer. #OneMillionSouls #Faith #Bible
+Caption draft: ${topic} — turn to Scripture and bring your worries to God in prayer. #OneMillionSouls #Faith #Bible
 
 ## Non-negotiable QA
 - [ ] Verify actual Bible wording and translation; no invented Scripture quotes.
@@ -76,10 +76,10 @@ Caption draft: \${topic} — turn to Scripture and bring your worries to God in 
 - [ ] Check content suitability, subtitle legibility, audio, pacing, 9:16 output and exact duration.
 - [ ] Record exact final MP4 SHA-256 and obtain separate human approval.
 - [ ] Publishing remains OFF. Approval in this workbench does not certify a V59 master.
-\`;
- return \`# ONEHUB AI BUSINESS — FIVE-POST DRAFT HANDOFF
-Date: \${date}
-Campaign: \${topic}
+`;
+ return `# ONEHUB AI BUSINESS — FIVE-POST DRAFT HANDOFF
+Date: ${date}
+Campaign: ${topic}
 Status: DRAFT. No final graphics, customers contacted or payments verified.
 
 Product page: https://onehub-ai-business.floot.app/social-media-content
@@ -99,5 +99,5 @@ Existing offer to recheck before use: one-time US$30.54, five original post desi
 - [ ] Obtain human approval before external distribution.
 - [ ] Record PAID only from independently verified PayPal transactions; CRM leads are not revenue.
 - [ ] No posting, messaging, spending or third-party signups through this workbench.
-\`;
+`;
 }
