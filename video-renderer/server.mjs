@@ -451,6 +451,7 @@ const server = http.createServer(async (req, res) => {
       googleVeoModel: process.env.GOOGLE_VEO_MODEL || 'veo-3.1-generate-preview',
       googleVeoResolution: process.env.GOOGLE_VEO_RESOLUTION || '1080p',
       persistentStorage: storageReady,
+      legacyDailyFactoryEnabled: process.env.DAILY_FACTORY_ENABLED !== 'false',
       renderProfile: `${WIDTH}x${HEIGHT}@${FPS}`,
     })
   }
