@@ -8,6 +8,7 @@ import { promisify } from 'node:util'
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { renderFreeV2 } from './free-ai-render-v2.mjs'
 import { requestFactoryRetry } from './daily-factory.mjs'
+import { classifyFactoryManifestFailure } from './factory-manifest-errors.mjs'
 import { stagePexelsCollection } from './pexels-source-import.mjs'
 import { stageChristianPexelsFormat } from './pexels-format-library.mjs'
 import { renderChristianMusicVideoDraft,inspectChristianVideoFormatReadiness } from './christian-music-video.mjs'
@@ -465,7 +466,9 @@ const server = http.createServer(async (req, res) => {
       const manifest = await readStoredJson(key)
       return sendJson(res, 200, manifest)
     } catch (error) {
-      return sendJson(res, 404, { ok:false, error:error instanceof Error ? error.message : 'Manifest not found' })
+      const key = date === 'latest' ? 'manifests/latest.json' : `manifests/${date}${url.searchParams.get('stage') === 'building' ? '.building' : ''}.json`
+      const failure=classifyFactoryManifestFailure(error,{date,key,storageConfigured:storageReady})
+      return sendJson(res,failure.status,failure.body)
     }
   }
 
