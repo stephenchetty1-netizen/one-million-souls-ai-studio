@@ -24,3 +24,18 @@ test("forged backup approval reset",()=>{
  const t=createTask("oms",LANES.oms.stages[5],"Review");t.status="approved";
  const a=validateImport({schema:1,tasks:[t]});assert.equal(a[0].status,"needs_review");
 });
+test("even fully checked imported master must be re-reviewed",()=>{
+ const t=createTask("oms",LANES.oms.stages[5],"Master");
+ t.checks=[...LANES.oms.checks];t.evidence="Claimed review";t.masterHash="b".repeat(64);t.status="approved";
+ assert.equal(validateImport({schema:1,tasks:[t]})[0].status,"needs_review");
+});
+test("review stages cannot be completed before approval",()=>{
+ for(const lane of ["oms","onehub"]){
+  const t=createTask(lane,lane==="oms"?"Final master review":"Human approval","Review");
+  assert.throws(()=>setStatus(t,"done"),/Human approval/);
+ }
+});
+test("extra fields cannot replace missing approval evidence",()=>{
+ const t=createTask("oms","Final master review","Review");
+ assert.throws(()=>setStatus(t,"approved",{checks:[],evidence:"",masterHash:"a".repeat(64)}));
+});
