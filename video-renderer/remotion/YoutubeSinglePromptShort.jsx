@@ -2,6 +2,7 @@ import React from 'react';
 import {
   AbsoluteFill,
   Audio,
+  OffthreadVideo,
   Sequence,
   interpolate,
   spring,
@@ -174,7 +175,16 @@ function SceneVisual({scene,durationInFrames}){
   </div>;
 
   return <AbsoluteFill style={{background:C.bg,overflow:'hidden'}}>
-    <PremiumBackdrop frame={frame} mode={scene.mode}/>
+    {scene.mediaUrl ? <OffthreadVideo
+      src={scene.mediaUrl}
+      muted
+      style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}
+    /> : <PremiumBackdrop frame={frame} mode={scene.mode}/>}
+    <AbsoluteFill style={{
+      background:scene.mediaUrl
+        ? 'linear-gradient(to bottom,rgba(2,5,10,.30),rgba(2,5,10,.50) 55%,rgba(2,5,10,.78))'
+        : 'transparent'
+    }}/>
     <Grid frame={frame}/><Particles frame={frame}/>
     <div style={{position:'absolute',left:70,right:70,top:116,zIndex:10,fontFamily:'Lato',fontSize:26,fontWeight:900,letterSpacing:6,color:C.gold}}>{scene.kicker}</div>
     {special}
@@ -207,7 +217,7 @@ export const YoutubeSinglePromptShort=(props)=>{
         <SceneVisual scene={scene} durationInFrames={durationInFrames}/>
       </Sequence>;
     })}
-    {props.audioUrl?<Audio src={props.audioUrl} volume={.82}/>:null}
+    {props.audioUrl?<Audio src={props.audioUrl} volume={1}/>:null}
     <CaptionTrack captions={props.captions}/>
   </AbsoluteFill>;
 };
