@@ -941,7 +941,7 @@ server.listen(PORT, '0.0.0.0', () => {
     // Stage the two output formats independently: an invalid Shorts base clip,
     // API error, or incomplete review must not prevent YouTube source preparation.
     // Neither source staging nor a successful technical draft grants publication.
-    const stageFormat=async(format,renderOnBoot)=>{
+    const stageFormat=async(format,renderOnBoot,attempt=1)=>{
       try{
         const result=await stageChristianPexelsFormat(format)
         const short=format==='SHORT_59'
@@ -988,8 +988,19 @@ server.listen(PORT, '0.0.0.0', () => {
             queueReviewedChristianDraft(format,'REVIEWED_BANK_BOOT_RECOVERY')
         }
       }catch(error){
+        const reason=String(error?.message||error)
+        if(reason==='PEXELS_MANIFEST_CONCURRENT_REVIEW_RETRY_REQUIRED'&&attempt<3){
+          const waitMs=attempt*3000
+          console.warn('CHRISTIAN_PEXELS_FORMAT_STAGE_AUTO_RETRY',JSON.stringify({
+            format,attempt,nextAttempt:attempt+1,waitMs,
+            reason:'CONCURRENT_SOURCE_REVIEW_OR_STAGE',
+            publishingAllowed:false
+          }))
+          await new Promise(resolve=>setTimeout(resolve,waitMs))
+          return stageFormat(format,renderOnBoot,attempt+1)
+        }
         console.error('CHRISTIAN_PEXELS_FORMAT_STAGE_FAILED',JSON.stringify({
-          format,error:String(error?.message||error),publishingAllowed:false
+          format,attempt,error:reason,publishingAllowed:false
         }))
       }
     }
