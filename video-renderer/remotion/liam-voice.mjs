@@ -20,7 +20,7 @@ async function synthesize({narration,audioPath,rate}){
   const tts=new EdgeTTS({
     voice:PREMIUM_LIAM_VOICE.voiceId,
     lang:PREMIUM_LIAM_VOICE.lang,
-    outputFormat:'audio-48khz-192kbitrate-mono-mp3',
+    outputFormat:'audio-24khz-96kbitrate-mono-mp3',
     saveSubtitles:true,
     pitch:'+0Hz',
     rate,
@@ -78,7 +78,7 @@ export async function prepareLiamNarration({narration,workdir}){
     captions:result.captions,
     durationSeconds:Number(result.duration.toFixed(3)),
     rate,
-    sourceFormat:'audio-48khz-192kbitrate-mono-mp3',
+    sourceFormat:'audio-24khz-96kbitrate-mono-mp3',
     voiceProvider:PREMIUM_LIAM_VOICE.provider,
     voiceName:PREMIUM_LIAM_VOICE.name,
     voiceId:PREMIUM_LIAM_VOICE.voiceId,
