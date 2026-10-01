@@ -6,11 +6,12 @@ export const YOUTUBE_SINGLE_PROMPT_FPS = 30;
 export const YOUTUBE_SINGLE_PROMPT_WIDTH = 1080;
 export const YOUTUBE_SINGLE_PROMPT_HEIGHT = 1920;
 
-const narration =
-  'Stop hiding the light God placed in you. Jesus calls His followers to live in a way that points people back to the Father. ' +
-  'Matthew 5:16 is not about performing for attention. It is about a life of faith that can be seen in kindness, courage and truth. ' +
-  'When fear tells you to stay quiet, choose the next faithful step. Pray. Serve. Speak life. Show grace. ' +
-  'Your ordinary day can become a signpost to Jesus. One light can encourage another. Let your light shine.';
+export const YOUTUBE_SINGLE_PROMPT_NARRATION =
+  'Stop hiding the light God placed in you. Jesus said, let your light shine before others, so that they may see your good works and give glory to your Father in heaven. ' +
+  'Matthew 5:16 is not a call to perform for attention. It is a call to live so close to Jesus that His love becomes visible through you. ' +
+  'When fear tells you to stay quiet, take the next faithful step. Pray when no one sees. Serve when no one applauds. Speak life when negativity is easier. Show grace when anger feels justified. ' +
+  'Your ordinary day can become a signpost to Christ. One act of kindness can awaken hope. One courageous word can strengthen faith. One surrendered life can point another soul to Jesus. ' +
+  'You do not have to be famous to shine. You only have to be faithful. Let your light shine, and let God receive the glory.';
 
 export const YOUTUBE_SINGLE_PROMPT_SPEC = {
   variant: 'youtube-single-prompt',
@@ -18,6 +19,11 @@ export const YOUTUBE_SINGLE_PROMPT_SPEC = {
   brand: 'ONE MILLION SOULS',
   theme: 'Let Your Light Shine',
   scripture: 'Matthew 5:16',
+  narration: YOUTUBE_SINGLE_PROMPT_NARRATION,
+  voiceoverRequired: true,
+  visualTier: 'PREMIUM_CINEMATIC',
+  graphicsTier: 'PREMIUM_MOTION',
+  voiceTier: 'PREMIUM_NEURAL',
   audioUrl: null,
   scenes: [
     {id:'hook',mode:'impact',start:0,end:4,kicker:"DON'T SCROLL PAST THIS",title:'STOP HIDING YOUR LIGHT',body:'What God placed in you was never meant to stay buried.',accent:'LIGHT'},
@@ -29,13 +35,20 @@ export const YOUTUBE_SINGLE_PROMPT_SPEC = {
     {id:'network',mode:'network',start:45,end:54,kicker:'ONE LIGHT → ANOTHER',title:'YOUR FAITH CAN ENCOURAGE SOMEONE ELSE',body:'Shine with humility. Let God receive the glory.'},
     {id:'cta',mode:'cta',start:54,end:59,kicker:'ONE MISSION',title:'LET YOUR LIGHT SHINE',body:'ONE MILLION SOULS • JESUS',accent:'MATTHEW 5:16'},
   ],
-  captions: generateWordCaptions(narration, 59000),
+  captions: generateWordCaptions(YOUTUBE_SINGLE_PROMPT_NARRATION, 59000),
 };
 
 export function validateYoutubeSinglePromptSpec(spec) {
   if (!spec || typeof spec !== 'object') throw new Error('YouTube prompt spec must be an object');
   if (!Array.isArray(spec.scenes) || spec.scenes.length !== 8) throw new Error('YouTube prompt spec requires exactly 8 scenes');
   if (Number(spec.durationSeconds) !== 59) throw new Error('YouTube prompt composition must be exactly 59 seconds');
+  if (spec.voiceoverRequired !== true) throw new Error('YouTube prompt composition requires voiceover');
+  if (spec.visualTier !== 'PREMIUM_CINEMATIC') throw new Error('Premium cinematic backgrounds are required');
+  if (spec.graphicsTier !== 'PREMIUM_MOTION') throw new Error('Premium motion graphics are required');
+  if (spec.voiceTier !== 'PREMIUM_NEURAL') throw new Error('Premium neural voice is required');
+  const narration = String(spec.narration || '').trim();
+  const words = narration.split(/\s+/).filter(Boolean);
+  if (words.length < 110) throw new Error('YouTube prompt narration is too short for a 59-second voiced master');
   const modes = new Set(['impact','contrast','scripture','cards','signal','steps','network','cta']);
   let cursor = 0;
   for (const scene of spec.scenes) {
@@ -56,9 +69,16 @@ export function normalizeYoutubeSinglePromptSpec(input = {}) {
     ...YOUTUBE_SINGLE_PROMPT_SPEC,
     ...input,
     variant: 'youtube-single-prompt',
+    voiceoverRequired: true,
+    visualTier: 'PREMIUM_CINEMATIC',
+    graphicsTier: 'PREMIUM_MOTION',
+    voiceTier: 'PREMIUM_NEURAL',
+    narration: String(input.narration || YOUTUBE_SINGLE_PROMPT_NARRATION).trim(),
     scenes: Array.isArray(input.scenes) ? input.scenes : YOUTUBE_SINGLE_PROMPT_SPEC.scenes,
-    captions: Array.isArray(input.captions) ? input.captions : YOUTUBE_SINGLE_PROMPT_SPEC.captions,
   };
+  merged.captions = Array.isArray(input.captions)
+    ? input.captions
+    : generateWordCaptions(merged.narration, 59000);
   validateYoutubeSinglePromptSpec(merged);
   return merged;
 }

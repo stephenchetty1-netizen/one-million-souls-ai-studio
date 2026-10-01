@@ -11,6 +11,7 @@ import {
   YOUTUBE_SINGLE_PROMPT_ID,
   normalizeYoutubeSinglePromptSpec,
 } from './youtube-single-prompt.mjs';
+import {renderYoutubeVoicedAsset} from './youtube-voiced-renderer.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let bundlePromise = null;
@@ -53,13 +54,7 @@ async function getBundle() {
   if (!bundlePromise) {
     bundlePromise = bundle({
       entryPoint: path.join(__dirname, 'index.jsx'),
-      onProgress: (progress) => {
-        if (Number.isFinite(progress)) {
-          const normalized = progress > 1 ? progress : progress * 100;
-          const pct = Math.max(0, Math.min(100, Math.round(normalized)));
-          if (pct % 20 === 0) console.log('OMS_REMOTION_BUNDLE_PROGRESS', JSON.stringify({pct}));
-        }
-      },
+      onProgress: () => {},
     }).catch((error) => {
       bundlePromise = null;
       throw error;
@@ -87,37 +82,45 @@ export async function renderOmsRemotionDraft(input = {}) {
     await fs.mkdir(workdir, {recursive: true});
     const serveUrl = await getBundle();
 
-    const composition = await selectComposition({
-      serveUrl,
-      id: compositionId,
-      inputProps: spec,
-      logLevel: 'warn',
-      offthreadVideoThreads: 1,
-    });
+    let composition;
+    let voiced = null;
 
-    let lastLogged = -1;
-    await renderMedia({
-      composition,
-      serveUrl,
-      codec: 'h264',
-      outputLocation,
-      inputProps: spec,
-      crf: 18,
-      imageFormat: 'jpeg',
-      jpegQuality: 90,
-      pixelFormat: 'yuv420p',
-      concurrency: renderConcurrency(),
-      logLevel: 'warn',
-      offthreadVideoThreads: 1,
-      onProgress: ({progress}) => {
-        const pct = Math.max(0, Math.min(100, Math.floor(progress * 100)));
-        const bucket = Math.floor(pct / 10) * 10;
-        if (bucket !== lastLogged) {
-          lastLogged = bucket;
-          console.log('OMS_REMOTION_RENDER_PROGRESS', JSON.stringify({id, compositionId, pct: bucket}));
-        }
-      },
-    });
+    if (youtubeVariant) {
+      voiced = await renderYoutubeVoicedAsset({
+        spec,
+        serveUrl,
+        workdir,
+        outputLocation,
+        onProgress: ({progress}) => {
+          const pct = Math.floor(progress * 100);
+          if (pct % 10 === 0) console.log('OMS_PREMIUM_RENDER_PROGRESS', JSON.stringify({id,pct}));
+        },
+      });
+      composition = voiced.composition;
+    } else {
+      composition = await selectComposition({
+        serveUrl,
+        id: compositionId,
+        inputProps: spec,
+        logLevel: 'warn',
+        offthreadVideoThreads: 1,
+      });
+
+      await renderMedia({
+        composition,
+        serveUrl,
+        codec: 'h264',
+        outputLocation,
+        inputProps: spec,
+        crf: 18,
+        imageFormat: 'jpeg',
+        jpegQuality: 90,
+        pixelFormat: 'yuv420p',
+        concurrency: renderConcurrency(),
+        logLevel: 'warn',
+        offthreadVideoThreads: 1,
+      });
+    }
 
     const bytes = await fs.readFile(outputLocation);
     if (bytes.length < 200000) throw new Error('REMOTION_OUTPUT_TOO_SMALL');
@@ -126,21 +129,19 @@ export async function renderOmsRemotionDraft(input = {}) {
     const day = new Date().toISOString().slice(0, 10);
     const key = 'remotion-drafts/' + day + '/' + id + '.mp4';
 
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.BUCKET,
-        Key: key,
-        Body: bytes,
-        ContentType: 'video/mp4',
-        CacheControl: 'private, no-store',
-      }),
-    );
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.BUCKET,
+      Key: key,
+      Body: bytes,
+      ContentType: 'video/mp4',
+      CacheControl: 'private, no-store',
+    }));
 
     const encodedKey = key.split('/').map(encodeURIComponent).join('/');
     return {
       ok: true,
       id,
-      renderer: 'remotion-oms-v1',
+      renderer: youtubeVariant ? 'remotion-oms-premium-voiced-v2' : 'remotion-oms-v1',
       compositionId,
       variant: youtubeVariant ? 'youtube-single-prompt' : 'christian-short',
       mediaUrl: publicBase() + '/media/' + encodedKey,
@@ -149,10 +150,18 @@ export async function renderOmsRemotionDraft(input = {}) {
       width: composition.width,
       height: composition.height,
       fps: composition.fps,
-      durationSeconds: Number((composition.durationInFrames / composition.fps).toFixed(2)),
+      durationSeconds: voiced?.durationSeconds ?? Number((composition.durationInFrames / composition.fps).toFixed(2)),
       sceneCount: spec.scenes.length,
       captionsPresent: Array.isArray(spec.captions) && spec.captions.length > 0,
-      audioPresent: Boolean(spec.audioUrl),
+      audioPresent: youtubeVariant ? voiced?.audioPresent === true : Boolean(spec.audioUrl),
+      voiceover: youtubeVariant ? voiced?.voiceover === true : Boolean(spec.audioUrl),
+      narrationPresent: youtubeVariant ? voiced?.narrationPresent === true : Boolean(spec.audioUrl),
+      voiceProvider: voiced?.voiceProvider || null,
+      voiceName: voiced?.voiceName || null,
+      voiceTier: voiced?.voiceTier || null,
+      visualTier: spec.visualTier || null,
+      graphicsTier: spec.graphicsTier || null,
+      maxVolumeDb: voiced?.maxVolumeDb ?? null,
       professionalMasterCandidate: true,
       certification: 'NOT_CERTIFIED',
       publishingAllowed: false,
