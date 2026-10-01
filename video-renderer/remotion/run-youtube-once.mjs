@@ -61,7 +61,7 @@ try {
     width: 1080,
     height: 1920,
     fps: 30,
-    strategy: 'chunked-low-memory',
+    strategy: 'micro-chunked-low-memory',
     publishingAllowed: false,
   }));
 
@@ -77,14 +77,11 @@ try {
     logLevel: 'warn',
   });
 
-  const chunks = [
-    [0, 299],
-    [300, 599],
-    [600, 899],
-    [900, 1199],
-    [1200, 1499],
-    [1500, 1769],
-  ];
+  const chunks = [];
+  const chunkFrames = 120;
+  for (let start = 0; start < composition.durationInFrames; start += chunkFrames) {
+    chunks.push([start, Math.min(start + chunkFrames - 1, composition.durationInFrames - 1)]);
+  }
 
   const parts = [];
   for (let i = 0; i < chunks.length; i += 1) {
@@ -112,6 +109,7 @@ try {
       jpegQuality: 88,
       pixelFormat: 'yuv420p',
       concurrency: 1,
+      disallowParallelEncoding: true,
       logLevel: 'warn',
       onProgress: ({progress}) => {
         const pct = Math.floor(progress * 100);
@@ -196,7 +194,7 @@ try {
   const proof = {
     ok: true,
     compositionId: YOUTUBE_SINGLE_PROMPT_ID,
-    strategy: 'chunked-low-memory',
+    strategy: 'micro-chunked-low-memory',
     key,
     mediaUrl,
     masterHash: hash,
