@@ -7,6 +7,7 @@
     "start": "node bootstrap.mjs",
     "remotion:studio": "remotion studio remotion/index.jsx",
     "remotion:render": "node remotion/render.mjs",
+    "remotion:render:youtube": "node remotion/render-youtube.mjs",
     "remotion:smoke": "node remotion/smoke.mjs"
   },
   "dependencies": {
