@@ -60,7 +60,7 @@ try {
     width: 1080,
     height: 1920,
     fps: 30,
-    strategy: 'isolated-4s-chunks',
+    strategy: 'isolated-2s-memory-safe',
     publishingAllowed: false,
   }));
 
@@ -71,7 +71,7 @@ try {
 
   const chunks = [];
   const totalFrames = 1770;
-  const framesPerChunk = 120;
+  const framesPerChunk = 60;
   for (let start = 0; start < totalFrames; start += framesPerChunk) {
     chunks.push([start, Math.min(totalFrames - 1, start + framesPerChunk - 1)]);
   }
@@ -175,7 +175,7 @@ try {
   const proof = {
     ok: true,
     compositionId: YOUTUBE_SINGLE_PROMPT_ID,
-    strategy: 'isolated-4s-chunks',
+    strategy: 'isolated-2s-memory-safe',
     key,
     mediaUrl,
     masterHash: hash,

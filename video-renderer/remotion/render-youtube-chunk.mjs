@@ -27,12 +27,13 @@ await renderMedia({
   outputLocation: path.resolve(outputLocation),
   inputProps: YOUTUBE_SINGLE_PROMPT_SPEC,
   frameRange: [start, end],
-  crf: 18,
+  crf: 20,
   imageFormat: 'jpeg',
-  jpegQuality: 86,
+  jpegQuality: 82,
   pixelFormat: 'yuv420p',
   concurrency: 1,
   offthreadVideoThreads: 1,
+  disallowParallelEncoding: true,
   logLevel: 'warn',
 });
 
