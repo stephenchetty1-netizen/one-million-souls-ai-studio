@@ -19,6 +19,7 @@ import { inspectCurrentReviewedShortDraft, inspectCurrentReviewedLongDraft, insp
 import { validateChristianFinalReview } from './christian-final-master-review.mjs'
 import { planRejectedSourceRecovery, SOURCE_REPLACEMENT_MAX_ATTEMPTS } from './christian-source-recovery.mjs'
 import { worshipMediaRevoked, REVOKED_WORSHIP_MEDIA_KEYS } from './christian-visual-editorial-gate.mjs'
+import { renderOmsRemotionDraft } from './remotion/service.mjs'
 
 const execFileAsync = promisify(execFile)
 const PORT = Number(process.env.PORT || 3000)
@@ -816,6 +817,28 @@ const server = http.createServer(async (req, res) => {
     if(key==='internal'||key.startsWith('internal/'))
       return sendJson(res,403,{ok:false,error:'PRIVATE_SOURCE_MEDIA_ACCESS_BLOCKED'})
     return serveMedia(req, res, key)
+  }
+
+  if (req.method === 'POST' && url.pathname === '/remotion/render') {
+    if (!authorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' })
+    try {
+      const body = await readJson(req)
+      const result = await renderOmsRemotionDraft(body?.spec || body)
+      return sendJson(res, 200, result)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Remotion render failed'
+      console.error('OMS_REMOTION_RENDER_FAILED', JSON.stringify({
+        error: message,
+        publishingAllowed: false,
+      }))
+      const status = /ALREADY_RUNNING|must|duration|scene|caption/i.test(message) ? 409 : 502
+      return sendJson(res, status, {
+        ok: false,
+        error: message,
+        renderer: 'remotion-oms-v1',
+        publishingAllowed: false,
+      })
+    }
   }
 
   if (req.method === 'POST' && url.pathname === '/render-v2') {
