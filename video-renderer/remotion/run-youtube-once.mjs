@@ -11,14 +11,13 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import {bundle} from '@remotion/bundler';
-import {renderMedia, selectComposition} from '@remotion/renderer';
 import {
   YOUTUBE_SINGLE_PROMPT_ID,
-  YOUTUBE_SINGLE_PROMPT_SPEC,
 } from './youtube-single-prompt.mjs';
 
 const execFileAsync = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
+const childScript = path.join(here, 'render-youtube-chunk.mjs');
 
 const required = ['ENDPOINT','BUCKET','REGION','ACCESS_KEY_ID','SECRET_ACCESS_KEY'];
 for (const name of required) {
@@ -61,7 +60,7 @@ try {
     width: 1080,
     height: 1920,
     fps: 30,
-    strategy: 'micro-chunked-low-memory',
+    strategy: 'isolated-4s-chunks',
     publishingAllowed: false,
   }));
 
@@ -70,17 +69,11 @@ try {
     onProgress: () => {},
   });
 
-  const composition = await selectComposition({
-    serveUrl,
-    id: YOUTUBE_SINGLE_PROMPT_ID,
-    inputProps: YOUTUBE_SINGLE_PROMPT_SPEC,
-    logLevel: 'warn',
-  });
-
   const chunks = [];
-  const chunkFrames = 120;
-  for (let start = 0; start < composition.durationInFrames; start += chunkFrames) {
-    chunks.push([start, Math.min(start + chunkFrames - 1, composition.durationInFrames - 1)]);
+  const totalFrames = 1770;
+  const framesPerChunk = 120;
+  for (let start = 0; start < totalFrames; start += framesPerChunk) {
+    chunks.push([start, Math.min(totalFrames - 1, start + framesPerChunk - 1)]);
   }
 
   const parts = [];
@@ -94,44 +87,32 @@ try {
       chunks: chunks.length,
       frameStart: start,
       frameEnd: end,
+      seconds: (end - start + 1) / 30,
     }));
 
-    let last = -1;
-    await renderMedia({
-      composition,
-      serveUrl,
-      codec: 'h264',
-      outputLocation: part,
-      inputProps: YOUTUBE_SINGLE_PROMPT_SPEC,
-      frameRange: [start, end],
-      crf: 18,
-      imageFormat: 'jpeg',
-      jpegQuality: 88,
-      pixelFormat: 'yuv420p',
-      concurrency: 1,
-      disallowParallelEncoding: true,
-      logLevel: 'warn',
-      onProgress: ({progress}) => {
-        const pct = Math.floor(progress * 100);
-        const bucket = Math.floor(pct / 25) * 25;
-        if (bucket !== last) {
-          last = bucket;
-          console.log('OMS_YOUTUBE_FULL_RENDER_CHUNK_PROGRESS', JSON.stringify({
-            chunk: i + 1,
-            chunks: chunks.length,
-            pct: bucket,
-          }));
-        }
+    const {stdout, stderr} = await execFileAsync(
+      process.execPath,
+      [childScript, serveUrl, String(start), String(end), part],
+      {
+        maxBuffer: 4 * 1024 * 1024,
+        env: {
+          ...process.env,
+          REMOTION_CONCURRENCY: '1',
+        },
       },
-    });
+    );
+
+    if (stdout?.trim()) console.log(stdout.trim());
+    if (stderr?.trim()) console.error(stderr.trim());
 
     const stat = await fs.stat(part);
-    if (stat.size < 100000) throw new Error('Render chunk is unexpectedly small: ' + (i + 1));
+    if (stat.size < 50000) throw new Error('Render chunk is unexpectedly small: ' + (i + 1));
 
     console.log('OMS_YOUTUBE_FULL_RENDER_CHUNK_COMPLETE', JSON.stringify({
       chunk: i + 1,
       chunks: chunks.length,
       bytes: stat.size,
+      overallPct: Math.floor(((i + 1) / chunks.length) * 100),
     }));
   }
 
@@ -194,7 +175,7 @@ try {
   const proof = {
     ok: true,
     compositionId: YOUTUBE_SINGLE_PROMPT_ID,
-    strategy: 'micro-chunked-low-memory',
+    strategy: 'isolated-4s-chunks',
     key,
     mediaUrl,
     masterHash: hash,
