@@ -61,6 +61,7 @@ try {
     width: 1080,
     height: 1920,
     fps: 30,
+    strategy: 'chunked-low-memory',
     publishingAllowed: false,
   }));
 
@@ -76,28 +77,84 @@ try {
     logLevel: 'warn',
   });
 
-  let last = -1;
-  await renderMedia({
-    composition,
-    serveUrl,
-    codec: 'h264',
-    outputLocation: output,
-    inputProps: YOUTUBE_SINGLE_PROMPT_SPEC,
-    crf: 18,
-    imageFormat: 'jpeg',
-    jpegQuality: 90,
-    pixelFormat: 'yuv420p',
-    concurrency: 1,
-    logLevel: 'warn',
-    onProgress: ({progress}) => {
-      const pct = Math.floor(progress * 100);
-      const bucket = Math.floor(pct / 10) * 10;
-      if (bucket !== last) {
-        last = bucket;
-        console.log('OMS_YOUTUBE_FULL_RENDER_PROGRESS', JSON.stringify({pct: bucket}));
-      }
-    },
-  });
+  const chunks = [
+    [0, 299],
+    [300, 599],
+    [600, 899],
+    [900, 1199],
+    [1200, 1499],
+    [1500, 1769],
+  ];
+
+  const parts = [];
+  for (let i = 0; i < chunks.length; i += 1) {
+    const [start, end] = chunks[i];
+    const part = path.join(work, 'part-' + String(i).padStart(2, '0') + '.mp4');
+    parts.push(part);
+
+    console.log('OMS_YOUTUBE_FULL_RENDER_CHUNK_START', JSON.stringify({
+      chunk: i + 1,
+      chunks: chunks.length,
+      frameStart: start,
+      frameEnd: end,
+    }));
+
+    let last = -1;
+    await renderMedia({
+      composition,
+      serveUrl,
+      codec: 'h264',
+      outputLocation: part,
+      inputProps: YOUTUBE_SINGLE_PROMPT_SPEC,
+      frameRange: [start, end],
+      crf: 18,
+      imageFormat: 'jpeg',
+      jpegQuality: 88,
+      pixelFormat: 'yuv420p',
+      concurrency: 1,
+      logLevel: 'warn',
+      onProgress: ({progress}) => {
+        const pct = Math.floor(progress * 100);
+        const bucket = Math.floor(pct / 25) * 25;
+        if (bucket !== last) {
+          last = bucket;
+          console.log('OMS_YOUTUBE_FULL_RENDER_CHUNK_PROGRESS', JSON.stringify({
+            chunk: i + 1,
+            chunks: chunks.length,
+            pct: bucket,
+          }));
+        }
+      },
+    });
+
+    const stat = await fs.stat(part);
+    if (stat.size < 100000) throw new Error('Render chunk is unexpectedly small: ' + (i + 1));
+
+    console.log('OMS_YOUTUBE_FULL_RENDER_CHUNK_COMPLETE', JSON.stringify({
+      chunk: i + 1,
+      chunks: chunks.length,
+      bytes: stat.size,
+    }));
+  }
+
+  const concatFile = path.join(work, 'concat.txt');
+  await fs.writeFile(
+    concatFile,
+    parts.map((part) => "file '" + part.replace(/'/g, "'\\''") + "'").join('\n') + '\n',
+    'utf8',
+  );
+
+  await execFileAsync('ffmpeg', [
+    '-hide_banner',
+    '-loglevel','error',
+    '-f','concat',
+    '-safe','0',
+    '-i',concatFile,
+    '-c','copy',
+    '-movflags','+faststart',
+    '-y',
+    output,
+  ]);
 
   const bytes = await fs.readFile(output);
   if (bytes.length < 1000000) throw new Error('Full render MP4 is unexpectedly small');
@@ -139,6 +196,7 @@ try {
   const proof = {
     ok: true,
     compositionId: YOUTUBE_SINGLE_PROMPT_ID,
+    strategy: 'chunked-low-memory',
     key,
     mediaUrl,
     masterHash: hash,
@@ -149,6 +207,7 @@ try {
     fps: video.r_frame_rate,
     codec: video.codec_name,
     sceneCount: 8,
+    chunks: chunks.length,
     certification: 'NOT_CERTIFIED',
     publishingAllowed: false,
     completedAt: new Date().toISOString(),
