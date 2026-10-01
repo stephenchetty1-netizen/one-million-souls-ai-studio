@@ -7,6 +7,10 @@ import {S3Client, PutObjectCommand} from '@aws-sdk/client-s3';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import {normalizeDirectorSpec} from './director-spec.mjs';
+import {
+  YOUTUBE_SINGLE_PROMPT_ID,
+  normalizeYoutubeSinglePromptSpec,
+} from './youtube-single-prompt.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let bundlePromise = null;
@@ -64,11 +68,16 @@ async function getBundle() {
   return bundlePromise;
 }
 
-export async function renderOmsRemotionDraft(input) {
+export async function renderOmsRemotionDraft(input = {}) {
   if (activeRender) throw new Error('REMOTION_RENDER_ALREADY_RUNNING');
   if (!s3) throw new Error('REMOTION_STORAGE_REQUIRED');
 
-  const spec = normalizeDirectorSpec(input);
+  const youtubeVariant = input?.variant === 'youtube-single-prompt';
+  const compositionId = youtubeVariant ? YOUTUBE_SINGLE_PROMPT_ID : 'OMS-Christian-Short';
+  const spec = youtubeVariant
+    ? normalizeYoutubeSinglePromptSpec(input)
+    : normalizeDirectorSpec(input);
+
   activeRender = true;
   const id = crypto.randomUUID();
   const workdir = path.join(os.tmpdir(), 'oms-remotion', id);
@@ -80,7 +89,7 @@ export async function renderOmsRemotionDraft(input) {
 
     const composition = await selectComposition({
       serveUrl,
-      id: 'OMS-Christian-Short',
+      id: compositionId,
       inputProps: spec,
       logLevel: 'warn',
       offthreadVideoThreads: 1,
@@ -105,7 +114,7 @@ export async function renderOmsRemotionDraft(input) {
         const bucket = Math.floor(pct / 10) * 10;
         if (bucket !== lastLogged) {
           lastLogged = bucket;
-          console.log('OMS_REMOTION_RENDER_PROGRESS', JSON.stringify({id, pct: bucket}));
+          console.log('OMS_REMOTION_RENDER_PROGRESS', JSON.stringify({id, compositionId, pct: bucket}));
         }
       },
     });
@@ -132,7 +141,8 @@ export async function renderOmsRemotionDraft(input) {
       ok: true,
       id,
       renderer: 'remotion-oms-v1',
-      compositionId: 'OMS-Christian-Short',
+      compositionId,
+      variant: youtubeVariant ? 'youtube-single-prompt' : 'christian-short',
       mediaUrl: publicBase() + '/media/' + encodedKey,
       masterHash: hash,
       bytes: bytes.length,
