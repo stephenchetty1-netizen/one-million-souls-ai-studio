@@ -22,6 +22,47 @@ function Grid({frame}){
   }}/>;
 }
 
+function PremiumBackdrop({frame,mode}){
+  const drift=Math.sin(frame/38)*42;
+  const sweep=(frame*5)%1500-250;
+  const pulse=.55+.18*Math.sin(frame/24);
+  const accent=mode==='scripture'||mode==='cta'?C.gold:C.blue;
+  return <AbsoluteFill style={{overflow:'hidden',background:'#03070d'}}>
+    <AbsoluteFill style={{
+      background:'radial-gradient(circle at 78% 16%, rgba(44,140,255,.32), transparent 31%), radial-gradient(circle at 15% 84%, rgba(244,195,78,.14), transparent 28%), linear-gradient(155deg,#02050a 0%,#071526 46%,#03070e 100%)'
+    }}/>
+    <div style={{
+      position:'absolute',left:-220+drift,top:-180,width:920,height:920,borderRadius:'50%',
+      background:'radial-gradient(circle, rgba(44,140,255,.20) 0%, rgba(44,140,255,.08) 34%, transparent 68%)',
+      filter:'blur(18px)',transform:`scale(${1+pulse*.05})`
+    }}/>
+    <div style={{
+      position:'absolute',right:-270-drift,top:520,width:880,height:880,borderRadius:'50%',
+      background:'radial-gradient(circle, rgba(244,195,78,.15) 0%, rgba(244,195,78,.04) 36%, transparent 70%)',
+      filter:'blur(24px)'
+    }}/>
+    <div style={{
+      position:'absolute',left:sweep,top:-300,width:170,height:2450,
+      transform:'rotate(18deg)',background:`linear-gradient(to right, transparent, ${accent}22, transparent)`,
+      filter:'blur(18px)',opacity:.8
+    }}/>
+    <div style={{
+      position:'absolute',inset:-220,
+      backgroundImage:'repeating-radial-gradient(circle at 40% 40%, rgba(255,255,255,.035) 0 1px, transparent 1px 6px)',
+      opacity:.16,transform:`translate3d(${drift*.35}px,${-drift*.18}px,0) scale(1.08)`
+    }}/>
+    <div style={{
+      position:'absolute',left:70,right:70,top:170,height:1,
+      background:'linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent)',
+      boxShadow:'0 0 34px rgba(44,140,255,.25)'
+    }}/>
+    <AbsoluteFill style={{
+      background:'linear-gradient(to bottom,rgba(255,255,255,.015),transparent 23%,transparent 72%,rgba(0,0,0,.44))',
+      boxShadow:'inset 0 0 220px rgba(0,0,0,.72)'
+    }}/>
+  </AbsoluteFill>;
+}
+
 function Particles({frame}){
   return <AbsoluteFill>{Array.from({length:18}).map((_,i)=>{
     const x=(i*173+91)%1000;
@@ -132,7 +173,8 @@ function SceneVisual({scene,durationInFrames}){
     </div>
   </div>;
 
-  return <AbsoluteFill style={{background:'radial-gradient(circle at 78% 18%,rgba(44,140,255,.22),transparent 33%),linear-gradient(160deg,#050a13 0%,#091728 52%,#03060b 100%)',overflow:'hidden'}}>
+  return <AbsoluteFill style={{background:C.bg,overflow:'hidden'}}>
+    <PremiumBackdrop frame={frame} mode={scene.mode}/>
     <Grid frame={frame}/><Particles frame={frame}/>
     <div style={{position:'absolute',left:70,right:70,top:116,zIndex:10,fontFamily:'Lato',fontSize:26,fontWeight:900,letterSpacing:6,color:C.gold}}>{scene.kicker}</div>
     {special}
