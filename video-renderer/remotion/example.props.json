@@ -1,0 +1,81 @@
+{
+  "durationSeconds": 59,
+  "brand": "ONE MILLION SOULS",
+  "theme": "God is still working",
+  "scripture": "Philippians 4:13",
+  "audioUrl": null,
+  "scenes": [
+    {
+      "id": "hook",
+      "start": 0,
+      "end": 1.5,
+      "kicker": "STOP SCROLLING",
+      "title": "WHAT IF GOD IS STILL WORKING?",
+      "body": "Even when you cannot see it.",
+      "mediaUrl": null
+    },
+    {
+      "id": "tension",
+      "start": 1.5,
+      "end": 5,
+      "kicker": "THE WAITING",
+      "title": "SILENCE DOES NOT MEAN ABSENCE",
+      "body": "Faith keeps standing before the answer arrives.",
+      "mediaUrl": null
+    },
+    {
+      "id": "setup",
+      "start": 5,
+      "end": 12,
+      "kicker": "REMEMBER",
+      "title": "GOD HAS NOT LOST YOUR ADDRESS",
+      "body": "Bring the fear, the delay and the questions back to Him.",
+      "mediaUrl": null
+    },
+    {
+      "id": "revelation",
+      "start": 12,
+      "end": 22,
+      "kicker": "SCRIPTURE",
+      "title": "I CAN DO ALL THINGS THROUGH CHRIST",
+      "body": "Philippians 4:13",
+      "mediaUrl": null
+    },
+    {
+      "id": "escalation",
+      "start": 22,
+      "end": 35,
+      "kicker": "KEEP GOING",
+      "title": "DO NOT QUIT IN THE MIDDLE OF THE STORY",
+      "body": "The chapter you are in is not the whole testimony.",
+      "mediaUrl": null
+    },
+    {
+      "id": "application",
+      "start": 35,
+      "end": 47,
+      "kicker": "TODAY",
+      "title": "PRAY. BELIEVE. MOVE.",
+      "body": "Choose one faithful step and take it with Jesus.",
+      "mediaUrl": null
+    },
+    {
+      "id": "payoff",
+      "start": 47,
+      "end": 55,
+      "kicker": "HOLD ON",
+      "title": "YOUR HOPE HAS A NAME: JESUS",
+      "body": "Let His Word be louder than the fear.",
+      "mediaUrl": null
+    },
+    {
+      "id": "cta",
+      "start": 55,
+      "end": 59,
+      "kicker": "ONE MISSION",
+      "title": "ONE MILLION SOULS",
+      "body": "Share this with someone who needs hope today.",
+      "mediaUrl": null
+    }
+  ]
+}

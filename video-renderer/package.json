@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node bootstrap.mjs"
+    "start": "node bootstrap.mjs",
+    "remotion:studio": "remotion studio remotion/index.jsx",
+    "remotion:render": "node remotion/render.mjs",
+    "remotion:smoke": "node remotion/smoke.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.883.0",
+    "@remotion/bundler": "4.0.531",
+    "@remotion/captions": "4.0.531",
     "@remotion/cli": "4.0.531",
     "@remotion/renderer": "4.0.531",
     "node-edge-tts": "^1.2.10",
