@@ -32,7 +32,7 @@ async function assertAudible(file){
   }
   const m=stderr.match(/max_volume:\s*(-?[\d.]+)\s*dB/i);
   const db=m?Number(m[1]):NaN;
-  if(!Number.isFinite(db)||db<-28)throw new Error('PREMIUM_LIAM_AUDIO_INAUDIBLE');
+  if(!Number.isFinite(db)||db<-20)throw new Error('PREMIUM_LIAM_AUDIO_INAUDIBLE');
   return db;
 }
 
@@ -63,7 +63,7 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
   await renderFrames({
     composition,serveUrl,outputDir:framesDir,inputProps:spec,
     imageFormat:'jpeg',imageSequencePattern:'frame-[frame].[ext]',
-    jpegQuality:94,frameRange:[0,composition.durationInFrames-1],
+    jpegQuality:96,frameRange:[0,composition.durationInFrames-1],
     concurrency:1,offthreadVideoThreads:1,
     offthreadVideoCacheSizeInBytes:32*1024*1024,
     mediaCacheSizeInBytes:96*1024*1024,
@@ -85,7 +85,8 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
     '-map','0:v:0','-map','1:a:0',
     '-c:v','libx264','-threads','1',
     '-x264-params','threads=1:lookahead_threads=1:sliced_threads=0',
-    '-preset','slow','-crf','15','-pix_fmt','yuv420p',
+    '-preset','slow','-crf','14','-pix_fmt','yuv420p',
+    '-af','highpass=f=70,lowpass=f=15000,acompressor=threshold=-18dB:ratio=2.2:attack=15:release=120:makeup=2,loudnorm=I=-16:TP=-1.2:LRA=7',
     '-c:a','aac','-b:a','256k','-ar','48000','-ac','2',
     '-t','59','-movflags','+faststart','-y',outputLocation
   ],{timeout:300000,maxBuffer:8*1024*1024});
@@ -111,6 +112,7 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
     visualTier:spec.visualTier,graphicsTier:spec.graphicsTier,
     captionTimingSource:liam.captionTimingSource,
     voiceSourceDurationSeconds:liam.durationSeconds,
+    voiceSourceFormat:liam.sourceFormat,
     voiceRate:liam.rate,
     maxVolumeDb,
   };

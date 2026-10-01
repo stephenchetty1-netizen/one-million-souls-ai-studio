@@ -17,7 +17,7 @@ export const PREMIUM_LIAM_VOICE=Object.freeze({
 });
 
 export function validateEdgeWordCaptions(captions,narration){
-  if(!Array.isArray(captions)||captions.length<40)
+  if(!Array.isArray(captions)||captions.length<80)
     throw new Error('EDGE_WORD_BOUNDARY_TIMESTAMPS_REQUIRED');
   let lastStart=-1;
   let lastEnd=-1;
@@ -33,7 +33,7 @@ export function validateEdgeWordCaptions(captions,narration){
     lastStart=start;
     lastEnd=end;
   }
-  if(lastEnd<45000)throw new Error('EDGE_WORD_BOUNDARY_TIMELINE_TOO_SHORT');
+  if(lastEnd<50000)throw new Error('EDGE_WORD_BOUNDARY_TIMELINE_TOO_SHORT');
   const authored=cleanWords(narration);
   const timed=cleanWords(captions.map(x=>x.text).join(' '));
   if(authored.length!==timed.length)
@@ -78,7 +78,7 @@ export function validateYoutubePremiumMasterContract(spec){
   if(spec.audioTimelinePrepared!==true)
     throw new Error('MEASURED_AUDIO_TIMELINE_REQUIRED');
   const audioDuration=Number(spec.audioDurationSeconds);
-  if(!Number.isFinite(audioDuration)||audioDuration<45||audioDuration>59.05)
+  if(!Number.isFinite(audioDuration)||audioDuration<52||audioDuration>58.8)
     throw new Error('LIAM_AUDIO_DURATION_INVALID');
   if(spec.visualTier!=='PREMIUM_CINEMATIC'||spec.graphicsTier!=='PREMIUM_MOTION')
     throw new Error('PREMIUM_VISUAL_GRAPHICS_TIER_REQUIRED');

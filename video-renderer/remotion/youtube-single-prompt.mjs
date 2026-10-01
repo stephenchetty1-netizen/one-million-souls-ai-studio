@@ -5,14 +5,13 @@ export const YOUTUBE_SINGLE_PROMPT_WIDTH = 1080;
 export const YOUTUBE_SINGLE_PROMPT_HEIGHT = 1920;
 
 export const YOUTUBE_SINGLE_PROMPT_NARRATION =
-  'Stop hiding your light. Jesus calls you to shine. ' +
-  'Fear says stay small, but faith takes the next step even when it is hard. ' +
-  'Matthew five sixteen says let your light shine before others, so your life points people back to the Father. ' +
-  'This is not performance for attention; it is kindness, courage and truth made visible through a life surrendered to Jesus. ' +
-  'When fear speaks, pray first, serve someone, speak life over them, and choose grace instead of anger. ' +
-  'Your ordinary day matters; notice the person beside you, help where you can, and make Jesus visible through love. ' +
-  'One faithful act can awaken hope, one courageous word can strengthen faith, and one light can encourage another. ' +
-  'Be faithful, let your light shine, and give God the glory.';
+  'Stop shrinking the light God placed in you. Jesus did not call you to disappear. He called you to shine. ' +
+  'Fear will tell you to stay quiet, stay comfortable, and stay unseen. Faith says take the next step with Jesus. ' +
+  'Matthew five sixteen says, let your light shine before others. Not for applause. Not for attention. Let your life point people to the Father. ' +
+  'Pray when nobody is watching. Serve when nobody is clapping. Speak hope when fear is louder. Choose grace when anger would be easier. ' +
+  'Your ordinary day can carry the presence of Christ. One act of kindness can restore hope. One faithful word can strengthen someone. ' +
+  'One surrendered life can lead another soul toward Jesus. You do not need a platform to shine. You need faithfulness. ' +
+  'Let your light shine, and give God all the glory.';
 
 export const YOUTUBE_SINGLE_PROMPT_SPEC = {
   variant:'youtube-single-prompt',
@@ -33,14 +32,14 @@ export const YOUTUBE_SINGLE_PROMPT_SPEC = {
   audioTimelinePrepared:false,
   audioUrl:null,
   scenes:[
-    {id:'hook',mode:'impact',start:0,end:4,kicker:"DON'T SCROLL PAST THIS",title:'STOP HIDING YOUR LIGHT',body:'Jesus calls you to shine.',accent:'LIGHT'},
-    {id:'contrast',mode:'contrast',start:4,end:10,kicker:'THE PRESSURE',title:'FEAR VS FAITH',body:'Fear says stay small. Faith takes the next step.',left:'FEAR: STAY SMALL',right:'FAITH: TAKE THE NEXT STEP'},
-    {id:'scripture',mode:'scripture',start:10,end:18,kicker:'SCRIPTURE',title:'LET YOUR LIGHT SHINE',body:'Matthew 5:16',reference:'MATTHEW 5:16'},
-    {id:'pillars',mode:'cards',start:18,end:27,kicker:'VISIBLE FAITH',title:'KINDNESS • COURAGE • TRUTH',body:'A life surrendered to Jesus.',cards:['KINDNESS','COURAGE','TRUTH']},
-    {id:'signal',mode:'signal',start:27,end:36,kicker:'WHEN FEAR SPEAKS',title:'DO THE FAITHFUL THING',body:'Pray. Serve. Speak life. Choose grace.',chips:['PRAY','SERVE','SPEAK LIFE','CHOOSE GRACE']},
-    {id:'steps',mode:'steps',start:36,end:45,kicker:'TODAY',title:'YOUR ORDINARY DAY MATTERS',body:'Make Jesus visible through love.',steps:['NOTICE','HELP','LOVE']},
-    {id:'network',mode:'network',start:45,end:54,kicker:'ONE LIGHT → ANOTHER',title:'FAITH AWAKENS HOPE',body:'One courageous word can strengthen faith.'},
-    {id:'cta',mode:'cta',start:54,end:59,kicker:'ONE MISSION',title:'LET YOUR LIGHT SHINE',body:'GIVE GOD THE GLORY',accent:'MATTHEW 5:16'},
+    {id:'hook',mode:'impact',start:0,end:5,kicker:'WAKE UP YOUR FAITH',title:'STOP SHRINKING YOUR LIGHT',body:'Jesus did not call you to disappear.',accent:'SHINE'},
+    {id:'contrast',mode:'contrast',start:5,end:12,kicker:'THE BATTLE',title:'FEAR SAYS HIDE. FAITH SAYS MOVE.',body:'Take the next step with Jesus.',left:'FEAR: STAY UNSEEN',right:'FAITH: FOLLOW JESUS'},
+    {id:'scripture',mode:'scripture',start:12,end:20,kicker:'MATTHEW 5:16',title:'LET YOUR LIGHT SHINE',body:'Let your life point people to the Father.',reference:'MATTHEW 5:16'},
+    {id:'pillars',mode:'cards',start:20,end:29,kicker:'NO PERFORMANCE',title:'FAITH THAT CAN BE SEEN',body:'Not applause. Not attention. A life that points to Jesus.',cards:['PRAY','SERVE','SPEAK HOPE']},
+    {id:'signal',mode:'signal',start:29,end:38,kicker:'WHEN LIFE GETS LOUD',title:'CHOOSE THE JESUS WAY',body:'Pray. Serve. Speak hope. Choose grace.',chips:['PRAY','SERVE','SPEAK HOPE','CHOOSE GRACE']},
+    {id:'steps',mode:'steps',start:38,end:47,kicker:'RIGHT WHERE YOU ARE',title:'YOUR ORDINARY DAY MATTERS',body:'Carry the presence of Christ into ordinary moments.',steps:['RESTORE HOPE','STRENGTHEN FAITH','POINT TO JESUS']},
+    {id:'network',mode:'network',start:47,end:55,kicker:'ONE LIFE → ANOTHER',title:'YOUR FAITH CAN LIGHT THE WAY',body:'You do not need a platform. You need faithfulness.'},
+    {id:'cta',mode:'cta',start:55,end:59,kicker:'ONE MISSION',title:'LET YOUR LIGHT SHINE',body:'GIVE GOD ALL THE GLORY',accent:'MATTHEW 5:16'},
   ],
   captions:[],
 };
@@ -54,7 +53,7 @@ export function validateYoutubeSinglePromptSpec(spec){
   if(spec.graphicsTier!=='PREMIUM_MOTION')throw new Error('Premium motion graphics are required');
   if(spec.voiceTier!=='PREMIUM_NEURAL')throw new Error('Premium neural voice is required');
   const narration=String(spec.narration||'').trim();
-  if(narration.split(/\s+/).filter(Boolean).length<80)throw new Error('Narration is too short');
+  if(narration.split(/\s+/).filter(Boolean).length<100)throw new Error('Narration is too short');
   const modes=new Set(['impact','contrast','scripture','cards','signal','steps','network','cta']);
   let cursor=0;
   for(const scene of spec.scenes){

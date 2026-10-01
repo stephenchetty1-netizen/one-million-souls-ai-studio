@@ -48,7 +48,7 @@ assert.equal(youtube.voiceoverRequired,true);
 assert.equal(youtube.visualTier,'PREMIUM_CINEMATIC');
 assert.equal(youtube.graphicsTier,'PREMIUM_MOTION');
 assert.equal(youtube.voiceTier,'PREMIUM_NEURAL');
-assert.ok(String(youtube.narration).split(/\s+/).length>=80);
+assert.ok(String(youtube.narration).split(/\s+/).length>=100);
 assert.equal(youtube.captions.length,0);
 assert.equal(youtube.captionTimingSource,'UNSET');
 
@@ -58,10 +58,10 @@ assert.throws(()=>validateYoutubeSinglePromptSpec({...youtube,visualTier:'BASIC'
 assert.throws(()=>validateYoutubePremiumMasterContract(youtube),/LIAM_NEURAL_VOICE_REQUIRED/);
 
 const authored=String(youtube.narration).trim().split(/\s+/);
-let cursor=500;
+let cursor=400;
 const timed=authored.map((word)=>{
   const start=cursor;
-  const end=start+Math.max(100,Math.round(50000/authored.length));
+  const end=start+Math.max(100,Math.round(54000/authored.length));
   cursor=end;
   return {text:word,startMs:start,endMs:end};
 });
@@ -81,7 +81,7 @@ const master={
   voiceId:PREMIUM_LIAM_VOICE.voiceId,
   voiceType:PREMIUM_LIAM_VOICE.voiceType,
   audioTimelinePrepared:true,
-  audioDurationSeconds:50.5,
+  audioDurationSeconds:55,
   captionTimingSource:'EDGE_WORD_BOUNDARY_TIMESTAMPS',
   captions:timed,
   scenes,
@@ -90,6 +90,7 @@ assert.equal(validateYoutubePremiumMasterContract(master),true);
 assert.throws(()=>validateYoutubePremiumMasterContract({...master,voiceName:'Other'}),/LIAM_NEURAL_VOICE_REQUIRED/);
 assert.throws(()=>validateYoutubePremiumMasterContract({...master,captionTimingSource:'ESTIMATED'}),/EDGE_WORD_BOUNDARY_CAPTION_SOURCE_REQUIRED/);
 assert.throws(()=>validateYoutubePremiumMasterContract({...master,captions:timed.slice(0,-1)}),/CAPTION_WORD_COUNT_MISMATCH/);
+assert.throws(()=>validateYoutubePremiumMasterContract({...master,audioDurationSeconds:47}),/LIAM_AUDIO_DURATION_INVALID/);
 assert.throws(()=>validateYoutubePremiumMasterContract({
   ...master,
   scenes:master.scenes.map((s,i)=>i===0?{...s,visualReviewStatus:'AWAITING_SOURCE_VISUAL_REVIEW'}:s)
@@ -102,4 +103,4 @@ const serveUrl=await bundler.bundle({
 });
 assert.ok(serveUrl);
 
-console.log('Remotion OMS Liam native-word-boundary smoke test passed');
+console.log('Remotion OMS Liam premium pacing and native-boundary smoke test passed');
