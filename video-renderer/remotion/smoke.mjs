@@ -76,7 +76,10 @@ const scenes=youtube.scenes.map((scene,i)=>({
 }));
 const master={
   ...youtube,
-  ...PREMIUM_FRASER_VOICE,
+  voiceProvider:PREMIUM_FRASER_VOICE.provider,
+  voiceName:PREMIUM_FRASER_VOICE.name,
+  voiceId:PREMIUM_FRASER_VOICE.voiceId,
+  voiceType:PREMIUM_FRASER_VOICE.voiceType,
   audioUrl:'https://media.example.test/fraser-master.wav',
   audioTimelinePrepared:true,
   captionTimingSource:'WHISPER_WORD_TIMESTAMPS',
