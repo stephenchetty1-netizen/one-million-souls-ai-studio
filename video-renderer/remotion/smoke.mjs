@@ -14,7 +14,7 @@ import {
   validateYoutubeSinglePromptSpec,
 } from './youtube-single-prompt.mjs';
 import {
-  PREMIUM_FRASER_VOICE,
+  PREMIUM_LIAM_VOICE,
   validateYoutubePremiumMasterContract,
 } from './premium-master-contract.mjs';
 
@@ -22,6 +22,7 @@ const renderer=await import('@remotion/renderer');
 const bundler=await import('@remotion/bundler');
 const captions=await import('@remotion/captions');
 const voiced=await import('./youtube-voiced-renderer.mjs');
+const liam=await import('./liam-voice.mjs');
 
 assert.equal(typeof renderer.renderMedia,'function');
 assert.equal(typeof renderer.renderFrames,'function');
@@ -29,6 +30,7 @@ assert.equal(typeof renderer.selectComposition,'function');
 assert.equal(typeof bundler.bundle,'function');
 assert.equal(typeof captions.createTikTokStyleCaptions,'function');
 assert.equal(typeof voiced.renderYoutubeVoicedAsset,'function');
+assert.equal(typeof liam.prepareLiamNarration,'function');
 
 assert.equal(validateDirectorSpec(DEFAULT_DIRECTOR_SPEC),true);
 const normalized=normalizeDirectorSpec({theme:'Smoke test'});
@@ -53,13 +55,11 @@ assert.equal(youtube.captionTimingSource,'UNSET');
 assert.throws(()=>validateYoutubeSinglePromptSpec({...youtube,voiceoverRequired:false}),/requires voiceover/);
 assert.throws(()=>validateYoutubeSinglePromptSpec({...youtube,voiceTier:'BASIC'}),/Premium neural voice/);
 assert.throws(()=>validateYoutubeSinglePromptSpec({...youtube,visualTier:'BASIC'}),/Premium cinematic backgrounds/);
-
-// A preview spec must never be accepted as a professional master.
-assert.throws(()=>validateYoutubePremiumMasterContract(youtube),/FRASER_PREMIUM_VOICE_REQUIRED/);
+assert.throws(()=>validateYoutubePremiumMasterContract(youtube),/LIAM_NEURAL_VOICE_REQUIRED/);
 
 const authored=String(youtube.narration).trim().split(/\s+/);
 let cursor=500;
-const timed=authored.map((word,i)=>{
+const timed=authored.map((word)=>{
   const start=cursor;
   const end=start+Math.max(100,Math.round(50000/authored.length));
   cursor=end;
@@ -76,19 +76,19 @@ const scenes=youtube.scenes.map((scene,i)=>({
 }));
 const master={
   ...youtube,
-  voiceProvider:PREMIUM_FRASER_VOICE.provider,
-  voiceName:PREMIUM_FRASER_VOICE.name,
-  voiceId:PREMIUM_FRASER_VOICE.voiceId,
-  voiceType:PREMIUM_FRASER_VOICE.voiceType,
-  audioUrl:'https://media.example.test/fraser-master.wav',
+  voiceProvider:PREMIUM_LIAM_VOICE.provider,
+  voiceName:PREMIUM_LIAM_VOICE.name,
+  voiceId:PREMIUM_LIAM_VOICE.voiceId,
+  voiceType:PREMIUM_LIAM_VOICE.voiceType,
   audioTimelinePrepared:true,
-  captionTimingSource:'WHISPER_WORD_TIMESTAMPS',
+  audioDurationSeconds:50.5,
+  captionTimingSource:'EDGE_WORD_BOUNDARY_TIMESTAMPS',
   captions:timed,
   scenes,
 };
 assert.equal(validateYoutubePremiumMasterContract(master),true);
-assert.throws(()=>validateYoutubePremiumMasterContract({...master,voiceName:'Other'}),/FRASER_PREMIUM_VOICE_REQUIRED/);
-assert.throws(()=>validateYoutubePremiumMasterContract({...master,captionTimingSource:'ESTIMATED'}),/WHISPER_CAPTION_SOURCE_REQUIRED/);
+assert.throws(()=>validateYoutubePremiumMasterContract({...master,voiceName:'Other'}),/LIAM_NEURAL_VOICE_REQUIRED/);
+assert.throws(()=>validateYoutubePremiumMasterContract({...master,captionTimingSource:'ESTIMATED'}),/EDGE_WORD_BOUNDARY_CAPTION_SOURCE_REQUIRED/);
 assert.throws(()=>validateYoutubePremiumMasterContract({...master,captions:timed.slice(0,-1)}),/CAPTION_WORD_COUNT_MISMATCH/);
 assert.throws(()=>validateYoutubePremiumMasterContract({
   ...master,
@@ -102,4 +102,4 @@ const serveUrl=await bundler.bundle({
 });
 assert.ok(serveUrl);
 
-console.log('Remotion OMS premium Fraser sync smoke test passed');
+console.log('Remotion OMS Liam native-word-boundary smoke test passed');

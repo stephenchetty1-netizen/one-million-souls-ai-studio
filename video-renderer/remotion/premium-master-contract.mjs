@@ -1,5 +1,4 @@
 const HTTPS=/^https:\/\//i;
-const FRASER_ID='6705e465-7b52-5915-a1d8-b1222885e01d';
 
 const cleanWords=(text)=>String(text||'')
   .toLowerCase()
@@ -9,16 +8,17 @@ const cleanWords=(text)=>String(text||'')
   .split(/\s+/)
   .filter(Boolean);
 
-export const PREMIUM_FRASER_VOICE=Object.freeze({
-  provider:'HIGGSFIELD_ELEVENLABS',
-  name:'Fraser',
-  voiceId:FRASER_ID,
-  voiceType:'preset',
+export const PREMIUM_LIAM_VOICE=Object.freeze({
+  provider:'MICROSOFT_EDGE_NEURAL',
+  name:'Liam',
+  voiceId:'en-CA-LiamNeural',
+  voiceType:'azure-neural',
+  lang:'en-CA',
 });
 
-export function validateWhisperWordCaptions(captions,narration){
+export function validateEdgeWordCaptions(captions,narration){
   if(!Array.isArray(captions)||captions.length<40)
-    throw new Error('WHISPER_WORD_TIMESTAMPS_REQUIRED');
+    throw new Error('EDGE_WORD_BOUNDARY_TIMESTAMPS_REQUIRED');
   let lastStart=-1;
   let lastEnd=-1;
   for(const c of captions){
@@ -26,12 +26,14 @@ export function validateWhisperWordCaptions(captions,narration){
     const start=Number(c?.startMs);
     const end=Number(c?.endMs);
     if(!text||!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start)
-      throw new Error('WHISPER_WORD_TIMING_INVALID');
+      throw new Error('EDGE_WORD_BOUNDARY_INVALID');
     if(start<lastStart||end<lastEnd)
-      throw new Error('WHISPER_WORD_TIMING_NOT_MONOTONIC');
-    if(end>59050)throw new Error('WHISPER_WORD_TIMING_EXCEEDS_MASTER');
-    lastStart=start; lastEnd=end;
+      throw new Error('EDGE_WORD_BOUNDARY_NOT_MONOTONIC');
+    if(end>59050)throw new Error('EDGE_WORD_BOUNDARY_EXCEEDS_MASTER');
+    lastStart=start;
+    lastEnd=end;
   }
+  if(lastEnd<45000)throw new Error('EDGE_WORD_BOUNDARY_TIMELINE_TOO_SHORT');
   const authored=cleanWords(narration);
   const timed=cleanWords(captions.map(x=>x.text).join(' '));
   if(authored.length!==timed.length)
@@ -66,20 +68,21 @@ export function validateReviewedPremiumScenes(scenes){
 
 export function validateYoutubePremiumMasterContract(spec){
   if(!spec||typeof spec!=='object')throw new Error('PREMIUM_MASTER_SPEC_REQUIRED');
-  if(spec.voiceProvider!==PREMIUM_FRASER_VOICE.provider||
-     spec.voiceName!==PREMIUM_FRASER_VOICE.name||
-     spec.voiceId!==PREMIUM_FRASER_VOICE.voiceId||
-     spec.voiceType!==PREMIUM_FRASER_VOICE.voiceType)
-    throw new Error('FRASER_PREMIUM_VOICE_REQUIRED');
-  if(spec.captionTimingSource!=='WHISPER_WORD_TIMESTAMPS')
-    throw new Error('WHISPER_CAPTION_SOURCE_REQUIRED');
+  if(spec.voiceProvider!==PREMIUM_LIAM_VOICE.provider||
+     spec.voiceName!==PREMIUM_LIAM_VOICE.name||
+     spec.voiceId!==PREMIUM_LIAM_VOICE.voiceId||
+     spec.voiceType!==PREMIUM_LIAM_VOICE.voiceType)
+    throw new Error('LIAM_NEURAL_VOICE_REQUIRED');
+  if(spec.captionTimingSource!=='EDGE_WORD_BOUNDARY_TIMESTAMPS')
+    throw new Error('EDGE_WORD_BOUNDARY_CAPTION_SOURCE_REQUIRED');
   if(spec.audioTimelinePrepared!==true)
     throw new Error('MEASURED_AUDIO_TIMELINE_REQUIRED');
-  if(!HTTPS.test(String(spec.audioUrl||'')))
-    throw new Error('FRASER_AUDIO_URL_REQUIRED');
+  const audioDuration=Number(spec.audioDurationSeconds);
+  if(!Number.isFinite(audioDuration)||audioDuration<45||audioDuration>59.05)
+    throw new Error('LIAM_AUDIO_DURATION_INVALID');
   if(spec.visualTier!=='PREMIUM_CINEMATIC'||spec.graphicsTier!=='PREMIUM_MOTION')
     throw new Error('PREMIUM_VISUAL_GRAPHICS_TIER_REQUIRED');
-  validateWhisperWordCaptions(spec.captions,spec.narration);
+  validateEdgeWordCaptions(spec.captions,spec.narration);
   validateReviewedPremiumScenes(spec.scenes);
   return true;
 }

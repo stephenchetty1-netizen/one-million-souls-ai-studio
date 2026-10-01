@@ -5,6 +5,7 @@ import {promisify} from 'node:util';
 import {renderFrames,selectComposition} from '@remotion/renderer';
 import {YOUTUBE_SINGLE_PROMPT_ID,normalizeYoutubeSinglePromptSpec} from './youtube-single-prompt.mjs';
 import {validateYoutubePremiumMasterContract} from './premium-master-contract.mjs';
+import {prepareLiamNarration} from './liam-voice.mjs';
 
 const execFileAsync=promisify(execFile);
 
@@ -31,12 +32,25 @@ async function assertAudible(file){
   }
   const m=stderr.match(/max_volume:\s*(-?[\d.]+)\s*dB/i);
   const db=m?Number(m[1]):NaN;
-  if(!Number.isFinite(db)||db<-28)throw new Error('PREMIUM_FRASER_AUDIO_INAUDIBLE');
+  if(!Number.isFinite(db)||db<-28)throw new Error('PREMIUM_LIAM_AUDIO_INAUDIBLE');
   return db;
 }
 
 export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,outputLocation,onProgress=()=>{}}){
-  const spec=normalizeYoutubeSinglePromptSpec(inputSpec);
+  const baseSpec=normalizeYoutubeSinglePromptSpec(inputSpec);
+  const liam=await prepareLiamNarration({narration:baseSpec.narration,workdir});
+  const spec={
+    ...baseSpec,
+    audioUrl:null,
+    voiceProvider:liam.voiceProvider,
+    voiceName:liam.voiceName,
+    voiceId:liam.voiceId,
+    voiceType:liam.voiceType,
+    captionTimingSource:liam.captionTimingSource,
+    audioTimelinePrepared:true,
+    audioDurationSeconds:liam.durationSeconds,
+    captions:liam.captions,
+  };
   validateYoutubePremiumMasterContract(spec);
 
   const framesDir=path.join(workdir,'frames');
@@ -49,10 +63,10 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
   await renderFrames({
     composition,serveUrl,outputDir:framesDir,inputProps:spec,
     imageFormat:'jpeg',imageSequencePattern:'frame-[frame].[ext]',
-    jpegQuality:92,frameRange:[0,composition.durationInFrames-1],
+    jpegQuality:94,frameRange:[0,composition.durationInFrames-1],
     concurrency:1,offthreadVideoThreads:1,
     offthreadVideoCacheSizeInBytes:32*1024*1024,
-    mediaCacheSizeInBytes:64*1024*1024,
+    mediaCacheSizeInBytes:96*1024*1024,
     logLevel:'warn',
     onFrameUpdate:(framesRendered)=>onProgress({
       phase:'frames',
@@ -67,14 +81,14 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
   await execFileAsync('ffmpeg',[
     '-hide_banner','-loglevel','error',
     '-framerate','30','-start_number','0','-i',path.join(framesDir,'frame-%04d.jpeg'),
-    '-i',spec.audioUrl,
+    '-i',liam.audioPath,
     '-map','0:v:0','-map','1:a:0',
     '-c:v','libx264','-threads','1',
     '-x264-params','threads=1:lookahead_threads=1:sliced_threads=0',
-    '-preset','slow','-crf','16','-pix_fmt','yuv420p',
+    '-preset','slow','-crf','15','-pix_fmt','yuv420p',
     '-c:a','aac','-b:a','256k','-ar','48000','-ac','2',
     '-t','59','-movflags','+faststart','-y',outputLocation
-  ],{timeout:240000,maxBuffer:8*1024*1024});
+  ],{timeout:300000,maxBuffer:8*1024*1024});
 
   const profile=await probe(outputLocation);
   const video=(profile.streams||[]).find(s=>s.codec_type==='video');
@@ -92,10 +106,12 @@ export async function renderYoutubeVoicedAsset({spec:inputSpec,serveUrl,workdir,
     audioPresent:true,voiceover:true,narrationPresent:true,
     audioCodec:audio.codec_name,audioChannels:Number(audio.channels),
     audioSampleRate:Number(audio.sample_rate),
-    voiceProvider:spec.voiceProvider,voiceName:spec.voiceName,
-    voiceId:spec.voiceId,voiceTier:spec.voiceTier,
+    voiceProvider:liam.voiceProvider,voiceName:liam.voiceName,
+    voiceId:liam.voiceId,voiceTier:spec.voiceTier,
     visualTier:spec.visualTier,graphicsTier:spec.graphicsTier,
-    captionTimingSource:spec.captionTimingSource,
+    captionTimingSource:liam.captionTimingSource,
+    voiceSourceDurationSeconds:liam.durationSeconds,
+    voiceRate:liam.rate,
     maxVolumeDb,
   };
 }
